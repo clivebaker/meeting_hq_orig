@@ -1,0 +1,12 @@
+
+<p><%= @organisation.name %></p>
+<p>Invite user to this organisation</p>
+
+<%= form_tag organisation_invite_path(@organisation) do %>
+
+
+<%= text_field_tag :invite_email %>
+
+<%=  submit_tag "Invite" %>
+
+<% end %>

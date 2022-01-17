@@ -1,0 +1,16 @@
+
+<%= render @organisation %>
+
+
+
+<p>
+  <%= link_to 'Invite user to this organisation', organisation_invite_path(@organisation) %>
+</p>
+
+
+<div>
+  <%= link_to "Edit this organisation", edit_organisation_path(@organisation) %> |
+  <%= link_to "Back to organisations", organisations_path %>
+
+  <%= button_to "Destroy this organisation", @organisation, method: :delete %>
+</div>
