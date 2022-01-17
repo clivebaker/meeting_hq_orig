@@ -9,38 +9,6 @@ class OrganisationsController < ApplicationController
   # GET /organisations/1 or /organisations/1.json
   def show
   end
-
-
-  def invite
-    @organisation = Organisation.find(params[:organisation_id])
-  end
-  
-
-  def send_invite
-    @organisation = Organisation.find(params[:organisation_id])
-    
-    if @organisation.user_ids.include?(current_user.id) # check if this user belongs to the organisation you are sharing
-
-      invited_user = User.find_or_create_by(email: params[:invite_email])
-      organisation_user = OrganisationUser.new(
-        user_id: invited_user.id,
-        organisation_id: @organisation.id, 
-        invited: true
-      )
-
-
-    end
-
-
-    respond_to do |format|
-      if organisation_user.save
-        format.html { redirect_to organisation_url(@organisation), notice: "#{params[:invite_email]} has been invited to the #{@organisation.name} successfully." }
-      else
-        format.html { render :invite, status: :unprocessable_entity, alert: 'Cannot save' }
-      end
-    end
-
-  end
   
 
   # GET /organisations/new
@@ -59,7 +27,6 @@ class OrganisationsController < ApplicationController
 
     respond_to do |format|
       if @organisation.save
-        binding.pry
         @organisation.users << current_user
         format.html { redirect_to organisation_url(@organisation), notice: "Organisation was successfully created." }
         format.json { render :show, status: :created, location: @organisation }

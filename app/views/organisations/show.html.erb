@@ -4,7 +4,7 @@
 
 
 <p>
-  <%= link_to 'Invite user to this organisation', organisation_invite_path(@organisation) %>
+  <%= link_to 'Invite user to this organisation', new_user_invitation_path(organisation_id: @organisation.id) %>
 </p>
 
 
