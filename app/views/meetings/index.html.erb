@@ -6,9 +6,9 @@
   <% @meetings.each do |meeting| %>
     <%= render meeting %>
     <p>
-      <%= link_to "Show this meeting", meeting %>
+      <%= link_to "Show this meeting", organisation_meeting_path(@organisation, meeting) %>
     </p>
   <% end %>
 </div>
 
-<%= link_to "New meeting", new_meeting_path %>
+<%= link_to "New meeting", new_organisation_meeting_path(@organisation) %>

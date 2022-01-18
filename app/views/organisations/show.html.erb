@@ -7,6 +7,10 @@
   <%= link_to 'Invite user to this organisation', new_user_invitation_path(organisation_id: @organisation.id) %>
 </p>
 
+<p>
+  <%= link_to 'Meetings', organisation_meetings_path(@organisation) %>
+</p>
+
 
 <div>
   <%= link_to "Edit this organisation", edit_organisation_path(@organisation) %> |

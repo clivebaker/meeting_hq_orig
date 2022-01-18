@@ -1,4 +1,6 @@
 class AgendasController < ApplicationController
+  before_action :set_organisation
+  before_action :set_meeting
   before_action :set_agenda, only: %i[ show edit update destroy ]
 
   # GET /agendas or /agendas.json
@@ -58,6 +60,12 @@ class AgendasController < ApplicationController
   end
 
   private
+    def set_meeting
+      @meeting = Meeting.find(params[:meeting_id])
+    end
+    def set_organisation
+      @organisation = Organisation.find(params[:organisation_id])
+    end
     # Use callbacks to share common setup or constraints between actions.
     def set_agenda
       @agenda = Agenda.find(params[:id])
