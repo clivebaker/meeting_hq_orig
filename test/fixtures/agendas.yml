@@ -1,0 +1,13 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  meeting: one
+  name: MyString
+  position: 1
+  state: MyString
+
+two:
+  meeting: two
+  name: MyString
+  position: 1
+  state: MyString
