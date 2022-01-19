@@ -7,13 +7,30 @@
     <%= csp_meta_tag %>
 
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
-    <%= javascript_importmap_tags %>
+    <%= javascript_include_tag "application", "data-turbo-track": "reload", defer: true %>
+    <%= javascript_include_tag "app", "data-turbo-track": "reload", defer: true %>
+
+    <script src="https://kit.fontawesome.com/adbf4b0fe6.js" crossorigin="anonymous"></script>
+
+    <link href="/css/light.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500&display=swap" rel="stylesheet">
+
   </head>
 
-  <body>
+  <body data-theme="default" data-layout="fluid" data-sidebar-position="left" data-sidebar-behavior="sticky">
+  	<%= render 'layouts/messages' %>
+    <div class="wrapper">
+      <%= render 'layouts/left_nav' %>
+  		<div class="main">
+        <%= render 'layouts/top_nav' %>
+        <%= yield %>
+        <%= render 'layouts/footer' %>
+      </div>
+    </div>
 
-    <%= render 'layouts/messages' %>
-    <%= render 'layouts/top_nav' %>
+
+    <%#= render 'layouts/messages' %>
+    <%#= render 'layouts/top_nav' %>
 	
     <%= yield %>
 

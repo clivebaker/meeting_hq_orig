@@ -1,2 +1,11 @@
-<p class="notice"><%= notice %></p>
-<p class="alert"><%= alert %></p>
+
+
+<script> 
+window.addEventListener('load', function() {
+      // Display an error notification
+<% if alert %>notyf.error('<%= alert %>');<% end %>
+<% if notice %>notyf.success('<%= notice %>');<% end %>
+
+});
+
+</script>

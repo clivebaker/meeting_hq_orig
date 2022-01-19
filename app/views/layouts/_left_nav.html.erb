@@ -1,0 +1,31 @@
+		<nav id="sidebar" class="sidebar">
+			<div class="sidebar-content js-simplebar">
+				<a class="sidebar-brand" href="/">
+					<span class="align-middle me-3"><%= image_tag 'logo.png', height: 80 %></span>
+        </a>
+
+				<ul class="sidebar-nav">
+					
+					
+					<li class="sidebar-item <%= nav_active?('games_nights') %>">
+						<%= link_to '#', class: "sidebar-link" do %>
+							<i class="fal fa-house-night"></i> 
+							<span class="align-middle">Games Nights</span>
+							<span class="badge badge-sidebar-primary"><%#= @games_nights.count %></span>
+						<% end %>
+					</li>
+
+					<li class="sidebar-item <%= nav_includes?(['games'])[:active] %>">
+						<a data-bs-target="#settings" data-bs-toggle="collapse" class="sidebar-link collapsed">
+             <i class="fal fa-cog"></i> <span class="align-middle">Settings</span>
+            </a>
+						<ul id="settings" class="sidebar-dropdown list-unstyled <%= nav_includes?(['games'])[:collapse] %> " data-bs-parent="#sidebar">
+            	<li class="sidebar-item <%= nav_active?('games') %>"><%= link_to '#', class: "sidebar-link" do %><i class="fal fa-game-board"></i> Games<% end %></li>
+						</ul>
+					</li>
+
+
+				</ul>
+
+			</div>
+		</nav>
