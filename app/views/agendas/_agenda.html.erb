@@ -18,5 +18,45 @@
     <strong>State:</strong>
     <%= agenda.aasm_state %>
   </p>
+  <p>
+    <strong>Versions:</strong>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Number</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Event</th>
+          <th>Who</th>
+          <th>Change</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% agenda.versions.each do |version| %>
+        <tr>
+          <td><%= version.index %></td>
+          <td><%= version.created_at.strftime("%d %b '%y") %></td>
+          <td><%= version.created_at.strftime("%H:%M") %></td>
+          <td><%= version.event %></td>
+          <td><%= User.find(version.whodunnit).name %></td>
+          <td>
+            <% changes = version.changeset %>
+            <ul>
+            <% changes.keys.reject{|s| ['updated_at', 'created_at'].include?(s)}.each do |key| %>
+              <li><%= key %> changed to '<%= changes[key].last %>'</li>
+            <% end unless version.event == 'create' %>
+            </ul>
+          </td>
+        </tr>
+        <% end %>
+      </tbody>
+    </table>
+    
+    
+    
+    
+    
+     
+  </p>
 
 </div>
