@@ -1,4 +1,3 @@
-<p style="color: green"><%= notice %></p>
 
 <h1>Agendas</h1>
 
@@ -6,9 +5,9 @@
   <% @agendas.each do |agenda| %>
     <%= render agenda %>
     <p>
-      <%= link_to "Show this agenda", agenda %>
+      <%= link_to "Show this agenda", organisation_meeting_agenda_path(@organisation, @meeting, agenda) %>
     </p>
   <% end %>
 </div>
 
-<%= link_to "New agenda", new_agenda_path %>
+<%= link_to "New agenda", new_organisation_meeting_agenda_path(@organisation, @meeting) %>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2022_01_18_003829) do
+ActiveRecord::Schema.define(version: 2022_01_19_005438) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -19,9 +19,9 @@ ActiveRecord::Schema.define(version: 2022_01_18_003829) do
     t.bigint "meeting_id", null: false
     t.string "name"
     t.integer "position"
-    t.string "state"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.string "aasm_state"
     t.index ["meeting_id"], name: "index_agendas_on_meeting_id"
   end
 
@@ -30,10 +30,10 @@ ActiveRecord::Schema.define(version: 2022_01_18_003829) do
     t.string "name"
     t.text "note"
     t.integer "position"
-    t.string "state"
     t.bigint "user_id", null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.string "aasm_state"
     t.index ["meeting_id"], name: "index_meeting_actions_on_meeting_id"
     t.index ["user_id"], name: "index_meeting_actions_on_user_id"
   end
@@ -53,6 +53,8 @@ ActiveRecord::Schema.define(version: 2022_01_18_003829) do
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.boolean "invited", default: false
+    t.datetime "discarded_at", precision: 6
+    t.index ["discarded_at"], name: "index_organisation_users_on_discarded_at"
     t.index ["organisation_id"], name: "index_organisation_users_on_organisation_id"
     t.index ["user_id"], name: "index_organisation_users_on_user_id"
   end
@@ -79,11 +81,25 @@ ActiveRecord::Schema.define(version: 2022_01_18_003829) do
     t.string "invited_by_type"
     t.bigint "invited_by_id"
     t.integer "invitations_count", default: 0
+    t.string "first_name"
+    t.string "last_name"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["invitation_token"], name: "index_users_on_invitation_token", unique: true
     t.index ["invited_by_id"], name: "index_users_on_invited_by_id"
     t.index ["invited_by_type", "invited_by_id"], name: "index_users_on_invited_by"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+  end
+
+  create_table "versions", force: :cascade do |t|
+    t.string "item_type"
+    t.string "{:null=>false}"
+    t.bigint "item_id", null: false
+    t.string "event", null: false
+    t.string "whodunnit"
+    t.text "object"
+    t.datetime "created_at", precision: 6
+    t.text "object_changes"
+    t.index ["item_type", "item_id"], name: "index_versions_on_item_type_and_item_id"
   end
 
   add_foreign_key "agendas", "meetings"

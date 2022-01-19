@@ -1,7 +1,7 @@
 <div id="<%= dom_id agenda %>">
   <p>
     <strong>Meeting:</strong>
-    <%= agenda.meeting_id %>
+    <%= agenda.meeting_name %>
   </p>
 
   <p>
@@ -16,7 +16,7 @@
 
   <p>
     <strong>State:</strong>
-    <%= agenda.state %>
+    <%= agenda.aasm_state %>
   </p>
 
 </div>

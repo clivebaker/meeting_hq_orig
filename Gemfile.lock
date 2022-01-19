@@ -1,6 +1,8 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    aasm (5.2.0)
+      concurrent-ruby (~> 1.0)
     actioncable (7.0.1)
       actionpack (= 7.0.1)
       activesupport (= 7.0.1)
@@ -66,6 +68,8 @@ GEM
       i18n (>= 1.6, < 2)
       minitest (>= 5.1)
       tzinfo (~> 2.0)
+    acts_as_list (1.0.4)
+      activerecord (>= 4.2)
     addressable (2.8.0)
       public_suffix (>= 2.0.2, < 5.0)
     bcrypt (3.1.16)
@@ -99,6 +103,8 @@ GEM
       actionmailer (>= 5.0)
       devise (>= 4.6)
     digest (3.1.0)
+    discard (1.2.1)
+      activerecord (>= 4.2, < 8)
     erubi (1.10.0)
     globalid (1.0.0)
       activesupport (>= 5.0)
@@ -144,6 +150,9 @@ GEM
     nokogiri (1.13.1-x86_64-darwin)
       racc (~> 1.4)
     orm_adapter (0.5.0)
+    paper_trail (12.1.0)
+      activerecord (>= 5.2)
+      request_store (~> 1.1)
     pg (1.2.3)
     pry (0.14.1)
       coderay (~> 1.1)
@@ -186,6 +195,8 @@ GEM
     regexp_parser (2.2.0)
     reline (0.3.1)
       io-console (~> 0.5)
+    request_store (1.5.1)
+      rack (>= 1.4)
     responders (3.0.1)
       actionpack (>= 5.0)
       railties (>= 5.0)
@@ -234,13 +245,17 @@ PLATFORMS
   x86_64-darwin-21
 
 DEPENDENCIES
+  aasm (~> 5.2)
+  acts_as_list (~> 1.0, >= 1.0.4)
   bootsnap
   capybara
   debug
   devise
   devise_invitable (~> 2.0.0)
+  discard (~> 1.2)
   importmap-rails
   jbuilder
+  paper_trail (~> 12.1)
   pg (~> 1.1)
   pry
   puma (~> 5.0)

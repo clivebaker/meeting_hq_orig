@@ -1,10 +1,10 @@
-<p style="color: green"><%= notice %></p>
 
 <%= render @agenda %>
 
 <div>
-  <%= link_to "Edit this agenda", edit_agenda_path(@agenda) %> |
-  <%= link_to "Back to agendas", agendas_path %>
+  <%= link_to "Edit this agenda", edit_organisation_meeting_agenda_path(@organisation, @meeting, @agenda) %> |
+  <%= link_to "Back to agendas", organisation_meeting_agendas_path(@organisation, @meeting) %>
 
-  <%= button_to "Destroy this agenda", @agenda, method: :delete %>
+
+  <%= button_to "Destroy this agenda", organisation_meeting_agenda_path(@organisation, @meeting, @agenda), method: :delete  %>
 </div>

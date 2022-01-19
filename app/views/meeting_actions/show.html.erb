@@ -1,10 +1,9 @@
-<p style="color: green"><%= notice %></p>
 
 <%= render @meeting_action %>
 
 <div>
-  <%= link_to "Edit this meeting action", edit_meeting_action_path(@meeting_action) %> |
-  <%= link_to "Back to meeting actions", meeting_actions_path %>
+  <%= link_to "Edit this meeting action", edit_organisation_meeting_meeting_action_path(@organisation, @meeting, @meeting_action) %> |
+  <%= link_to "Back to meeting actions", organisation_meeting_meeting_actions_path(@organisation, @meeting) %>
 
-  <%= button_to "Destroy this meeting action", @meeting_action, method: :delete %>
+  <%= button_to "Destroy this meeting action", organisation_meeting_meeting_action_path(@organisation, @meeting, @meeting_action), method: :delete %>
 </div>

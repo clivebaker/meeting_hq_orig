@@ -1,7 +1,7 @@
 <div id="<%= dom_id meeting_action %>">
   <p>
     <strong>Meeting:</strong>
-    <%= meeting_action.meeting_id %>
+    <%= meeting_action.meeting_name %>
   </p>
 
   <p>
@@ -21,12 +21,12 @@
 
   <p>
     <strong>State:</strong>
-    <%= meeting_action.state %>
+    <%= meeting_action.aasm_state %>
   </p>
 
   <p>
     <strong>User:</strong>
-    <%= meeting_action.user_id %>
+    <%= meeting_action.user_name %> (<%= meeting_action.user_initials %>)
   </p>
 
 </div>

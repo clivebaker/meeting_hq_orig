@@ -1,7 +1,40 @@
 
 <%= render @organisation %>
 
-
+<p>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Users in Organisation</th>
+      </tr>
+    </thead>
+    <body>
+      <% @organisation.organisation_users.active.each do |organisation_users| %>
+      <tr>
+        <td><%= organisation_users.user_name %></td>
+        <td><%= link_to 'Remove from Organisation', organisation_remove_user_path(@organisation, organisation_users.user_id), data: { "turbo-method": :post } if current_user.id != organisation_users.user_id %></td>
+      </tr>
+      <% end %>
+    </body>
+  </table>
+</p>
+<p>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Users removed from Organisation</th>
+      </tr>
+    </thead>
+    <body>
+      <% @organisation.organisation_users.discarded.each do |organisation_users| %>
+      <tr>
+        <td><%= organisation_users.user_name %></td>
+        <td><%= link_to 'Add back to Organisation', organisation_add_user_path(@organisation, organisation_users.user_id), data: { "turbo-method": :post } if current_user.id != organisation_users.user_id %></td>
+      </tr>
+      <% end %>
+    </body>
+  </table>
+</p>
 
 <p>
   <%= link_to 'Invite user to this organisation', new_user_invitation_path(organisation_id: @organisation.id) %>
@@ -16,5 +49,5 @@
   <%= link_to "Edit this organisation", edit_organisation_path(@organisation) %> |
   <%= link_to "Back to organisations", organisations_path %>
 
-  <%= button_to "Destroy this organisation", @organisation, method: :delete %>
+  <%= button_to "Destroy this organisation", @organisation, method: :delete if @organisation.meetings.blank? %>
 </div>

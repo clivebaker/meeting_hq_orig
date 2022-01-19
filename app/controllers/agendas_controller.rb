@@ -15,6 +15,7 @@ class AgendasController < ApplicationController
   # GET /agendas/new
   def new
     @agenda = Agenda.new
+    @agenda.meeting_id = @meeting.id
   end
 
   # GET /agendas/1/edit
@@ -27,7 +28,7 @@ class AgendasController < ApplicationController
 
     respond_to do |format|
       if @agenda.save
-        format.html { redirect_to agenda_url(@agenda), notice: "Agenda was successfully created." }
+        format.html { redirect_to organisation_meeting_agenda_url(@organisation, @meeting, @agenda), notice: "Agenda was successfully created." }
         format.json { render :show, status: :created, location: @agenda }
       else
         format.html { render :new, status: :unprocessable_entity }
@@ -40,7 +41,7 @@ class AgendasController < ApplicationController
   def update
     respond_to do |format|
       if @agenda.update(agenda_params)
-        format.html { redirect_to agenda_url(@agenda), notice: "Agenda was successfully updated." }
+        format.html { redirect_to organisation_meeting_agenda_url(@organisation, @meeting, @agenda), notice: "Agenda was successfully updated." }
         format.json { render :show, status: :ok, location: @agenda }
       else
         format.html { render :edit, status: :unprocessable_entity }
@@ -54,7 +55,7 @@ class AgendasController < ApplicationController
     @agenda.destroy
 
     respond_to do |format|
-      format.html { redirect_to agendas_url, notice: "Agenda was successfully destroyed." }
+      format.html { redirect_to organisation_meeting_agendas_url(@organisation, @meeting), notice: "Agenda was successfully destroyed." }
       format.json { head :no_content }
     end
   end
@@ -73,6 +74,6 @@ class AgendasController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def agenda_params
-      params.require(:agenda).permit(:meeting_id, :name, :position, :state)
+      params.require(:agenda).permit(:meeting_id, :name)
     end
 end

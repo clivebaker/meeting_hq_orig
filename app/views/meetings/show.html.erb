@@ -1,9 +1,18 @@
 
 <%= render @meeting %>
 
+<p>
+  <%= link_to "Agenda (items: #{@meeting.agendas.count})", organisation_meeting_agendas_path(@organisation, @meeting) %>
+</p>
+
+<p>
+  <%= link_to "Meeting Actions (items: #{@meeting.meeting_actions.count})", organisation_meeting_meeting_actions_path(@organisation, @meeting) %>
+</p>
+
 <div>
   <%= link_to "Edit this meeting", edit_organisation_meeting_path(@organisation, @meeting) %> |
   <%= link_to "Back to meetings", organisation_meetings_path(@organisation) %>
-
-  <%= button_to "Destroy this meeting", organisation_meeting_path(@organisation, @meeting), method: :delete %>
+  <% if @meeting.agendas.blank? and @meeting.meeting_actions.blank? %>
+    <%= button_to "Destroy this meeting", organisation_meeting_path(@organisation, @meeting), method: :delete %>
+  <% end %>
 </div>

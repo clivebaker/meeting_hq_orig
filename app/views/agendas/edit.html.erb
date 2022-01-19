@@ -5,6 +5,6 @@
 <br>
 
 <div>
-  <%= link_to "Show this agenda", @agenda %> |
-  <%= link_to "Back to agendas", agendas_path %>
+  <%= link_to "Show this agenda", organisation_meeting_agenda_path(@organisation, @meeting, @agenda) %> |
+  <%= link_to "Back to agendas", organisation_meeting_agendas_path(@organisation, @meeting) %>
 </div>

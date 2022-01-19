@@ -47,6 +47,10 @@ gem "bootsnap", require: false
 
 gem 'devise'
 gem 'devise_invitable', '~> 2.0.0'
+gem 'acts_as_list', '~> 1.0', '>= 1.0.4'
+gem 'aasm', '~> 5.2'
+gem 'paper_trail', '~> 12.1'
+gem 'discard', '~> 1.2'
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 # gem "image_processing", "~> 1.2"
