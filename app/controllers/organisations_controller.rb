@@ -52,6 +52,7 @@ class OrganisationsController < ApplicationController
 
   # DELETE /organisations/1 or /organisations/1.json
   def destroy
+    @organisation.users.destroy_all
     @organisation.destroy
 
     respond_to do |format|
