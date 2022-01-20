@@ -1,4 +1,91 @@
 
+
+
+
+
+
+<main class="content">
+				<div class="container-fluid p-0">
+
+
+
+				<div class="row">
+						<div class="col-12">
+							<div class="card">
+								<div class="card-header">
+									<div class="card-actions float-end">
+										<div class="dropdown position-relative">
+	
+										</div>
+									</div>
+									<h5 class="card-title mb-0">Meeting: <%= @meeting.name %></h5>
+								</div>
+								<div class="card-body">
+
+
+                  <p>
+                    <%= link_to organisation_meeting_agendas_path(@organisation, @meeting), class: 'btn btn-primary' do %>
+                      Manage Agenda items <span class="badge bg-warning"><%=@meeting.agendas.count%></span>                  
+                    <% end %>
+                  </p>
+                  <p>
+                    <%= link_to organisation_meeting_meeting_actions_path(@organisation, @meeting), class: 'btn btn-primary' do %>
+                      Meeting Actions <span class="badge bg-warning"><%=@meeting.meeting_actions.count%></span>                  
+                    <% end %>
+                  </p>
+
+
+
+
+                <div class="row">
+                  <div class="col">
+                    <%= link_to new_user_invitation_path(organisation_id: @organisation.id), class: 'btn btn-primary' do %>
+                      <i class="far fa-users"></i> Invite users to this organisation 
+                    <% end %>
+                  </div>
+                  <div class="col text-end">
+                  
+                    <%= link_to edit_organisation_meeting_path(@organisation, @meeting) , class: 'btn btn-primary' do %>
+                      <i class="fas fa-edit"></i> Edit this meeting
+                    <% end %>
+                    <%= button_to organisation_meeting_path(@organisation, @meeting), method: :delete, class: 'btn btn-secondary d-inline' do %>
+                      <i class="fas fa-trash-alt"></i> Delete this meeting
+                    <% end  if @meeting.agendas.blank? and @meeting.meeting_actions.blank?%>                 
+                  
+
+
+
+
+
+                  
+                  </div>
+                </div>
+
+
+                  
+
+                </div>
+							</div>
+						</div>
+
+
+					</div>
+
+					
+					<div class="row">
+						<div class="col-xl-6">
+							<div class="card">
+								<div class="card-header">
+									<div class="card-actions float-end">
+										<div class="dropdown position-relative">
+
+										</div>
+									</div>
+									<h5 class="card-title mb-0"><%= @organisation.name %> active users</h5>
+								</div>
+								<div class="card-body">
+
+
 <%= render @meeting %>
 
 <p>
@@ -16,3 +103,32 @@
     <%= button_to "Destroy this meeting", organisation_meeting_path(@organisation, @meeting), method: :delete %>
   <% end %>
 </div>
+
+
+                </div>
+							</div>
+						</div>
+						<div class="col-xl-6">
+							<div class="card">
+								<div class="card-header">
+									<div class="card-actions float-end">
+										<div class="dropdown position-relative">
+
+										</div>
+									</div>
+									<h5 class="card-title mb-0"><%= @organisation.name %> archived users</h5>
+								</div>
+								<div class="card-body">
+
+                
+      dssd
+
+								</div>
+							</div>
+						</div>
+
+
+					</div>
+
+				</div>
+			</main>

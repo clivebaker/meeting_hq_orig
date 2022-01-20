@@ -1,6 +1,7 @@
 Rails.application.routes.draw do
 
-  devise_for :users, controllers: { invitations: 'users/invitations' }
+  devise_for :users, controllers: { invitations: 'users/invitations', registrations: 'users/registrations'}
+  
 
   resources :organisations do
     post "user/:user_id/remove", to: 'users/organisations#remove', as: :remove_user
