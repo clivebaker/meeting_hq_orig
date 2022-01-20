@@ -7,21 +7,51 @@
 				<ul class="sidebar-nav">
 					
 					
-					<li class="sidebar-item <%= nav_active?('games_nights') %>">
-						<%= link_to '#', class: "sidebar-link" do %>
-							<i class="fal fa-house-night"></i> 
-							<span class="align-middle">Games Nights</span>
-							<span class="badge badge-sidebar-primary"><%#= @games_nights.count %></span>
-						<% end %>
+
+
+					<li class="sidebar-item">
+						<a data-bs-target="#multi" data-bs-toggle="collapse" class="sidebar-link collapsed">
+              <i class="fal fa-house-night"></i> <span class="align-middle">Organisations</span>
+            </a>
+						<ul id="multi" class="sidebar-dropdown list-unstyled collapseW" data-bs-parent="#sidebar">
+						<% current_user.organisations.each do |organisation| %>
+							<li class="sidebar-item">
+								<a data-bs-target="#multi-<%=organisation.id%>" data-bs-toggle="collapse" class="sidebar-link collapsed">
+                  <%= organisation.name %>
+                </a>
+								<ul id="multi-<%=organisation.id%>" class="sidebar-dropdown list-unstyled <%= collapse_organisation((@organisation.id if @organisation), organisation.id) %>">
+									<li class="sidebar-item <%= active((@organisation.id if @organisation), organisation.id) if @meeting.blank? and params[:controller] == 'organisations'%>">
+										<%= link_to 'Org Settings', organisation_path(organisation), class: "sidebar-link", 'data-bs-target': "#" %>
+									</li>
+									<li class="sidebar-item">
+										<% debug = "" %>
+                     <%= link_to "Meetings #{debug}", '#', 'data-bs-target': "#multi-#{organisation.id}-1", 'data-bs-toggle': "collapse", class: "sidebar-link collapsed" %>
+										
+										<ul id="multi-<%=organisation.id%>-1" class="sidebar-dropdown list-unstyled <%= collapse_meeting((@organisation.id if @organisation), organisation.id)  %>">
+											<li class="sidebar-item <%= active((@organisation.id if @organisation), organisation.id) if @meeting.blank? and params[:controller] == 'meetings'%>">
+												<%= link_to 'Meeting Settings', organisation_meetings_path(organisation), class: "sidebar-link", 'data-bs-target': "#" %>
+											</li>										
+												<% organisation.meetings.each do |meeting| %>
+													<li class="sidebar-item <%= active((@meeting.id if @meeting), meeting.id)%>">
+													<%= link_to meeting.name, organisation_meeting_path(organisation, meeting), class: "sidebar-link", 'data-bs-target': "#" %>
+											</li>
+												<% end %>
+
+										</ul>
+									</li>
+								</ul>
+							</li>
+							<% end %>
+						</ul>
 					</li>
 
-					<li class="sidebar-item <%= nav_includes?(['games'])[:active] %>">
-						<a data-bs-target="#settings" data-bs-toggle="collapse" class="sidebar-link collapsed">
-             <i class="fal fa-cog"></i> <span class="align-middle">Settings</span>
-            </a>
-						<ul id="settings" class="sidebar-dropdown list-unstyled <%= nav_includes?(['games'])[:collapse] %> " data-bs-parent="#sidebar">
-            	<li class="sidebar-item <%= nav_active?('games') %>"><%= link_to '#', class: "sidebar-link" do %><i class="fal fa-game-board"></i> Games<% end %></li>
-						</ul>
+
+					<li class="sidebar-item ">
+						<%= link_to organisations_path, class: "sidebar-link" do %>
+							<i class="fal fa-house-night"></i> 
+							<span class="align-middle">Manage Organisations</span>
+							<span class="badge badge-sidebar-primary"></span>
+						<% end %>
 					</li>
 
 

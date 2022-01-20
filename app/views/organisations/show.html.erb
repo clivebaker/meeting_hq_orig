@@ -1,53 +1,155 @@
 
-<%= render @organisation %>
+<% content_for :js do %>
 
-<p>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Users in Organisation</th>
-      </tr>
-    </thead>
-    <body>
-      <% @organisation.organisation_users.active.each do |organisation_users| %>
-      <tr>
-        <td><%= organisation_users.user_name %></td>
-        <td><%= link_to 'Remove from Organisation', organisation_remove_user_path(@organisation, organisation_users.user_id), data: { "turbo-method": :post } if current_user.id != organisation_users.user_id %></td>
-      </tr>
-      <% end %>
-    </body>
-  </table>
-</p>
-<p>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Users removed from Organisation</th>
-      </tr>
-    </thead>
-    <body>
-      <% @organisation.organisation_users.discarded.each do |organisation_users| %>
-      <tr>
-        <td><%= organisation_users.user_name %></td>
-        <td><%= link_to 'Add back to Organisation', organisation_add_user_path(@organisation, organisation_users.user_id), data: { "turbo-method": :post } if current_user.id != organisation_users.user_id %></td>
-      </tr>
-      <% end %>
-    </body>
-  </table>
-</p>
+	<script>
+  
+  window.addEventListener('turbo:load', function() {
 
-<p>
-  <%= link_to 'Invite user to this organisation', new_user_invitation_path(organisation_id: @organisation.id) %>
-</p>
+      if ( $.fn.dataTable.isDataTable( '#active-users-datatable' ) ) {
+          table = $('#active-users-datatable').DataTable();
+      }
+      else {
+          table = $('#active-users-datatable').DataTable( {
+              responsive: true,
+          } );
+      }
 
-<p>
-  <%= link_to 'Meetings', organisation_meetings_path(@organisation) %>
-</p>
+      if ( $.fn.dataTable.isDataTable( '#disabled-users-datatable' ) ) {
+          table = $('#disabled-users-datatable').DataTable();
+      }
+      else {
+          table = $('#disabled-users-datatable').DataTable( {
+              responsive: true,
+          } );
+      }
 
 
-<div>
-  <%= link_to "Edit this organisation", edit_organisation_path(@organisation) %> |
-  <%= link_to "Back to organisations", organisations_path %>
+		});
+  </script>
 
-  <%= button_to "Destroy this organisation", @organisation, method: :delete if @organisation.meetings.blank? %>
-</div>
+<% end %>
+
+<main class="content">
+				<div class="container-fluid p-0">
+
+
+
+				<div class="row">
+						<div class="col-12">
+							<div class="card">
+								<div class="card-header">
+									<div class="card-actions float-end">
+										<div class="dropdown position-relative">
+	
+										</div>
+									</div>
+									<h5 class="card-title mb-0"><%= @organisation.name %> Organisation</h5>
+								</div>
+								<div class="card-body">
+
+
+                <div class="row">
+                  <div class="col">
+                    <%= link_to new_user_invitation_path(organisation_id: @organisation.id), class: 'btn btn-primary' do %>
+                      <i class="far fa-users"></i> Invite users to this organisation 
+                    <% end %>
+                  </div>
+                  <div class="col text-end">
+                  
+                    <%= link_to edit_organisation_path(@organisation) , class: 'btn btn-primary' do %>
+                      <i class="fas fa-edit"></i> Edit this organisation
+                    <% end %>
+                    <%= link_to @organisation, method: :delete, class: 'btn btn-secondary' do %>
+                      <i class="fas fa-trash-alt"></i> Delete this organisation
+                    <% end  if @organisation.meetings.blank? %>                 
+                  
+                  
+                  
+                  </div>
+                </div>
+
+
+                  
+
+                </div>
+							</div>
+						</div>
+
+
+					</div>
+
+					
+					<div class="row">
+						<div class="col-xl-6">
+							<div class="card">
+								<div class="card-header">
+									<div class="card-actions float-end">
+										<div class="dropdown position-relative">
+
+										</div>
+									</div>
+									<h5 class="card-title mb-0"><%= @organisation.name %> active users</h5>
+								</div>
+								<div class="card-body">
+								
+                  <table id='active-users-datatable' class="table table-striped" style="width:100%">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th data-orderable="false"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% @organisation.organisation_users.active.each do |organisation_users| %>
+                      <tr>
+                        <td><%= organisation_users.user_name %></td>
+                        <td><%= button_to 'Remove from Organisation', organisation_remove_user_path(@organisation, organisation_users.user_id), data: { "turbo-method": :post } if current_user.id != organisation_users.user_id %></td>
+                      </tr>
+                      <% end %>
+                     
+                    </tbody>
+                  </table>
+
+                </div>
+							</div>
+						</div>
+						<div class="col-xl-6">
+							<div class="card">
+								<div class="card-header">
+									<div class="card-actions float-end">
+										<div class="dropdown position-relative">
+
+										</div>
+									</div>
+									<h5 class="card-title mb-0"><%= @organisation.name %> archived users</h5>
+								</div>
+								<div class="card-body">
+
+                
+                  <table id='disabled-users-datatable' class="table table-striped" style="width:100%">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th data-orderable="false"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% @organisation.organisation_users.discarded.each do |organisation_users| %>
+                      <tr>
+                        <td><%= organisation_users.user_name %></td>
+                        <td><%= button_to 'Add back to Organisation', organisation_add_user_path(@organisation, organisation_users.user_id), data: { "turbo-method": :post } if current_user.id != organisation_users.user_id %></td>
+                      </tr>
+                      <% end %>
+                     
+                    </tbody>
+                  </table>
+
+								</div>
+							</div>
+						</div>
+
+
+					</div>
+
+				</div>
+			</main>

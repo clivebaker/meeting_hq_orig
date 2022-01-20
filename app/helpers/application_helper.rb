@@ -1,25 +1,16 @@
 module ApplicationHelper
 
-
-
-  def nav_active?(controller)
-
-    "active" if params[:controller] == controller
-
+  def collapse_organisation(nav_id, set_id)
+    controller = params[:controller]
+    'collapse' unless nav_id == set_id
   end
-  
-
-  def nav_includes?(controllers) 
-    
-    ret = {collapse: 'collapse', active: ''}
-    
-    ret = {collapse: '', active: 'active'} if controllers.include?(params[:controller])
-
-    ret
-
+  def collapse_meeting(nav_id, set_id)
+    controller = params[:controller]
+    'collapse' unless nav_id == set_id and controller == 'meetings'
   end
-  
 
-
+  def active(nav_id, set_id)
+    'active' if nav_id == set_id
+  end
   
 end
