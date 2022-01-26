@@ -1,10 +1,110 @@
 
-<%= render @agenda %>
-
-<div>
-  <%= link_to "Edit this agenda", edit_organisation_meeting_agenda_path(@organisation, @meeting, @agenda) %> |
-  <%= link_to "Back to agendas", organisation_meeting_agendas_path(@organisation, @meeting) %>
 
 
-  <%= button_to "Destroy this agenda", organisation_meeting_agenda_path(@organisation, @meeting, @agenda), method: :delete  %>
-</div>
+
+
+<% content_for :js do %>
+
+	<script>
+  
+  window.addEventListener('turbo:load', function() {
+
+
+      if ( $.fn.dataTable.isDataTable( '#versions-datatable' ) ) {
+          table = $('#versions-datatable').DataTable();
+      }
+      else {
+          table = $('#versions-datatable').DataTable( {
+              responsive: true,
+          } );
+      }
+
+
+		});
+  </script>
+
+<% end %>
+
+<main class="content">
+				<div class="container-fluid p-0">
+
+
+
+				<div class="row">
+						<div class="col-12">
+							<div class="card">
+								<div class="card-header">
+									<div class="card-actions float-end">
+										<div class="dropdown position-relative">
+	
+										</div>
+									</div>
+									<h5 class="card-title mb-0">Agenda Item: <%= @agenda.name %> </h5>
+								</div>
+								<div class="card-body">
+                  <div class="row">
+                    <div class="col mb-3">
+
+                      <p>
+                        <strong>State:</strong>
+                        <%= @agenda.aasm_state %>
+                      </p>
+                      <%= button_to "Mark Complete", organisation_meeting_agenda_complete_path(@organisation, @meeting, @agenda), method: :post,  class: 'btn btn-primary' %>
+                    </div>
+                  </div>
+
+                <div class="row">
+                  <div class="col">
+                    <%= link_to organisation_meeting_agendas_path(@organisation, @meeting), class: 'btn btn-secondary' do %>
+                      Back to Agenda
+                    <% end %>
+                  </div>
+                  <div class="col text-end">
+                  
+                    <%= link_to edit_organisation_meeting_agenda_path(@organisation, @meeting, @agenda) , class: 'btn btn-secondary' do %>
+                      <i class="fas fa-edit"></i> Edit item
+                    <% end %>
+                    <%= button_to @organisation, method: :delete, class: 'btn btn-secondary mt-1' do %>
+                      <i class="fas fa-trash-alt"></i> Delete item
+                    <% end  %>                 
+                  
+                  
+                  
+                  </div>
+                </div>
+
+
+                  
+
+                </div>
+							</div>
+						</div>
+
+
+					</div>
+
+					
+					<div class="row">
+						<div class="col">
+							<div class="card">
+								<div class="card-header">
+									<div class="card-actions float-end">
+										<div class="dropdown position-relative">
+
+										</div>
+									</div>
+									<h5 class="card-title mb-0">Versions</h5>
+								</div>
+								<div class="card-body">
+  
+                  <%= render @agenda %>
+
+                </div>
+							</div>
+						</div>
+					
+
+					</div>
+
+				</div>
+			</main>

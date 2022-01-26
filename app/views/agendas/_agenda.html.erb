@@ -1,26 +1,6 @@
-<div id="<%= dom_id agenda %>">
-  <p>
-    <strong>Meeting:</strong>
-    <%= agenda.meeting_name %>
-  </p>
 
-  <p>
-    <strong>Name:</strong>
-    <%= agenda.name %>
-  </p>
-
-  <p>
-    <strong>Position:</strong>
-    <%= agenda.position %>
-  </p>
-
-  <p>
-    <strong>State:</strong>
-    <%= agenda.aasm_state %>
-  </p>
-  <p>
     <strong>Versions:</strong>
-    <table class="table">
+    <table id='versions-datatable' class="table table-striped" style="width:100%">
       <thead>
         <tr>
           <th>Number</th>
@@ -54,9 +34,3 @@
     
     
     
-    
-    
-     
-  </p>
-
-</div>

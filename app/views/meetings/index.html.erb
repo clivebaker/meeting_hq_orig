@@ -1,14 +1,93 @@
-<p style="color: green"><%= notice %></p>
 
-<h1>Meetings</h1>
 
-<div id="meetings">
-  <% @meetings.each do |meeting| %>
-    <%= render meeting %>
-    <p>
-      <%= link_to "Show this meeting", organisation_meeting_path(@organisation, meeting) %>
-    </p>
-  <% end %>
-</div>
 
-<%= link_to "New meeting", new_organisation_meeting_path(@organisation) %>
+<% content_for :js do %>
+
+	<script>
+  
+  window.addEventListener('turbo:load', function() {
+
+      if ( $.fn.dataTable.isDataTable( '#meetings-datatable' ) ) {
+          table = $('#meetings-datatable').DataTable();
+      }
+      else {
+          table = $('#meetings-datatable').DataTable( {
+              responsive: true,
+          } );
+      }
+
+
+		});
+  </script>
+
+<% end %>
+
+
+
+<main class="content">
+				<div class="container-fluid p-0">
+
+
+
+				<div class="row">
+						<div class="col-12">
+							<div class="card">
+								<div class="card-header">
+									<div class="card-actions float-end">
+										<div class="dropdown position-relative">
+	
+										</div>
+									</div>
+									<h5 class="card-title mb-0">Meetings for <%= @organisation.name %></h5>
+								</div>
+								<div class="card-body">
+
+
+                  <table id='meetings-datatable' class="table table-striped" style="width:100%">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th data-orderable="false"></th>
+                        <th data-orderable="false"></th>
+                        <th data-orderable="false"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% @meetings.each do |meeting| %>
+                      <tr>
+                        <td><%= meeting.name %></td>
+                        <td class='text-end'>
+                          <%= link_to "Show this meeting", organisation_meeting_path(@organisation, meeting), class: 'btn btn-primary' %>
+                        </td>
+                        <td class='text-end'>
+                          <%= link_to edit_organisation_meeting_path(@organisation, meeting) , class: 'btn btn-primary' do %>
+                            <i class="fas fa-edit"></i> Edit this meeting
+                          <% end %>         
+                        </td>
+                        <td class='text-end'>
+                          <%= button_to organisation_meeting_path(@organisation, meeting), method: :delete, class: 'btn btn-secondary d-inline mt-1' do %>
+                            <i class="fas fa-trash-alt"></i> Delete this meeting
+                          <% end  if meeting.agendas.blank? and meeting.meeting_actions.blank?%>                 
+                        </td>
+                      </tr>
+                      <% end %>
+                     
+                    </tbody>
+                  </table>
+
+                  <div class="row">
+                    <div class="col">
+                      <%= link_to "New meeting", new_organisation_meeting_path(@organisation), class: 'btn btn-primary' %>
+                    </div>
+                    <div class="col text-end">
+                    
+                    </div>
+                  </div>
+
+                </div>
+							</div>
+						</div>
+					</div>
+
+				</div>
+			</main>

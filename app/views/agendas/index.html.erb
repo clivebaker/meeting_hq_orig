@@ -1,13 +1,109 @@
 
-<h1>Agendas</h1>
 
-<div id="agendas">
-  <% @agendas.each do |agenda| %>
-    <%= render agenda %>
-    <p>
-      <%= link_to "Show this agenda", organisation_meeting_agenda_path(@organisation, @meeting, agenda) %>
-    </p>
-  <% end %>
-</div>
 
-<%= link_to "New agenda", new_organisation_meeting_agenda_path(@organisation, @meeting) %>
+
+<% content_for :js do %>
+
+	<script>
+  
+  window.addEventListener('turbo:load', function() {
+
+      if ( $.fn.dataTable.isDataTable( '#agendas-datatable' ) ) {
+          table = $('#agendas-datatable').DataTable();
+      }
+      else {
+          table = $('#agendas-datatable').DataTable( {
+              responsive: true,
+          } );
+      }
+
+
+		});
+  </script>
+
+<% end %>
+
+
+<main class="content">
+				<div class="container-fluid p-0">
+
+
+
+				<div class="row">
+						<div class="col-12">
+							<div class="card">
+								<div class="card-header">
+									<div class="card-actions float-end">
+										<div class="dropdown position-relative">
+	
+										</div>
+									</div>
+									<h5 class="card-title mb-0">Agenda Items</h5>
+								</div>
+								<div class="card-body">
+
+
+                  <table id='agendas-datatable' class="table table-striped" style="width:100%">
+                    <thead>
+                      <tr>
+                        
+                        <th>Number</th>
+                        <th>Name</th>
+                        <th data-orderable="false"></th>
+                        <th data-orderable="false"></th>
+                        <th data-orderable="false"></th>
+                        <th data-orderable="false"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% @agendas.active.each do |agenda|  %>
+                      <tr>
+                        
+                        <td><%= agenda.position %></td>
+                        <td><%= agenda.name %></td>
+
+                      <td class='text-end'>
+                        <%= button_to organisation_meeting_agenda_move_path(@organisation, @meeting, agenda, :up), method: :post, class: 'btn btn-warning mb-1' do  %>
+                        <i class="fas fa-arrow-up"></i>
+                        <% end unless agenda.first? %>
+                        <%= button_to organisation_meeting_agenda_move_path(@organisation, @meeting, agenda, :down), method: :post, class: 'btn btn-warning mb-1' do  %>
+                        <i class="fas fa-arrow-down"></i>
+                        <% end unless agenda.last? %>
+
+                        </td>
+
+                        <td class='text-end'>
+                          <%= link_to "Show this item", organisation_meeting_agenda_path(@organisation, @meeting, agenda) , class: 'btn btn-primary' %>
+                        </td>
+                        <td class='text-end'>
+                          <%= link_to edit_organisation_meeting_agenda_path(@organisation, @meeting, agenda) , class: 'btn btn-primary' do %>
+                            <i class="fas fa-edit"></i> Edit this item
+                          <% end %>         
+                        </td>
+                        <td class='text-end'>
+                          <%= button_to organisation_meeting_agenda_path(@organisation, @meeting, agenda), method: :delete, class: 'btn btn-secondary d-inline mt-1' do %>
+                            <i class="fas fa-trash-alt"></i> Delete this item
+                          <% end  %>                 
+                        </td>
+                      </tr>
+                      <% end %>
+                     
+                    </tbody>
+                  </table>
+
+                  <div class="row">
+                    <div class="col">
+                      <%= link_to "New agenda", new_organisation_meeting_agenda_path(@organisation, @meeting), class: 'btn btn-primary' %>
+                    </div>
+                    <div class="col text-end">
+                    
+                    </div>
+                  </div>
+
+                </div>
+							</div>
+						</div>
+					</div>
+
+				</div>
+			</main>

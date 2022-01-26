@@ -103,7 +103,7 @@
                       <% @organisation.organisation_users.active.each do |organisation_users| %>
                       <tr>
                         <td><%= organisation_users.user_name %></td>
-                        <td><%= button_to 'Remove from Organisation', organisation_remove_user_path(@organisation, organisation_users.user_id), data: { "turbo-method": :post } if current_user.id != organisation_users.user_id %></td>
+                        <td class='text-end'><%= button_to 'Remove from Organisation', organisation_remove_user_path(@organisation, organisation_users.user_id), data: { "turbo-method": :post }, class: 'btn btn-secondary' if current_user.id != organisation_users.user_id %></td>
                       </tr>
                       <% end %>
                      
@@ -137,7 +137,7 @@
                       <% @organisation.organisation_users.discarded.each do |organisation_users| %>
                       <tr>
                         <td><%= organisation_users.user_name %></td>
-                        <td><%= button_to 'Add back to Organisation', organisation_add_user_path(@organisation, organisation_users.user_id), data: { "turbo-method": :post } if current_user.id != organisation_users.user_id %></td>
+                        <td class='text-end'><%= button_to 'Add back to Organisation', organisation_add_user_path(@organisation, organisation_users.user_id), data: { "turbo-method": :post }, class: 'btn btn-secondary' if current_user.id != organisation_users.user_id %></td>
                       </tr>
                       <% end %>
                      

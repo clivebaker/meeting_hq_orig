@@ -11,6 +11,7 @@ class Agenda < ApplicationRecord
 
   delegate :name, to: :meeting, prefix: true
 
+  default_scope { order(position: :asc)}
  
   aasm do
     state :active, initial: true
@@ -18,6 +19,11 @@ class Agenda < ApplicationRecord
 
     event :close do
       transitions from: [:future, :active], to: :closed
+      after do
+        remove_from_list
+      end
+      
+
     end
 
   end
