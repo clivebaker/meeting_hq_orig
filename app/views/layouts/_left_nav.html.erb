@@ -27,8 +27,8 @@
 										<% debug = "" %>
                      <%= link_to "Meetings #{debug}", '#', 'data-bs-target': "#multi-#{organisation.id}-1", 'data-bs-toggle': "collapse", class: "sidebar-link collapsed" %>
 										
-										<ul id="multi-<%=organisation.id%>-1" class="sidebar-dropdown list-unstyled <%= collapse_meeting((@organisation.id if @organisation), organisation.id)  %>">
-											<li class="sidebar-item <%= active((@organisation.id if @organisation), organisation.id) if @meeting.blank? and params[:controller] == 'meetings'%>">
+										<ul id="multi-<%=organisation.id%>-1" class="sidebar-dropdown list-unstyled <%#= collapse_meeting((@organisation.id if @organisation), organisation.id)  %>">
+											<li class="sidebar-item <%= active((@organisation.id if @organisation), organisation.id) if @meeting.blank? and ['meetings', 'agendas', 'meeting_actions'].include?(params[:controller])%>">
 												<%= link_to 'Meeting Settings', organisation_meetings_path(organisation), class: "sidebar-link", 'data-bs-target': "#" %>
 											</li>										
 												<% organisation.meetings.each do |meeting| %>
