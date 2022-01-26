@@ -22,26 +22,8 @@
 								</div>
 								<div class="card-body">
 
-
-                  <p>
-                    <%= link_to organisation_meeting_agendas_path(@organisation, @meeting), class: 'btn btn-primary' do %>
-                      Manage Agenda items <span class="badge bg-warning"><%=@meeting.agendas.count%></span>                  
-                    <% end %>
-                  </p>
-                  <p>
-                    <%= link_to organisation_meeting_meeting_actions_path(@organisation, @meeting), class: 'btn btn-primary' do %>
-                      Meeting Actions <span class="badge bg-warning"><%=@meeting.meeting_actions.count%></span>                  
-                    <% end %>
-                  </p>
-
-
-
-
                 <div class="row">
                   <div class="col">
-                    <%= link_to new_user_invitation_path(organisation_id: @organisation.id), class: 'btn btn-primary' do %>
-                      <i class="far fa-users"></i> Invite users to this organisation 
-                    <% end %>
                   </div>
                   <div class="col text-end">
                   
@@ -51,27 +33,100 @@
                     <%= button_to organisation_meeting_path(@organisation, @meeting), method: :delete, class: 'btn btn-secondary d-inline mt-1' do %>
                       <i class="fas fa-trash-alt"></i> Delete this meeting
                     <% end  if @meeting.agendas.blank? and @meeting.meeting_actions.blank?%>                 
-                  
-
-
-
-
-
-                  
                   </div>
                 </div>
-
-
-                  
-
                 </div>
 							</div>
 						</div>
 
 
 					</div>
-
-					
-
 				</div>
+
+
+				<div class="row">
+						<div class="col-xl-6">
+							<div class="card">
+								<div class="card-header">
+									<div class="card-actions float-end">
+										<div class="dropdown position-relative">
+
+										</div>
+									</div>
+									<h5 class="card-title mb-0">Agenda</h5>
+								</div>
+								<div class="card-body">
+								
+                  <table id='active-users-datatable' class="table table-striped" style="width:100%">
+                    <thead>
+                      <tr>
+                        <th></th>
+                        <th>Description</th>
+                        
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% @meeting.agendas.each do |agenda| %>
+                      <tr>
+                        <td><%= agenda.position %></td>
+                        <td><%= agenda.name %></td>
+                      </tr>
+                      <% end %>
+                     
+                    </tbody>
+                  </table>
+
+                   <%= link_to organisation_meeting_agendas_path(@organisation, @meeting), class: 'btn btn-primary' do %>
+                      Manage Agenda items <span class="badge bg-warning"><%=@meeting.agendas.count%></span>                  
+                    <% end %>
+
+                </div>
+							</div>
+						</div>
+						<div class="col-xl-6">
+							<div class="card">
+								<div class="card-header">
+									<div class="card-actions float-end">
+										<div class="dropdown position-relative">
+
+										</div>
+									</div>
+									<h5 class="card-title mb-0">Actions</h5>
+								</div>
+								<div class="card-body">
+
+                
+                  <table id='disabled-users-datatable' class="table table-striped" style="width:100%">
+                    <thead>
+                      <tr>
+                        <th>Position</th>
+                        <th>Name</th>
+                        <th>Note</th>
+                        <th>User</th>
+                        
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% @meeting.meeting_actions.each do |action| %>
+                      <tr>
+                        <td><%= action.position %></td>
+                        <td><%= action.name %></td>
+                        <td><%= action.note %></td>
+                        <td><%= action.user_name %> (<%= action.user_initials %>)</td>
+                      </tr>
+                      <% end %>
+                     
+                    </tbody>
+                  </table>
+                    <%= link_to organisation_meeting_meeting_actions_path(@organisation, @meeting), class: 'btn btn-primary' do %>
+                      Meeting Actions <span class="badge bg-warning"><%=@meeting.meeting_actions.count%></span>                  
+                    <% end %>
+								</div>
+							</div>
+						</div>
+
+
+					</div>
+
+
 			</main>

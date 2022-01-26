@@ -1,13 +1,121 @@
 
-<h1>Meeting actions</h1>
 
-<div id="meeting_actions">
-  <% @meeting_actions.each do |meeting_action| %>
-    <%= render meeting_action %>
-    <p>
-      <%= link_to "Show this meeting action", organisation_meeting_meeting_action_path(@organisation, @meeting, meeting_action) %>
-    </p>
-  <% end %>
-</div>
 
-<%= link_to "New meeting action", new_organisation_meeting_meeting_action_path(@organisation, @meeting) %>
+
+<% content_for :js do %>
+
+	<script>
+  
+  window.addEventListener('turbo:load', function() {
+
+      if ( $.fn.dataTable.isDataTable( '#meeting-actions-datatable' ) ) {
+          table = $('#meeting-actions-datatable').DataTable();
+      }
+      else {
+          table = $('#meeting-actions-datatable').DataTable( {
+              responsive: true,
+          } );
+      }
+
+
+		});
+  </script>
+
+<% end %>
+
+
+<main class="content">
+				<div class="container-fluid p-0">
+
+
+
+				<div class="row">
+						<div class="col-12">
+							<div class="card">
+								<div class="card-header">
+									<div class="card-actions float-end">
+										<div class="dropdown position-relative">
+	
+										</div>
+									</div>
+									<h5 class="card-title mb-0">Actions</h5>
+								</div>
+								<div class="card-body">
+
+
+                  <table id='meeting-actions-datatable' class="table table-striped" style="width:100%">
+                    <thead>
+                      <tr>
+                        
+                        <th>Number</th>
+                        <th>Name</th>
+                        <th>Note</th>
+                        <th>User</th>
+                        <th data-orderable="false"></th>
+                        <th data-orderable="false"></th>
+                        <th data-orderable="false"></th>
+                        <th data-orderable="false"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% @meeting_actions.active.each do |meeting_action|  %>
+                      <tr>
+                        
+                        <td><%= meeting_action.position %></td>
+                        <td><%= meeting_action.name %></td>
+                        <td><%= meeting_action.note %></td>
+                        <td><%= meeting_action.user_name %> (<%= meeting_action.user_initials %>)</td>
+
+
+
+
+
+
+
+
+
+                      <td class='text-end'>
+                        <%= button_to organisation_meeting_meeting_action_move_path(@organisation, @meeting, meeting_action, :up), method: :post, class: 'btn btn-warning mb-1' do  %>
+                        <i class="fas fa-arrow-up"></i>
+                        <% end unless meeting_action.first? %>
+                        <%= button_to organisation_meeting_meeting_action_move_path(@organisation, @meeting, meeting_action, :down), method: :post, class: 'btn btn-warning mb-1' do  %>
+                        <i class="fas fa-arrow-down"></i>
+                        <% end unless meeting_action.last? %>
+
+                        </td>
+
+                        <td class='text-end'>
+                          <%= link_to "Show action", organisation_meeting_meeting_action_path(@organisation, @meeting, meeting_action) , class: 'btn btn-primary' %>
+                        </td>
+                        <td class='text-end'>
+                          <%= link_to edit_organisation_meeting_meeting_action_path(@organisation, @meeting, meeting_action) , class: 'btn btn-primary' do %>
+                            <i class="fas fa-edit"></i> Edit action
+                          <% end %>         
+                        </td>
+                        <td class='text-end'>
+                          <%= button_to organisation_meeting_meeting_action_path(@organisation, @meeting, meeting_action), method: :delete, class: 'btn btn-secondary d-inline mt-1' do %>
+                            <i class="fas fa-trash-alt"></i> Delete action
+                          <% end  %>                 
+                        </td>
+                      </tr>
+                      <% end %>
+                     
+                    </tbody>
+                  </table>
+
+                  <div class="row mt-3">
+                    <div class="col">
+                      <%= link_to "New meeting action", new_organisation_meeting_meeting_action_path(@organisation, @meeting), class: 'btn btn-primary' %>
+                    </div>
+                    <div class="col text-end">
+                      <%= link_to 'Back to Meeting', organisation_meeting_path(@organisation, @meeting), class: 'btn btn-secondary' %>
+                    </div>
+                  </div>
+
+                </div>
+							</div>
+						</div>
+					</div>
+
+				</div>
+			</main>

@@ -1,10 +1,36 @@
-<h1>Editing meeting action</h1>
 
-<%= render "form", meeting_action: @meeting_action %>
 
-<br>
+<main class="content">
+				<div class="container-fluid p-0">
 
-<div>
-  <%= link_to "Show this meeting action", organisation_meeting__meeting_action_path(@organisation, @meeting, @meeting_action) %> |
-  <%= link_to "Back to meeting actions", organisation_meeting_meeting_actions_path(@organisation, @meeting) %>
-</div>
+				<div class="row">
+						<div class="col-12">
+							<div class="card">
+								<div class="card-header">
+									<div class="card-actions float-end">
+										<div class="dropdown position-relative">
+	
+										</div>
+									</div>
+									<h5 class="card-title mb-0">Edit action for <%= @meeting.name %></h5>
+								</div>
+								<div class="card-body">
+
+                  <%= render "form", meeting_action: @meeting_action %>
+
+                  <div class="row">
+                    <div class="col">
+                      <%= link_to "Show this action", organisation_meeting_meeting_action_path(@organisation, @meeting, @meeting_action) , class: 'btn btn-secondary' %>
+                    </div>
+                    <div class="col text-end">
+                      <%= link_to "Back to actions", organisation_meeting_meeting_actions_path(@organisation, @meeting) , class: 'btn btn-secondary' %>
+                    </div>
+                  </div>
+
+                </div>
+							</div>
+						</div>
+					</div>
+
+				</div>
+			</main>

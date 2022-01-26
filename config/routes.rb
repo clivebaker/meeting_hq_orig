@@ -11,7 +11,10 @@ Rails.application.routes.draw do
         post 'move/:direction', to: 'agendas#move', as: :move
         post 'complete', to: 'agendas#complete', as: :complete
       end
-      resources :meeting_actions
+      resources :meeting_actions do
+        post 'move/:direction', to: 'agendas#move', as: :move
+        post 'complete', to: 'agendas#complete', as: :complete
+      end
     end
   end
 

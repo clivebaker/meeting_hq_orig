@@ -1,9 +1,37 @@
-<h1>New meeting action</h1>
 
-<%= render "form", meeting_action: @meeting_action %>
 
-<br>
 
-<div>
-  <%= link_to "Back to meeting actions", organisation_meeting_meeting_actions_path(@organisation, @meeting) %>
-</div>
+<main class="content">
+				<div class="container-fluid p-0">
+
+				<div class="row">
+						<div class="col-12">
+							<div class="card">
+								<div class="card-header">
+									<div class="card-actions float-end">
+										<div class="dropdown position-relative">
+	
+										</div>
+									</div>
+									<h5 class="card-title mb-0">New action for <%= @meeting.name %></h5>
+								</div>
+								<div class="card-body">
+
+                  <%= render "form", meeting_action: @meeting_action %>
+
+                  <div class="row">
+                    <div class="col">
+                      
+                    </div>
+                    <div class="col text-end">
+                      <%= link_to "Back to actions", organisation_meeting_meeting_actions_path(@organisation, @meeting) , class: 'btn btn-secondary' %>
+                    </div>
+                  </div>
+
+                </div>
+							</div>
+						</div>
+					</div>
+
+				</div>
+			</main>
