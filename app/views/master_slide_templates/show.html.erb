@@ -1,0 +1,65 @@
+
+
+<div class="content">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-actions float-end">
+            <div class="dropdown position-relative">
+
+            </div>
+          </div>
+          <h5 class="card-title mb-0">Editing master slide template</h5>
+        </div>
+        <div class="card-body">
+
+          <%= render @master_slide_template %>
+
+          <div>
+            <%= link_to "Edit this master slide template", edit_master_slide_template_path(@master_slide_template) %> |
+            <%= link_to "Back to master slide templates", master_slide_templates_path %>
+
+            <%= button_to "Destroy this master slide template", @master_slide_template, method: :delete %>
+          </div>
+
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-actions float-end">
+            <div class="dropdown position-relative">
+
+            </div>
+          </div>
+          <h5 class="card-title mb-0">Render master slide template</h5>
+        </div>
+        <div class="card-body">
+
+          <div>
+          <%=  @tags.inspect %>
+          </div>
+          <code>
+            <%= @master_slide_template.content %>
+          </code>
+
+
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+
+
+</div>
+
+

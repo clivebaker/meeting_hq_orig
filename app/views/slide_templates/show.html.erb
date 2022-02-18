@@ -1,0 +1,32 @@
+
+
+<div class="content">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-actions float-end">
+            <div class="dropdown position-relative">
+
+            </div>
+          </div>
+          <h5 class="card-title mb-0">Slide template</h5>
+        </div>
+        <div class="card-body">
+
+<%= render @slide_template %>
+
+<div>
+  <%= link_to "Edit this slide template", edit_organisation_slide_template_path(@organisation, @slide_template) %> |
+  <%= link_to "Back to slide templates", organisation_slide_templates_path(@organisation) %>
+
+  <%= button_to "Destroy this slide template", organisation_slide_template_path(@organisation, @slide_template), method: :delete %>
+</div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

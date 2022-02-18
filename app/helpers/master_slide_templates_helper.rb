@@ -1,0 +1,2 @@
+module MasterSlideTemplatesHelper
+end

@@ -1,0 +1,32 @@
+
+
+<div class="content">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-actions float-end">
+            <div class="dropdown position-relative">
+
+            </div>
+          </div>
+          <h5 class="card-title mb-0">Editing slide</h5>
+        </div>
+        <div class="card-body">
+
+<%= render "form", slide: @slide %>
+
+<br>
+
+<div>
+  <%= link_to "Show this slide", @slide %> |
+  <%= link_to "Back to slides", slides_path %>
+</div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

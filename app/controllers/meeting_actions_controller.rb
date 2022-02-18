@@ -61,6 +61,28 @@ class MeetingActionsController < ApplicationController
     end
   end
 
+
+
+  def move
+
+    @meeting_action = MeetingAction.find(params[:meeting_action_id])
+    direction = params[:direction]
+    if direction == 'up'
+      @meeting_action.move_higher
+    else
+      @meeting_action.move_lower
+    end
+
+    respond_to do |format|
+        format.html { redirect_to organisation_meeting_meeting_actions_url(@organisation, @meeting), notice: "Action was successfully moved." }
+    end
+
+
+
+  end
+
+
+
   private
 
     def set_users 

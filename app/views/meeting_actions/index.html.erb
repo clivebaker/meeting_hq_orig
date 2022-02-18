@@ -52,9 +52,7 @@
                         <th>Note</th>
                         <th>User</th>
                         <th data-orderable="false"></th>
-                        <th data-orderable="false"></th>
-                        <th data-orderable="false"></th>
-                        <th data-orderable="false"></th>
+
                       </tr>
                     </thead>
                     <tbody>
@@ -75,27 +73,32 @@
 
 
                       <td class='text-end'>
-                        <%= button_to organisation_meeting_meeting_action_move_path(@organisation, @meeting, meeting_action, :up), method: :post, class: 'btn btn-warning mb-1' do  %>
+<div class='d-inline-flex'>
+
+                        <%= button_to organisation_meeting_meeting_action_move_path(@organisation, @meeting, meeting_action, :up), method: :post, class: 'btn btn-warning' do  %>
                         <i class="fas fa-arrow-up"></i>
                         <% end unless meeting_action.first? %>
-                        <%= button_to organisation_meeting_meeting_action_move_path(@organisation, @meeting, meeting_action, :down), method: :post, class: 'btn btn-warning mb-1' do  %>
+</div>
+<div class='d-inline-flex'>
+                        <%= button_to organisation_meeting_meeting_action_move_path(@organisation, @meeting, meeting_action, :down), method: :post, class: 'btn btn-warning' do  %>
                         <i class="fas fa-arrow-down"></i>
                         <% end unless meeting_action.last? %>
-
-                        </td>
-
-                        <td class='text-end'>
-                          <%= link_to "Show action", organisation_meeting_meeting_action_path(@organisation, @meeting, meeting_action) , class: 'btn btn-primary' %>
-                        </td>
-                        <td class='text-end'>
+</div>
+<div class='d-inline-flex'>
+                          <%= link_to organisation_meeting_meeting_action_path(@organisation, @meeting, meeting_action) , class: 'btn btn-primary' do%>
+                            View
+                          <% end %>
+</div>
+<div class='d-inline-flex'>
                           <%= link_to edit_organisation_meeting_meeting_action_path(@organisation, @meeting, meeting_action) , class: 'btn btn-primary' do %>
-                            <i class="fas fa-edit"></i> Edit action
+                            <i class="fas fa-edit"></i>
                           <% end %>         
-                        </td>
-                        <td class='text-end'>
-                          <%= button_to organisation_meeting_meeting_action_path(@organisation, @meeting, meeting_action), method: :delete, class: 'btn btn-secondary d-inline mt-1' do %>
-                            <i class="fas fa-trash-alt"></i> Delete action
+</div>
+<div class='d-inline-flex'>
+                          <%= button_to organisation_meeting_meeting_action_path(@organisation, @meeting, meeting_action), method: :delete, class: 'btn btn-secondary' do %>
+                            <i class="fas fa-trash-alt"></i>
                           <% end  %>                 
+</div>
                         </td>
                       </tr>
                       <% end %>

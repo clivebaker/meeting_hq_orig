@@ -1,0 +1,32 @@
+
+
+<div class="content">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-actions float-end">
+            <div class="dropdown position-relative">
+
+            </div>
+          </div>
+          <h5 class="card-title mb-0">Editing slide template</h5>
+        </div>
+        <div class="card-body">
+
+<%= render "form", slide_template: @slide_template %>
+
+<br>
+
+<div>
+  <%= link_to "Show this slide template", organisation_slide_template_path(@organisation, @slide_template) %> |
+  <%= link_to "Back to slide templates", organisation_slide_templates_path(@organisation) %>
+</div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

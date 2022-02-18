@@ -50,9 +50,7 @@
                         <th>Number</th>
                         <th>Name</th>
                         <th data-orderable="false"></th>
-                        <th data-orderable="false"></th>
-                        <th data-orderable="false"></th>
-                        <th data-orderable="false"></th>
+              
                       </tr>
                     </thead>
                     <tbody>
@@ -63,27 +61,36 @@
                         <td><%= agenda.name %></td>
 
                       <td class='text-end'>
-                        <%= button_to organisation_meeting_agenda_move_path(@organisation, @meeting, agenda, :up), method: :post, class: 'btn btn-warning mb-1' do  %>
+
+                      
+<div class='d-inline-flex'>
+                        <%= button_to organisation_meeting_agenda_move_path(@organisation, @meeting, agenda, :up), method: :post, class: 'btn btn-warning' do  %>
                         <i class="fas fa-arrow-up"></i>
                         <% end unless agenda.first? %>
-                        <%= button_to organisation_meeting_agenda_move_path(@organisation, @meeting, agenda, :down), method: :post, class: 'btn btn-warning mb-1' do  %>
+</div>
+<div class='d-inline-flex'>
+
+                        <%= button_to organisation_meeting_agenda_move_path(@organisation, @meeting, agenda, :down), method: :post, class: 'btn btn-warning' do  %>
                         <i class="fas fa-arrow-down"></i>
                         <% end unless agenda.last? %>
+</div>
+<div class='d-inline-flex'>
 
-                        </td>
+                          <%= link_to organisation_meeting_agenda_path(@organisation, @meeting, agenda) , class: 'btn btn-primary' do %>
+                           View
+                          <% end %>      
+</div>
+<div class='d-inline-flex'>
 
-                        <td class='text-end'>
-                          <%= link_to "Show this item", organisation_meeting_agenda_path(@organisation, @meeting, agenda) , class: 'btn btn-primary' %>
-                        </td>
-                        <td class='text-end'>
                           <%= link_to edit_organisation_meeting_agenda_path(@organisation, @meeting, agenda) , class: 'btn btn-primary' do %>
-                            <i class="fas fa-edit"></i> Edit this item
+                            <i class="fas fa-edit"></i> 
                           <% end %>         
-                        </td>
-                        <td class='text-end'>
-                          <%= button_to organisation_meeting_agenda_path(@organisation, @meeting, agenda), method: :delete, class: 'btn btn-secondary d-inline mt-1' do %>
-                            <i class="fas fa-trash-alt"></i> Delete this item
+</div>
+<div class='d-inline-flex'>
+                          <%= button_to organisation_meeting_agenda_path(@organisation, @meeting, agenda), method: :delete, class: 'btn btn-secondary' do %>
+                            <i class="fas fa-trash-alt"></i> 
                           <% end  %>                 
+</div>
                         </td>
                       </tr>
                       <% end %>

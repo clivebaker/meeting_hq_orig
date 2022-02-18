@@ -1,0 +1,32 @@
+<%= form_with(model: master_slide_template) do |form| %>
+  <% if master_slide_template.errors.any? %>
+    <div style="color: red">
+      <h2><%= pluralize(master_slide_template.errors.count, "error") %> prohibited this master_slide_template from being saved:</h2>
+
+      <ul>
+        <% master_slide_template.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class='mb-3'>
+    <%= form.label :name, style: "display: block", class: 'form-label' %>
+    <%= form.text_field :name, class: 'form-control' %>
+  </div>
+
+  <div class='mb-3'>
+    <%= form.label :content, style: "display: block", class: 'form-label' %>
+    <%= form.text_area :content, class: 'form-control' %>
+  </div>
+
+  <div class='mb-3'>
+    <%= form.label :enabled, style: "display: block", class: 'form-label' %>
+    <%= form.check_box :enabled, class: 'form-check' %>
+  </div>
+
+  <div class='mb-3'>
+    <%= form.submit nil, class: 'btn btn-primary' %>
+  </div>
+<% end %>

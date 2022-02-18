@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2022_01_19_005438) do
+ActiveRecord::Schema.define(version: 2022_02_18_215741) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -23,6 +23,14 @@ ActiveRecord::Schema.define(version: 2022_01_19_005438) do
     t.datetime "updated_at", precision: 6, null: false
     t.string "aasm_state"
     t.index ["meeting_id"], name: "index_agendas_on_meeting_id"
+  end
+
+  create_table "master_slide_templates", force: :cascade do |t|
+    t.string "name"
+    t.text "content"
+    t.boolean "enabled"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
   end
 
   create_table "meeting_actions", force: :cascade do |t|
@@ -63,6 +71,28 @@ ActiveRecord::Schema.define(version: 2022_01_19_005438) do
     t.string "name"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+  end
+
+  create_table "slide_templates", force: :cascade do |t|
+    t.bigint "organisation_id", null: false
+    t.string "name"
+    t.text "content"
+    t.boolean "enabled"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["organisation_id"], name: "index_slide_templates_on_organisation_id"
+  end
+
+  create_table "slides", force: :cascade do |t|
+    t.bigint "meeting_id", null: false
+    t.string "name"
+    t.bigint "slide_template_id", null: false
+    t.boolean "enabled"
+    t.jsonb "data"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["meeting_id"], name: "index_slides_on_meeting_id"
+    t.index ["slide_template_id"], name: "index_slides_on_slide_template_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -108,4 +138,7 @@ ActiveRecord::Schema.define(version: 2022_01_19_005438) do
   add_foreign_key "meetings", "organisations"
   add_foreign_key "organisation_users", "organisations"
   add_foreign_key "organisation_users", "users"
+  add_foreign_key "slide_templates", "organisations"
+  add_foreign_key "slides", "meetings"
+  add_foreign_key "slides", "slide_templates"
 end

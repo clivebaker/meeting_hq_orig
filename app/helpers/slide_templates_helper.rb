@@ -1,0 +1,2 @@
+module SlideTemplatesHelper
+end

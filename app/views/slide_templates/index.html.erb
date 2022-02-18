@@ -1,0 +1,36 @@
+
+
+<div class="content">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-actions float-end">
+            <div class="dropdown position-relative">
+
+            </div>
+          </div>
+          <h5 class="card-title mb-0">Slide templates</h5>
+        </div>
+        <div class="card-body">
+
+
+
+<div id="slide_templates">
+  <% @slide_templates.each do |slide_template| %>
+    <%= render slide_template %>
+    <p>
+      <%= link_to "Show this slide template", slide_template %>
+    </p>
+  <% end %>
+</div>
+
+<%= link_to "New slide template", new_organisation_slide_template_path(@organisation) %>
+
+
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
