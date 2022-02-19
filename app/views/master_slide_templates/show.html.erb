@@ -1,3 +1,145 @@
+<style>
+
+.container {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.box {
+  border: 3px solid #666;
+  background-color: #ddd;
+  border-radius: .5em;
+  padding: 10px;
+  cursor: move;
+}
+
+.box.over {
+  border: 3px dotted #666;
+}
+
+</style>
+
+<% content_for :js do %>
+
+<script>
+
+document.addEventListener('DOMContentLoaded', (event) => {
+
+  var dragSrcEl = null;
+  var coord = {}
+
+  function handleDragStart(e) {
+    this.style.opacity = '0.4';
+    
+    dragSrcEl = this;
+    //console.log(e)
+    coord['leftStart'] = e.screenX
+    coord['topStart'] = e.screenY
+    e.dataTransfer.effectAllowed = 'move';
+  //  e.dataTransfer.setData('text/html', this.innerHTML);
+
+   console.log('Starting the drag')
+  }
+
+  function handleDragOver(e) {
+    if (e.preventDefault) {
+      e.preventDefault();
+    }
+
+   // console.log('oovverr')
+    //console.log('over')
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+  }
+
+  function handleDragEnter(e) {
+    this.classList.add('over');
+  }
+
+  function handleDragLeave(e) {
+    this.classList.remove('over');
+  }
+
+  function handleDrop(e) {
+    console.log(e)
+ 
+
+    coord['leftEnd'] = e.screenX
+    coord['topEnd'] = e.screenY
+
+
+   
+
+    if (e.stopPropagation) {
+      e.stopPropagation(); // stops the browser from redirecting.
+    }
+
+      canvas =  dragSrcEl.parentElement.getBoundingClientRect()
+      box = dragSrcEl.getBoundingClientRect();
+      origX = parseInt(dragSrcEl.style.left) || 0
+      origY = parseInt(dragSrcEl.style.top) || 0
+      console.log(origX + ' + ' + coord['leftEnd'] +' - '+coord['leftStart']);
+      console.log(origY + ' + ' + coord['topEnd'] +' - '+coord['topStart']);
+      x =  origX + (coord['leftEnd'] -  coord['leftStart'])
+      y =  origY + (coord['topEnd'] -  coord['topStart'])
+      dragSrcEl.style.left = x +"px";
+      dragSrcEl.style.top = y +"px";
+
+    
+    return false;
+  }
+
+  function handleDragEnd(e) {
+    this.style.opacity = '1';
+    
+    items.forEach(function (item) {
+      item.classList.remove('over');
+    });
+  }
+  
+  
+  let items = document.querySelectorAll('.box');
+  items.forEach(function(item) {
+    item.addEventListener('dragstart', handleDragStart, false);
+    //item.addEventListener('dragenter', handleDragEnter, false);
+    //item.addEventListener('dragover', handleDragOver, false);
+   // item.addEventListener('dragleave', handleDragLeave, false);
+    item.addEventListener('drop', handleDrop, false);
+    item.addEventListener('dragend', handleDragEnd, false);
+  });
+  let targets = document.querySelectorAll('.target');
+  targets.forEach(function(target) {
+  //  target.addEventListener('dragstart', handleDragStart, false);
+  //  target.addEventListener('dragenter', handleDragEnter, false);
+    target.addEventListener('dragover', handleDragOver, false);
+  ///  target.addEventListener('dragleave', handleDragLeave, false);
+    target.addEventListener('drop', handleDrop, false);
+    //target.addEventListener('dragend', handleDragEnd, false);
+  });
+
+});
+
+</script>
+
+<% end %>
+
+
+
+<div class="row">
+  <div class="col">
+  
+    <div class="canvas border m-4 bg-white target p-0 m-0" style='height:600px;width:800px;'>
+    
+    <div class="border p-4 box" data-name='clivebox' draggable="true"  style='position:relative;height:100px;width:100px;'>BOOOC1</div>
+    <div class="border p-4 box" data-name='clivebox' draggable="true"  style='position:relative;height:100px;width:100px;'>BOOOC2</div>
+    <div class="border p-4 box" data-name='clivebox' draggable="true"  style='position:relative;height:100px;width:100px;'>BO333</div>
+    
+    </div>
+
+  
+  </div>
+</div>
 
 
 <div class="content">
