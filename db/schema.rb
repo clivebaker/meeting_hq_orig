@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2022_02_18_215741) do
+ActiveRecord::Schema.define(version: 2022_02_19_204840) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -23,6 +23,27 @@ ActiveRecord::Schema.define(version: 2022_02_18_215741) do
     t.datetime "updated_at", precision: 6, null: false
     t.string "aasm_state"
     t.index ["meeting_id"], name: "index_agendas_on_meeting_id"
+  end
+
+  create_table "components", force: :cascade do |t|
+    t.string "name"
+    t.text "content"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+  end
+
+  create_table "master_slide_template_components", force: :cascade do |t|
+    t.bigint "master_slide_template_id", null: false
+    t.bigint "component_id", null: false
+    t.integer "top", default: 0
+    t.integer "left", default: 0
+    t.integer "width", default: 200
+    t.integer "height", default: 30
+    t.jsonb "settings", default: {}
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["component_id"], name: "index_master_slide_template_components_on_component_id"
+    t.index ["master_slide_template_id"], name: "mstc_template_id"
   end
 
   create_table "master_slide_templates", force: :cascade do |t|
@@ -133,6 +154,8 @@ ActiveRecord::Schema.define(version: 2022_02_18_215741) do
   end
 
   add_foreign_key "agendas", "meetings"
+  add_foreign_key "master_slide_template_components", "components"
+  add_foreign_key "master_slide_template_components", "master_slide_templates"
   add_foreign_key "meeting_actions", "meetings"
   add_foreign_key "meeting_actions", "users"
   add_foreign_key "meetings", "organisations"

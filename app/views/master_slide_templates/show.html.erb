@@ -1,17 +1,19 @@
 <style>
 
 .container {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
+
 }
 
 .box {
-  border: 3px solid #666;
+  <%# border: 3px solid #666;
   background-color: #ddd;
   border-radius: .5em;
-  padding: 10px;
+  padding: 10px; %>
   cursor: move;
+}
+
+.dotted-border{
+  border: 1px dotted #666;
 }
 
 .box.over {
@@ -32,6 +34,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
   function handleDragStart(e) {
     this.style.opacity = '0.4';
     
+    setSelected(this)
+
     dragSrcEl = this;
     //console.log(e)
     coord['leftStart'] = e.screenX
@@ -86,7 +90,19 @@ document.addEventListener('DOMContentLoaded', (event) => {
       dragSrcEl.style.left = x +"px";
       dragSrcEl.style.top = y +"px";
 
-    
+      url = "/master_slide_template_component/"+dragSrcEl.dataset['component_instance_id']+"/update"
+
+    const xhttp = new XMLHttpRequest();
+    p = {}
+    p['left'] = x
+    p['top'] = y
+
+    console.log(url)
+    xhttp.open("POST", url, true);
+    xhttp.setRequestHeader("Content-type", "application/json");
+    xhttp.send(JSON.stringify(p));
+
+
     return false;
   }
 
@@ -97,7 +113,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
       item.classList.remove('over');
     });
   }
-  
   
   let items = document.querySelectorAll('.box');
   items.forEach(function(item) {
@@ -118,31 +133,47 @@ document.addEventListener('DOMContentLoaded', (event) => {
     //target.addEventListener('dragend', handleDragEnd, false);
   });
 
-});
 
+
+
+  function setSelected(element){
+    $(".box").removeClass('dotted-border');
+    $(element).addClass("dotted-border");
+  }
+
+
+
+
+ 
+  $('.box').contextmenu(function(){
+    $(".box").removeClass('dotted-border');
+    $(".component-instances").removeClass('bg-dark');
+  });
+
+
+  $('.box').click(function(){
+
+
+      id = $(this).data('component_instance_id');
+
+      setSelected(this)
+
+      $(".component-instances").removeClass('bg-dark');
+      $("#component-instance-" + id).addClass('bg-dark');
+
+     
+
+  });
+
+});
 </script>
 
 <% end %>
 
 
-
-<div class="row">
-  <div class="col">
-  
-    <div class="canvas border m-4 bg-white target p-0 m-0" style='height:600px;width:800px;'>
-    
-    <div class="border p-4 box" data-name='clivebox' draggable="true"  style='position:relative;height:100px;width:100px;'>BOOOC1</div>
-    <div class="border p-4 box" data-name='clivebox' draggable="true"  style='position:relative;height:100px;width:100px;'>BOOOC2</div>
-    <div class="border p-4 box" data-name='clivebox' draggable="true"  style='position:relative;height:100px;width:100px;'>BO333</div>
-    
-    </div>
-
-  
-  </div>
-</div>
-
-
 <div class="content">
+
+
   <div class="row">
     <div class="col-12">
       <div class="card">
@@ -172,6 +203,108 @@ document.addEventListener('DOMContentLoaded', (event) => {
   </div>
 
   <div class="row">
+    <div class="col-8">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-actions float-end">
+            <div class="dropdown position-relative">
+
+            </div>
+          </div>
+          <h5 class="card-title mb-0">Slide</h5>
+        </div>
+        <div class="card-body">
+
+          <div class="canvas border border-dark m-4 bg-white target p-0 m-0" id='target' style='height:600px;width:800px;'>
+            <% @master_slide_template.master_slide_template_components.each do |component_instance| %>  
+              <% component = component_instance.component %>
+              <div  class=" p-0 m-0 box" 
+                    data-component_instance_id='<%= component_instance.id %>' 
+                    data-name='<%= component.name %>' 
+                    draggable="true"  
+                    style='top:<%= component_instance.top %>px;left:<%= component_instance.left %>px;position:relative;height:<%= component_instance.height %>px;width:<%= component_instance.width %>px;'
+                     oncontextmenu="javascript:;return false;" >
+                    <%= component.content %>
+              </div>
+            <% end %>
+              
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+
+  
+
+  
+
+    <div class="col-4">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-actions float-end">
+            <div class="dropdown position-relative">
+
+            </div>
+          </div>
+          <h5 class="card-title mb-0">Components</h5>
+        </div>
+        <div class="card-body">
+
+
+         <% @master_slide_template.master_slide_template_components.each do |component_instance| %>  
+              <% component = component_instance.component %>
+              <div class="row component-instances" id='component-instance-<%=component_instance.id%>'>
+                <div class="col"><%= component.name %></div>
+                <div class="col">top:<%= component_instance.top %></div>
+                <div class="col">left:<%= component_instance.left %></div>
+                <div class="col">width:<%= component_instance.width %></div>
+                <div class="col">height:<%= component_instance.height %></div>
+              </div>
+            <% end %>
+
+
+        </div>
+      </div>
+    </div>
+  </div>
+  
+
+
+  <div class="row">
+    <div class="col">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-actions float-end">
+            <div class="dropdown position-relative">
+
+            </div>
+          </div>
+          <h5 class="card-title mb-0">Components</h5>
+        </div>
+        <div class="card-body">
+
+
+          <% @components.each do |component| %>
+          <div class="row">
+            <div class="col"> <%= button_to 'add', master_slide_template_add_component_path(@master_slide_template, component), method: :post, class: 'add-component', 'data-component_id': component.id %></div>
+            <div class="col"> <%= component.name %></div>
+            <div class="col"><%= component.content %></div>
+           
+          </div>
+          <% end %>
+
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+
+
+
+  <div class="row">
     <div class="col-12">
       <div class="card">
         <div class="card-header">
@@ -190,8 +323,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
           <code>
             <%= @master_slide_template.content %>
           </code>
-
-
 
         </div>
       </div>

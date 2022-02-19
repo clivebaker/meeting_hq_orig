@@ -1,0 +1,19 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  master_slide_template: one
+  component: one
+  top: 1
+  left: 1
+  width: 1
+  height: 1
+  settings: 
+
+two:
+  master_slide_template: two
+  component: two
+  top: 1
+  left: 1
+  width: 1
+  height: 1
+  settings: 
