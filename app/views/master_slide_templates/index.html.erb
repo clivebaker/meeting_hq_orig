@@ -4,28 +4,18 @@
     <div class="col-12">
       <div class="card">
         <div class="card-header">
-          <div class="card-actions float-end">
-            <div class="dropdown position-relative">
-
-            </div>
-          </div>
           <h5 class="card-title mb-0">Master slide templates</h5>
         </div>
         <div class="card-body">
-
-
           <div id="master_slide_templates">
             <% @master_slide_templates.each do |master_slide_template| %>
               <%= render master_slide_template %>
               <p>
-                <%= link_to "Show this master slide template", master_slide_template %>
+                <%= link_to "Show this master slide template", master_slide_template, data: {turbo: false} %>
               </p>
             <% end %>
           </div>
-
           <%= link_to "New master slide template", new_master_slide_template_path %>
-
-
         </div>
       </div>
     </div>

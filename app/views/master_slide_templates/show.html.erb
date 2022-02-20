@@ -98,12 +98,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
       params['top'] = y
       params['master_slide_template_component_id'] = dragSrcEl.dataset['component_instance_id']
 
-      var url2 = "/master_slide_template_component_update.json" 
+      var url = "/master_slide_template_component_update.json" 
 
-      $.post( url2, params)
+      $.post( url, params)
         .done(function( data ) {
-        //  console.log( "posted: " + JSON.stringify(p) );
-        //  console.log( data );
           parent = $("#component-instance-"+ data['id'])
           $('.top',parent).html(data['top'])
           $('.left',parent).html(data['left'])
@@ -111,14 +109,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
           $('.height',parent).html(data['height'])
           parent_data = $("#component-instance-"+ data['id'] + '-form')
           $('.width',parent_data).val(data['width'])
-          $('.height',parent_data).val(data['height'])
-          
+          $('.height',parent_data).val(data['height'])        
         });
-
-
-
-
-
 
     return false;
   }
@@ -232,14 +224,14 @@ const links = document.querySelectorAll("form");
           <div class="canvas border border-dark m-4 bg-white target p-0 m-0" id='target' style='position:relative;height:600px;width:800px;'>
             <% @master_slide_template.master_slide_template_components.each_with_index do |component_instance, index| %>  
               <% component = component_instance.component %>
-              <div  class=" p-0 m-0 box" 
+              <div  class=" p-0 m-0 box text-center" 
                     data-component_instance_id='<%= component_instance.id %>' 
                     id='component-instance-box-<%= component_instance.id %>' 
                     data-name='<%= component.name %>' 
                     draggable="true"  
                     style='top:<%= component_instance.top %>px;left:<%= component_instance.left %>px;position:absolute;height:<%= component_instance.height %>px;width:<%= component_instance.width %>px;z-index:<%= (index+1)*10 %>;'
-                     oncontextmenu="javascript:;return false;" >
-                    (<%= component_instance.id %>)<%= component.content %>
+                    oncontextmenu="javascript:;return false;" >
+                    <%= component_instance.name.present? ? component_instance.name : component.name %>
               </div>
             <% end %>
 
@@ -285,7 +277,7 @@ const links = document.querySelectorAll("form");
          <% @master_slide_template.master_slide_template_components.each do |component_instance| %>  
               <% component = component_instance.component %>
               <tr class="component-instances" id='component-instance-<%=component_instance.id%>'>
-                <td class=""><%= component.name %></td>
+                <td class=""><%= component_instance.name.present? ? component_instance.name : component.name %></td>
                 <td class="top"><%= component_instance.top %></td>
                 <td class="left"><%= component_instance.left %></td>
                 <td class="width"><%= component_instance.width %></td>
@@ -294,9 +286,13 @@ const links = document.querySelectorAll("form");
               <tr id='component-instance-<%=component_instance.id%>-form' class='component-instances-forms'>
                 <td colspan=5>
                 <%= form_tag update_component_path, data: { turbo: false}  do %>
-
                   <%= hidden_field_tag :master_slide_template_component_id, component_instance.id%>
-
+                  <div class="row mb-3">
+                    <div class="col">
+                      <%= label_tag :name, nil, class: 'form-label' %>
+                      <%= text_field_tag :name, component_instance.name, class: 'form-control'%>
+                    </div>
+                  </div>
                   <div class="row mb-3">
                     <div class="col">
                       <%= label_tag :width, nil, class: 'form-label' %>
@@ -312,62 +308,34 @@ const links = document.querySelectorAll("form");
                       <%= submit_tag 'update', class: 'btn btn-primary'%>
                     </div>
                   </div>
-
                 <% end %>
-                
-                
                 </td>
               </tr>
             <% end %>
-
             </tbody>
           </table>
-
-
-
         </div>
       </div>
     </div>
   </div>
   
-
-
   <div class="row">
     <div class="col">
       <div class="card">
         <div class="card-header">
-          <div class="card-actions float-end">
-            <div class="dropdown position-relative">
-
-            </div>
-          </div>
           <h5 class="card-title mb-0">Components</h5>
         </div>
         <div class="card-body">
-
-
           <% @components.each do |component| %>
           <div class="row">
             <div class="col"> <%= button_to 'add', master_slide_template_add_component_path(@master_slide_template, component), method: :post, class: 'add-component', 'data-component_id': component.id %></div>
             <div class="col"> <%= component.name %></div>
-            <div class="col"><%= component.content %></div>
-           
           </div>
           <% end %>
-
-
         </div>
       </div>
     </div>
   </div>
-
-  
-
-
-
-
-
-
 
 </div>
 

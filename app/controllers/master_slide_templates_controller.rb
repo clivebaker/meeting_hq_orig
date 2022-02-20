@@ -11,7 +11,6 @@ class MasterSlideTemplatesController < ApplicationController
   # GET /master_slide_templates/1 or /master_slide_templates/1.json
   def show
 
-    @tags = Mustache::Template.new(@master_slide_template.content.to_s).tags
     @components = Component.all
     #Mustache.render(@email_template.subject.to_s, @input)
 
@@ -31,6 +30,7 @@ class MasterSlideTemplatesController < ApplicationController
 
   def update_component
     @master_slide_template_component = MasterSlideTemplateComponent.find(params[:master_slide_template_component_id])
+    @master_slide_template_component.name = params[:name]
     @master_slide_template_component.top = params[:top] if params[:top].present?
     @master_slide_template_component.left = params[:left] if params[:left].present?
     if params[:height].present?
