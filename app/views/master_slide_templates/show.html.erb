@@ -37,16 +37,12 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
   function handleDragStart(e) {
     this.style.opacity = '0.4';
-    
-    setSelected(this)
-
     dragSrcEl = this;
+    setSelected(dragSrcEl.dataset['component_instance_id'])
+
     coord['leftStart'] = e.screenX
     coord['topStart'] = e.screenY
     e.dataTransfer.effectAllowed = 'move';
-  //  e.dataTransfer.setData('text/html', this.innerHTML);
-
-   console.log('Starting the drag')
   }
 
   function handleDragOver(e) {
@@ -54,8 +50,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
       e.preventDefault();
     }
 
-   // console.log('oovverr')
-    //console.log('over')
     e.dataTransfer.dropEffect = 'move';
     return false;
   }
@@ -88,17 +82,16 @@ document.addEventListener('DOMContentLoaded', (event) => {
       x =  origX + x_relative
       y =  origY + y_relative
 
-      if (x<0){x=0}
-      if (y<0){y=0}
-
       if (x+origWidth > 800){x=800-origWidth}
       if (y+origHeight > 600){y=600-origHeight}
       
+      if (x<0){x=0}
+      if (y<0){y=0}
+
+ 
           
       dragSrcEl.style.left = x +"px";
       dragSrcEl.style.top = y +"px";
-
-      url = "/master_slide_template_component/"+dragSrcEl.dataset['component_instance_id']+"/update"
 
       params = {}
       params['left'] = x
@@ -116,6 +109,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
           $('.left',parent).html(data['left'])
           $('.width',parent).html(data['width'])
           $('.height',parent).html(data['height'])
+          parent_data = $("#component-instance-"+ data['id'] + '-form')
+          $('.width',parent_data).val(data['width'])
+          $('.height',parent_data).val(data['height'])
+          
         });
 
 
@@ -158,21 +155,28 @@ const links = document.querySelectorAll("form");
 
 
 
-    function setSelected(element){
+    function setSelected(id){
       $(".box").removeClass('dotted-border');
-      $(element).addClass("dotted-border");
+      $('#component-instance-box-'+id).addClass("dotted-border");
+      $(".component-instances-forms").hide();
+      $("#component-instance-" + id + '-form').show();
+      $(".component-instances").removeClass('selected-component');
+      $("#component-instance-" + id).addClass('selected-component');
+    }
+    function removeSelected(){
+      $(".component-instances").removeClass('selected-component');
+      $(".component-instances-forms").hide();
+      $(".box").removeClass('dotted-border');
     }
 
+    // default hide forms
+    $(".component-instances-forms").hide();
     $('.box').contextmenu(function(){
-      $(".box").removeClass('dotted-border');
-      $(".component-instances").removeClass('selected-component');
+      removeSelected()
     });
-
- 
  
     $('#target').contextmenu(function(){
-      $(".box").removeClass('dotted-border');
-      $(".component-instances").removeClass('selected-component');
+     removeSelected()
       return false;
     });
 
@@ -180,17 +184,8 @@ const links = document.querySelectorAll("form");
 
 
   $('.box').click(function(){
-
-
       id = $(this).data('component_instance_id');
-
-      setSelected(this)
-
-      $(".component-instances").removeClass('selected-component');
-      $("#component-instance-" + id).addClass('selected-component');
-
-     
-
+      setSelected(id) 
   });
 
 });
@@ -207,25 +202,15 @@ const links = document.querySelectorAll("form");
     <div class="col-12">
       <div class="card">
         <div class="card-header">
-          <div class="card-actions float-end">
-            <div class="dropdown position-relative">
-
-            </div>
-          </div>
           <h5 class="card-title mb-0">Editing master slide template</h5>
         </div>
         <div class="card-body">
-
           <%= render @master_slide_template %>
-
           <div>
             <%= link_to "Edit this master slide template", edit_master_slide_template_path(@master_slide_template) %> |
             <%= link_to "Back to master slide templates", master_slide_templates_path %>
-
             <%= button_to "Destroy this master slide template", @master_slide_template, method: :delete %>
           </div>
-
-
         </div>
       </div>
     </div>
@@ -249,6 +234,7 @@ const links = document.querySelectorAll("form");
               <% component = component_instance.component %>
               <div  class=" p-0 m-0 box" 
                     data-component_instance_id='<%= component_instance.id %>' 
+                    id='component-instance-box-<%= component_instance.id %>' 
                     data-name='<%= component.name %>' 
                     draggable="true"  
                     style='top:<%= component_instance.top %>px;left:<%= component_instance.left %>px;position:absolute;height:<%= component_instance.height %>px;width:<%= component_instance.width %>px;z-index:<%= (index+1)*10 %>;'
@@ -305,6 +291,33 @@ const links = document.querySelectorAll("form");
                 <td class="width"><%= component_instance.width %></td>
                 <td class="height"><%= component_instance.height %></td>
               </tr>
+              <tr id='component-instance-<%=component_instance.id%>-form' class='component-instances-forms'>
+                <td colspan=5>
+                <%= form_tag update_component_path, data: { turbo: false}  do %>
+
+                  <%= hidden_field_tag :master_slide_template_component_id, component_instance.id%>
+
+                  <div class="row mb-3">
+                    <div class="col">
+                      <%= label_tag :width, nil, class: 'form-label' %>
+                      <%= number_field_tag :width, component_instance.width, class: 'width form-control'%>
+                    </div>
+                    <div class="col">
+                      <%= label_tag :height, nil, class: 'form-label' %>
+                      <%= number_field_tag :height, component_instance.height, class: 'height form-control'%>
+                    </div>
+                  </div>
+                  <div class="row mb-3">
+                    <div class="col">     
+                      <%= submit_tag 'update', class: 'btn btn-primary'%>
+                    </div>
+                  </div>
+
+                <% end %>
+                
+                
+                </td>
+              </tr>
             <% end %>
 
             </tbody>
@@ -351,31 +364,6 @@ const links = document.querySelectorAll("form");
   
 
 
-
-  <div class="row">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-actions float-end">
-            <div class="dropdown position-relative">
-
-            </div>
-          </div>
-          <h5 class="card-title mb-0">Render master slide template</h5>
-        </div>
-        <div class="card-body">
-
-          <div>
-          <%=  @tags.inspect %>
-          </div>
-          <code>
-            <%= @master_slide_template.content %>
-          </code>
-
-        </div>
-      </div>
-    </div>
-  </div>
 
 
 

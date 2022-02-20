@@ -22,33 +22,35 @@ class MasterSlideTemplatesController < ApplicationController
   def add_component
     @master_slide_template = MasterSlideTemplate.find(params[:master_slide_template_id])
     @component = Component.find(params[:component_id])
-
     MasterSlideTemplateComponent.create(
       component_id: @component.id,
       master_slide_template_id: @master_slide_template.id
     )
-
    redirect_to @master_slide_template
-
   end
 
   def update_component
-
     @master_slide_template_component = MasterSlideTemplateComponent.find(params[:master_slide_template_component_id])
-    @master_slide_template_component.top = params[:top]
-    @master_slide_template_component.left = params[:left]
-    @master_slide_template_component.save
-
-
-
-    respond_to do |format|
-
-      format.json { render json: @master_slide_template_component.to_json}
-#binding.pry
+    @master_slide_template_component.top = params[:top] if params[:top].present?
+    @master_slide_template_component.left = params[:left] if params[:left].present?
+    if params[:height].present?
+      height = params[:height].to_i < 600 ? params[:height].to_i : 800
+      @master_slide_template_component.height = params[:height]
     end
-
-
+    if params[:width].present?
+      width = params[:width].to_i < 800 ? params[:width].to_i : 800
+      @master_slide_template_component.width = width
+    end
+    
+    @master_slide_template_component.save
+    respond_to do |format|
+      format.html { redirect_to @master_slide_template_component.master_slide_template }
+      format.json { render json: @master_slide_template_component.to_json}
+    end
   end
+
+
+
 
 
   # GET /master_slide_templates/new
