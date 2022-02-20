@@ -40,6 +40,14 @@ class MasterSlideTemplatesController < ApplicationController
     @master_slide_template_component.save
 
 
+
+    respond_to do |format|
+
+      format.json { render json: @master_slide_template_component.to_json}
+#binding.pry
+    end
+
+
   end
 
 

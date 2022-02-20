@@ -5,6 +5,7 @@ Rails.application.routes.draw do
     post 'component/:component_id/add', to: 'master_slide_templates#add_component', as: 'add_component'
   end
   post 'master_slide_template_component/:master_slide_template_component_id/update', to: 'master_slide_templates#update_component', as: 'update_component'
+  post 'master_slide_template_component_update', to: 'master_slide_templates#update_component', as: 'update2_component'
 
 
   devise_for :users, controllers: { invitations: 'users/invitations', registrations: 'users/registrations'}

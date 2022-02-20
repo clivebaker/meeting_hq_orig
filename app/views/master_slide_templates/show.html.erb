@@ -117,13 +117,50 @@ document.addEventListener('DOMContentLoaded', (event) => {
     p['top'] = y
 
     console.log(url)
-    xhttp.open("POST", url, true);
+    <%# xhttp.open("POST", url, true);
     xhttp.setRequestHeader("Content-type", "application/json");
     xhttp.send(JSON.stringify(p));
+
+    %> 
+    p['master_slide_template_component_id'] = dragSrcEl.dataset['component_instance_id']
+    <%# console.log(JSON.stringify(p))
+
+    
+    
+
+    button = $('#component-update2')
+    form = button.parent()
+    form.attr('action', url2).submit() %>
+  var queryString = $.param(p);
+    var url2 = "/master_slide_template_component_update.json" 
+
+  $.post( url2, p)
+    .done(function( data ) {
+      console.log( "posted: " + JSON.stringify(p) );
+      console.log( data );
+      parent = $("#component-instance-"+ data['id'])
+      $('.top',parent).html(data['top'])
+      $('.left',parent).html(data['left'])
+      $('.width',parent).html(data['width'])
+      $('.height',parent).html(data['height'])
+    });
+
+
+
+
 
 
     return false;
   }
+
+
+const links = document.querySelectorAll("form");
+  links.forEach((element) => {
+    element.addEventListener("ajax:success", () => {
+      alert("The article was deleted.");
+    });
+  });
+
 
   function handleDragEnd(e) {
     this.style.opacity = '1';
@@ -172,6 +209,12 @@ document.addEventListener('DOMContentLoaded', (event) => {
       $(".component-instances").removeClass('bg-dark');
     });
 
+ 
+    $('#target').contextmenu(function(){
+  
+       console.log($(this).position());
+    });
+
 
   $('.box').click(function(){
 
@@ -191,6 +234,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 </script>
 
 <% end %>
+
 
 
 <div class="content">
@@ -238,15 +282,15 @@ document.addEventListener('DOMContentLoaded', (event) => {
         <div class="card-body">
 
           <div class="canvas border border-dark m-4 bg-white target p-0 m-0" id='target' style='height:600px;width:800px;'>
-            <% @master_slide_template.master_slide_template_components.each do |component_instance| %>  
+            <% @master_slide_template.master_slide_template_components.each_with_index do |component_instance, index| %>  
               <% component = component_instance.component %>
               <div  class=" p-0 m-0 box" 
                     data-component_instance_id='<%= component_instance.id %>' 
                     data-name='<%= component.name %>' 
                     draggable="true"  
-                    style='top:<%= component_instance.top %>px;left:<%= component_instance.left %>px;position:relative;height:<%= component_instance.height %>px;width:<%= component_instance.width %>px;'
+                    style='top:<%= component_instance.top %>px;left:<%= component_instance.left %>px;position:absolute;height:<%= component_instance.height %>px;width:<%= component_instance.width %>px;z-index:<%= (index+1)*10 %>;'
                      oncontextmenu="javascript:;return false;" >
-                    <%= component.content %>
+                    (<%= component_instance.id %>)<%= component.content %>
               </div>
             <% end %>
 
@@ -274,16 +318,35 @@ document.addEventListener('DOMContentLoaded', (event) => {
         <div class="card-body">
 
 
+
+
+          <table class="table table-striped small">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Top</th>
+                <th>Left</th>
+                <th>Width</th>
+                <th>Height</th>
+              </tr>
+            </thead>
+            <tbody>
+       
+
          <% @master_slide_template.master_slide_template_components.each do |component_instance| %>  
               <% component = component_instance.component %>
-              <div class="row component-instances" id='component-instance-<%=component_instance.id%>'>
-                <div class="col"><%= component.name %></div>
-                <div class="col">top:<%= component_instance.top %></div>
-                <div class="col">left:<%= component_instance.left %></div>
-                <div class="col">width:<%= component_instance.width %></div>
-                <div class="col">height:<%= component_instance.height %></div>
-              </div>
+              <tr class="component-instances" id='component-instance-<%=component_instance.id%>'>
+                <td class=""><%= component.name %></td>
+                <td class="top"><%= component_instance.top %></td>
+                <td class="left"><%= component_instance.left %></td>
+                <td class="width"><%= component_instance.width %></td>
+                <td class="height"><%= component_instance.height %></td>
+              </tr>
             <% end %>
+
+            </tbody>
+          </table>
+
 
 
         </div>
