@@ -5,15 +5,17 @@
 }
 
 .box {
-  <%# border: 3px solid #666;
-  background-color: #ddd;
-  border-radius: .5em;
-  padding: 10px; %>
+  border: 1px solid #666;
   cursor: move;
+  background: #eee;
+}
+.selected-component > * {
+  background: #ccc!important;
+  color: #000!important;
 }
 
 .dotted-border{
-  border: 1px dotted #666;
+  border: 1px dashed red;
 }
 
 .box.over {
@@ -21,23 +23,6 @@
 }
 
 
-#right_panel {
-    position: absolute;
-    width: 96px;
-    padding-left: 4px;
-    height: 100%;
-    right: 0;
-    background-color: #f0f0f0;
-}
-
-#resize {
-    background-color: #ccc;
-    position: absolute;
-    left: 0;
-    width: 4px;
-    height: 100%;
-    cursor: w-resize;
-}
 
 </style>
 
@@ -85,65 +70,45 @@ document.addEventListener('DOMContentLoaded', (event) => {
   }
 
   function handleDrop(e) {
-    console.log(e)
- 
-
+  
     coord['leftEnd'] = e.screenX
     coord['topEnd'] = e.screenY
-
-
-   
 
     if (e.stopPropagation) {
       e.stopPropagation(); // stops the browser from redirecting.
     }
 
-      canvas =  dragSrcEl.parentElement.getBoundingClientRect()
-      box = dragSrcEl.getBoundingClientRect();
+      x_relative = coord['leftEnd'] - coord['leftStart']
+      y_relative = coord['topEnd'] - coord['topStart']
+   
       origX = parseInt(dragSrcEl.style.left) || 0
       origY = parseInt(dragSrcEl.style.top) || 0
-      console.log(origX + ' + ' + coord['leftEnd'] +' - '+coord['leftStart']);
-      console.log(origY + ' + ' + coord['topEnd'] +' - '+coord['topStart']);
-      x =  origX + (coord['leftEnd'] -  coord['leftStart'])
-      y =  origY + (coord['topEnd'] -  coord['topStart'])
+
+      x =  origX + x_relative
+      y =  origY + y_relative
+          
       dragSrcEl.style.left = x +"px";
       dragSrcEl.style.top = y +"px";
 
       url = "/master_slide_template_component/"+dragSrcEl.dataset['component_instance_id']+"/update"
 
-    const xhttp = new XMLHttpRequest();
-    p = {}
-    p['left'] = x
-    p['top'] = y
+      params = {}
+      params['left'] = x
+      params['top'] = y
+      params['master_slide_template_component_id'] = dragSrcEl.dataset['component_instance_id']
 
-    console.log(url)
-    <%# xhttp.open("POST", url, true);
-    xhttp.setRequestHeader("Content-type", "application/json");
-    xhttp.send(JSON.stringify(p));
+      var url2 = "/master_slide_template_component_update.json" 
 
-    %> 
-    p['master_slide_template_component_id'] = dragSrcEl.dataset['component_instance_id']
-    <%# console.log(JSON.stringify(p))
-
-    
-    
-
-    button = $('#component-update2')
-    form = button.parent()
-    form.attr('action', url2).submit() %>
-  var queryString = $.param(p);
-    var url2 = "/master_slide_template_component_update.json" 
-
-  $.post( url2, p)
-    .done(function( data ) {
-      console.log( "posted: " + JSON.stringify(p) );
-      console.log( data );
-      parent = $("#component-instance-"+ data['id'])
-      $('.top',parent).html(data['top'])
-      $('.left',parent).html(data['left'])
-      $('.width',parent).html(data['width'])
-      $('.height',parent).html(data['height'])
-    });
+      $.post( url2, params)
+        .done(function( data ) {
+        //  console.log( "posted: " + JSON.stringify(p) );
+        //  console.log( data );
+          parent = $("#component-instance-"+ data['id'])
+          $('.top',parent).html(data['top'])
+          $('.left',parent).html(data['left'])
+          $('.width',parent).html(data['width'])
+          $('.height',parent).html(data['height'])
+        });
 
 
 
@@ -206,14 +171,18 @@ const links = document.querySelectorAll("form");
  
     $('.box').contextmenu(function(){
       $(".box").removeClass('dotted-border');
-      $(".component-instances").removeClass('bg-dark');
+      $(".component-instances").removeClass('selected-component');
     });
 
  
+ 
     $('#target').contextmenu(function(){
-  
-       console.log($(this).position());
+      $(".box").removeClass('dotted-border');
+      $(".component-instances").removeClass('selected-component');
+      return false;
     });
+
+ 
 
 
   $('.box').click(function(){
@@ -223,8 +192,8 @@ const links = document.querySelectorAll("form");
 
       setSelected(this)
 
-      $(".component-instances").removeClass('bg-dark');
-      $("#component-instance-" + id).addClass('bg-dark');
+      $(".component-instances").removeClass('selected-component');
+      $("#component-instance-" + id).addClass('selected-component');
 
      
 
@@ -281,7 +250,7 @@ const links = document.querySelectorAll("form");
         </div>
         <div class="card-body">
 
-          <div class="canvas border border-dark m-4 bg-white target p-0 m-0" id='target' style='height:600px;width:800px;'>
+          <div class="canvas border border-dark m-4 bg-white target p-0 m-0" id='target' style='position:relative;height:600px;width:800px;'>
             <% @master_slide_template.master_slide_template_components.each_with_index do |component_instance, index| %>  
               <% component = component_instance.component %>
               <div  class=" p-0 m-0 box" 
@@ -320,7 +289,7 @@ const links = document.querySelectorAll("form");
 
 
 
-          <table class="table table-striped small">
+          <table class="table small">
             <thead>
               <tr>
                 <th>Name</th>
