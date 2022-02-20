@@ -41,7 +41,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
     setSelected(this)
 
     dragSrcEl = this;
-    //console.log(e)
     coord['leftStart'] = e.screenX
     coord['topStart'] = e.screenY
     e.dataTransfer.effectAllowed = 'move';
@@ -83,9 +82,18 @@ document.addEventListener('DOMContentLoaded', (event) => {
    
       origX = parseInt(dragSrcEl.style.left) || 0
       origY = parseInt(dragSrcEl.style.top) || 0
+      origWidth = parseInt(dragSrcEl.style.width) || 0
+      origHeight = parseInt(dragSrcEl.style.height) || 0
 
       x =  origX + x_relative
       y =  origY + y_relative
+
+      if (x<0){x=0}
+      if (y<0){y=0}
+
+      if (x+origWidth > 800){x=800-origWidth}
+      if (y+origHeight > 600){y=600-origHeight}
+      
           
       dragSrcEl.style.left = x +"px";
       dragSrcEl.style.top = y +"px";
@@ -138,37 +146,23 @@ const links = document.querySelectorAll("form");
   let items = document.querySelectorAll('.box');
   items.forEach(function(item) {
     item.addEventListener('dragstart', handleDragStart, false);
-    //item.addEventListener('dragenter', handleDragEnter, false);
-    //item.addEventListener('dragover', handleDragOver, false);
-   // item.addEventListener('dragleave', handleDragLeave, false);
     item.addEventListener('drop', handleDrop, false);
     item.addEventListener('dragend', handleDragEnd, false);
   });
   let targets = document.querySelectorAll('.target');
-  targets.forEach(function(target) {
-  //  target.addEventListener('dragstart', handleDragStart, false);
-  //  target.addEventListener('dragenter', handleDragEnter, false);
+    targets.forEach(function(target) {
     target.addEventListener('dragover', handleDragOver, false);
-  ///  target.addEventListener('dragleave', handleDragLeave, false);
     target.addEventListener('drop', handleDrop, false);
-    //target.addEventListener('dragend', handleDragEnd, false);
   });
 
 
 
 
-  function setSelected(element){
-    $(".box").removeClass('dotted-border');
-    $(element).addClass("dotted-border");
-  }
+    function setSelected(element){
+      $(".box").removeClass('dotted-border');
+      $(element).addClass("dotted-border");
+    }
 
-
-
-
-
-
-
- 
     $('.box').contextmenu(function(){
       $(".box").removeClass('dotted-border');
       $(".component-instances").removeClass('selected-component');
