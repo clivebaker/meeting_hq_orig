@@ -1,0 +1,23 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  slide_template: one
+  component: one
+  top: 1
+  left: 1
+  width: 1
+  height: 1
+  settings: 
+  content: MyText
+  name: MyString
+
+two:
+  slide_template: two
+  component: two
+  top: 1
+  left: 1
+  width: 1
+  height: 1
+  settings: 
+  content: MyText
+  name: MyString

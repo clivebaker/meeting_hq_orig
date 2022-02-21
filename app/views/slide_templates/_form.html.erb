@@ -11,27 +11,19 @@
     </div>
   <% end %>
 
-  <div>
-    <%= form.label :organisation_id, style: "display: block" %>
-    <%= form.text_field :organisation_id %>
+    <%= form.hidden_field :organisation_id %>
+ 
+  <div class='mb-3'>
+    <%= form.label :name, style: "display: block", class: 'form-label'  %>
+    <%= form.text_field :name, class: 'form-control'  %>
   </div>
 
-  <div>
-    <%= form.label :name, style: "display: block" %>
-    <%= form.text_field :name %>
+  <div class='mb-3'>
+    <%= form.label :enabled, style: "display: block", class: 'form-label'  %>
+    <%= form.check_box :enabled, class: 'form-check'  %>
   </div>
 
-  <div>
-    <%= form.label :content, style: "display: block" %>
-    <%= form.text_area :content %>
-  </div>
-
-  <div>
-    <%= form.label :enabled, style: "display: block" %>
-    <%= form.check_box :enabled %>
-  </div>
-
-  <div>
-    <%= form.submit %>
+  <div class='mb-3'>
+    <%= form.submit nil, class: 'btn btn-primary' %>
   </div>
 <% end %>

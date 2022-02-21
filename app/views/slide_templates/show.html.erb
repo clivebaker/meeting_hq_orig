@@ -1,8 +1,213 @@
 
 
+<style>
+  .box{ border: 1px solid #666;cursor: move;background: #eee; }
+  .selected-component > * { background: #ccc!important;color: #000!important; }
+  .dotted-border{ border: 1px dashed red; }
+  .box.over { border: 3px dotted #666; }
+</style>
+
+<% content_for :js do %>
+
+<script>
+document.addEventListener('DOMContentLoaded', (event) => {
+
+  var dragSrcEl = null;
+  var coord = {}
+
+  function handleDragStart(e) {
+    this.style.opacity = '0.4';
+    dragSrcEl = this;
+    setSelected(dragSrcEl.dataset['component_instance_id'])
+
+    coord['leftStart'] = e.screenX
+    coord['topStart'] = e.screenY
+    e.dataTransfer.effectAllowed = 'move';
+  }
+
+  function handleDragOver(e) {
+    if (e.preventDefault) {
+      e.preventDefault();
+    }
+
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+  }
+
+  function handleDragEnter(e) {
+    this.classList.add('over');
+  }
+
+  function handleDragLeave(e) {
+    this.classList.remove('over');
+  }
+
+  function handleDrop(e) {
+  
+    coord['leftEnd'] = e.screenX
+    coord['topEnd'] = e.screenY
+
+    if (e.stopPropagation) {
+      e.stopPropagation(); // stops the browser from redirecting.
+    }
+
+      x_relative = coord['leftEnd'] - coord['leftStart']
+      y_relative = coord['topEnd'] - coord['topStart']
+   
+      origX = parseInt(dragSrcEl.style.left) || 0
+      origY = parseInt(dragSrcEl.style.top) || 0
+      origWidth = parseInt(dragSrcEl.style.width) || 0
+      origHeight = parseInt(dragSrcEl.style.height) || 0
+
+      x =  origX + x_relative
+      y =  origY + y_relative
+
+      if (x+origWidth > 800){x=800-origWidth}
+      if (y+origHeight > 600){y=600-origHeight}
+      
+      if (x<0){x=0}
+      if (y<0){y=0}
+
+ 
+          
+      dragSrcEl.style.left = x +"px";
+      dragSrcEl.style.top = y +"px";
+
+      parent_data = $("#component-instance-"+ dragSrcEl.dataset['component_instance_id'] + '-form')
+       
+      params = {}
+      params['left'] = x
+      params['top'] = y
+      params['master_slide_template_component_id'] = dragSrcEl.dataset['component_instance_id']
+      params['name'] = $('.name',parent_data).val()
+
+      var url = "<%= @update_path %>.json" 
+
+      $.post( url, params)
+        .done(function( data ) {
+          parent = $("#component-instance-"+ data['id'])
+          $('.top',parent).html(data['top'])
+          $('.left',parent).html(data['left'])
+          $('.width',parent).html(data['width'])
+          $('.height',parent).html(data['height'])
+          parent_data = $("#component-instance-"+ data['id'] + '-form')
+          $('.width',parent_data).val(data['width'])
+          $('.height',parent_data).val(data['height'])        
+        });
+
+    return false;
+  }
+
+
+const links = document.querySelectorAll("form");
+  links.forEach((element) => {
+    element.addEventListener("ajax:success", () => {
+      alert("The article was deleted.");
+    });
+  });
+
+
+  function handleDragEnd(e) {
+    this.style.opacity = '1';
+    
+    items.forEach(function (item) {
+      item.classList.remove('over');
+    });
+  }
+  
+  let items = document.querySelectorAll('.box');
+  items.forEach(function(item) {
+    item.addEventListener('dragstart', handleDragStart, false);
+    item.addEventListener('drop', handleDrop, false);
+    item.addEventListener('dragend', handleDragEnd, false);
+  });
+  let targets = document.querySelectorAll('.target');
+    targets.forEach(function(target) {
+    target.addEventListener('dragover', handleDragOver, false);
+    target.addEventListener('drop', handleDrop, false);
+  });
+
+
+
+
+    function setSelected(id){
+      $(".box").removeClass('dotted-border');
+      $('#component-instance-box-'+id).addClass("dotted-border");
+      $(".component-instances-forms").hide();
+      $("#component-instance-" + id + '-form').show();
+      $(".component-instances").removeClass('selected-component');
+      $("#component-instance-" + id).addClass('selected-component');
+    }
+    function removeSelected(){
+      $(".component-instances").removeClass('selected-component');
+      $(".component-instances-forms").hide();
+      $(".box").removeClass('dotted-border');
+    }
+
+    // default hide forms
+    $(".component-instances-forms").hide();
+    $('.box').contextmenu(function(){
+      removeSelected()
+    });
+ 
+    $('#target').contextmenu(function(){
+     removeSelected()
+      return false;
+    });
+
+  $('.box').click(function(){
+      id = $(this).data('component_instance_id');
+      setSelected(id) 
+  });
+
+});
+</script>
+
+<% end %>
+
+
+
 <div class="content">
+
+
   <div class="row">
     <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="row">
+            <div class="col pt-1"><h5 class="card-title mb-0"> <%= @slide_template.name %></h5></div>
+            <div class="col pt-1 text-center">Enabled: <i class="fa-solid <%= @slide_template.enabled ? 'fa-circle-check text-success' : 'fa-circle-x text-danger' %>"></i></div>
+            <div class="col text-end">
+                    
+              <div class='d-inline-flex'>
+              <%= link_to organisation_slide_templates_path(@organisation) , class: 'btn btn-primary'  do %>
+                  Back
+                <% end %>
+              </div>
+              <div class='d-inline-flex'>
+              <%= link_to edit_organisation_slide_template_path(@organisation, @slide_template) , class: 'btn btn-primary' do %>
+                <i class="fas fa-edit"></i> 
+                <% end %>
+              </div>
+            <div class='d-inline-flex'>
+              <%=  button_to organisation_slide_template_path(@organisation, @slide_template), method: :delete, class: 'btn btn-danger'   do %>
+                <i class="fas fa-trash-alt"></i> 
+                <% end %>
+              </div>
+
+            
+            </div>
+          </div>
+
+          
+        </div>
+       
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-8">
       <div class="card">
         <div class="card-header">
           <div class="card-actions float-end">
@@ -10,23 +215,128 @@
 
             </div>
           </div>
-          <h5 class="card-title mb-0">Slide template</h5>
+          <h5 class="card-title mb-0">Slide</h5>
         </div>
         <div class="card-body">
 
-<%= render @slide_template %>
+          <div class="canvas border border-dark m-4 bg-white target p-0 m-0" id='target' style='position:relative;height:600px;width:800px;'>
+            <% @slide_template.slide_template_components.each_with_index do |component_instance, index| %>  
+              <% component = component_instance.component %>
+              <div  class=" p-0 m-0 box text-center" 
+                    data-component_instance_id='<%= component_instance.id %>' 
+                    id='component-instance-box-<%= component_instance.id %>' 
+                    data-name='<%= component.name %>' 
+                    draggable="true"  
+                    style='top:<%= component_instance.top %>px;left:<%= component_instance.left %>px;position:absolute;height:<%= component_instance.height %>px;width:<%= component_instance.width %>px;z-index:<%= (index+1)*10 %>;'
+                    oncontextmenu="javascript:;return false;" >
+                    <%= component_instance.name.present? ? component_instance.name : component.name %>
+              </div>
+            <% end %>
 
-<div>
-  <%= link_to "Edit this slide template", edit_organisation_slide_template_path(@organisation, @slide_template) %> |
-  <%= link_to "Back to slide templates", organisation_slide_templates_path(@organisation) %>
-
-  <%= button_to "Destroy this slide template", organisation_slide_template_path(@organisation, @slide_template), method: :delete %>
-</div>
-
-
+          </div>
 
         </div>
       </div>
     </div>
+
+
+  
+
+  
+
+    <div class="col-4">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-actions float-end">
+            <div class="dropdown position-relative">
+
+            </div>
+          </div>
+          <h5 class="card-title mb-0">Components</h5>
+        </div>
+        <div class="card-body">
+
+
+
+
+          <table class="table small">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Top</th>
+                <th>Left</th>
+                <th>Width</th>
+                <th>Height</th>
+              </tr>
+            </thead>
+            <tbody>
+       
+
+         <% @slide_template.slide_template_components.each do |component_instance| %>  
+              <% component = component_instance.component %>
+              <tr class="component-instances" id='component-instance-<%=component_instance.id%>'>
+                <td class=""><%= component_instance.name.present? ? component_instance.name : component.name %></td>
+                <td class="top"><%= component_instance.top %></td>
+                <td class="left"><%= component_instance.left %></td>
+                <td class="width"><%= component_instance.width %></td>
+                <td class="height"><%= component_instance.height %></td>
+              </tr>
+              <tr id='component-instance-<%=component_instance.id%>-form' class='component-instances-forms'>
+                <td colspan=5>
+                <%= form_tag @update_path, data: { turbo: false}  do %>
+                  <%= hidden_field_tag :master_slide_template_component_id, component_instance.id%>
+                  <div class="row mb-3">
+                    <div class="col">
+                      <%= label_tag :name, nil, class: 'form-label' %>
+                      <%= text_field_tag :name, component_instance.name, class: 'name form-control'%>
+                    </div>
+                  </div>
+                  <div class="row mb-3">
+                    <div class="col">
+                      <%= label_tag :width, nil, class: 'form-label' %>
+                      <%= number_field_tag :width, component_instance.width, class: 'width form-control'%>
+                    </div>
+                    <div class="col">
+                      <%= label_tag :height, nil, class: 'form-label' %>
+                      <%= number_field_tag :height, component_instance.height, class: 'height form-control'%>
+                    </div>
+                  </div>
+                  <div class="row mb-3">
+                    <div class="col">     
+                      <%= submit_tag 'update', class: 'btn btn-primary'%>
+                    </div>
+                  </div>
+                <% end %>
+                </td>
+              </tr>
+            <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
+  
+  <div class="row">
+    <div class="col">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Components</h5>
+        </div>
+        <div class="card-body">
+          <% @components.each do |component| %>
+          <div class="row">
+            <div class="col"> <%= button_to 'add', organisation_slide_template_add_component_path(@organisation, @slide_template, component), method: :post, data: {turbo: false}, class: 'add-component', 'data-component_id': component.id %></div>
+            <div class="col"> <%= component.name %></div>
+          </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
+
+
+
+

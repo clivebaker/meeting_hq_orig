@@ -14,23 +14,70 @@
         </div>
         <div class="card-body">
 
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Enabled</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+  
+            <% @slide_templates.each do |slide_template| %>
+              <tr>
+                <td><%= slide_template.name %></td>
+                <td><i class="fa-solid <%= slide_template.enabled ? 'fa-circle-check text-success' : 'fa-circle-x text-danger' %>"></i></td>
+                <td class='text-end'><%= link_to "Show this slide template", organisation_slide_template_path(@organisation, slide_template), data: {turbo: false} %></td>
+              </tr>
+            <% end %>
+            </tbody>
+          </table>
 
 
-<div id="slide_templates">
-  <% @slide_templates.each do |slide_template| %>
-    <%= render slide_template %>
-    <p>
-      <%= link_to "Show this slide template", slide_template %>
-    </p>
-  <% end %>
-</div>
 
-<%= link_to "New slide template", new_organisation_slide_template_path(@organisation) %>
-
-
+          <%= link_to "New slide template", new_organisation_slide_template_path(@organisation) %>
 
         </div>
       </div>
     </div>
   </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-actions float-end">
+            <div class="dropdown position-relative">
+
+            </div>
+          </div>
+          <h5 class="card-title mb-0">Available Master Slide templates</h5>
+        </div>
+        <div class="card-body">
+
+          <div id="slide_templates">
+            <% @master_slide_templates.each do |master_slide_template| %>
+              <div class="row">
+                <div class="col"><%= master_slide_template.name %></div>
+                <div class="col text-end">
+                  <%= button_to organisation_add_master_path(@organisation, master_slide_template), methos: :post, class: 'btn btn-primary' do %>
+                    <i class="fa-solid fa-circle-plus"></i>
+                  <% end %>
+
+                </div>
+                
+              </div>
+              
+            <% end %>
+          </div>
+
+         
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+
 </div>
