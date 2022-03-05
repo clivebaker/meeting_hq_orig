@@ -18,16 +18,18 @@
 
     <link href="/css/light.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500&display=swap" rel="stylesheet">
-    <%= favicon_link_tag asset_path('logo.png') %>
+    <%= favicon_link_tag asset_path('logo-large.png') %>
 
   </head>
 
   <body data-theme="default" data-layout="fluid" data-sidebar-position="left" data-sidebar-behavior="sticky">
+    <%= render 'layouts/public/top_nav'%>
 
-        <%= yield %>
+    <%= yield %>
 
    	<%= render 'layouts/messages' %>
-      <%= yield :js %>
+      
+    <%= yield :js %>
   
   </body>
 </html>

@@ -1,4 +1,23 @@
 Rails.application.routes.draw do
+  
+  namespace :home do
+    get 'index'
+    get 'pricing'
+    get 'about'
+    namespace :account do
+      get 'landing'
+    end
+    namespace :features do
+      get 'actions'
+      get 'agenda'
+      get 'data_collection'
+      get 'history'
+      get 'minutes'
+      get 'presentations'
+      get 'slide_deck'
+      get 'version_control'
+    end
+  end
   resources :components
 
   resources :master_slide_templates do 
@@ -32,6 +51,6 @@ Rails.application.routes.draw do
     end
   end
 
-  root "organisations#index"
+  root "home#index"
 
 end

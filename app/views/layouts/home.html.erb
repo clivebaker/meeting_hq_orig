@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    	<meta charset="utf-8">
+
+    <title>MeetingManagement</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_include_tag "application", "data-turbo-track": "reload", defer: true %>
+    <%= javascript_include_tag "app", "data-turbo-track": "reload", defer: true %>
+
+    <script src="https://kit.fontawesome.com/adbf4b0fe6.js" crossorigin="anonymous"></script>
+
+    <link href="/css/light.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500&display=swap" rel="stylesheet">
+    <%= favicon_link_tag asset_path('logo-large.png') %>
+
+  </head>
+
+  <body data-theme="default" data-layout="fluid" data-sidebar-position="left" data-sidebar-behavior="sticky">
+
+    <%= render 'layouts/public/top_nav'%>
+  	<%= render 'layouts/messages' %>
+    <%= yield %>
+    <%= render 'layouts/footer' %>
+    
+    <%= yield :js %>
+
+
+  </body>
+</html>
