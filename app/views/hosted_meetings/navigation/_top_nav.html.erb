@@ -1,0 +1,131 @@
+
+<% content_for :js do %>
+
+
+<script>
+
+  var countDownDate = new Date("<%= (@hosted_meeting.started_at + @duration.minutes).strftime('%Y-%m-%d %H:%M:%S') %>").getTime();
+  var x = setInterval(function() {
+  var now = new Date().getTime();
+  var prefix = ''
+  var distance = countDownDate - now;
+  
+  if (distance < 0){
+    prefix = '+'
+    distance = distance * -1
+
+  }
+
+  var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+  var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+  document.getElementById("meeting-time").innerHTML = prefix + hours + "h " + minutes + "m " + seconds + "s ";
+
+
+}, 1000);
+
+<% if @next_start_time.present? %>
+  var countDownDateAgenda = new Date("<%= (@next_start_time).strftime('%Y-%m-%d %H:%M:%S') %>").getTime();
+  var y = setInterval(function() {
+  var prefix = ''
+  var now = new Date().getTime();
+  var distance = countDownDateAgenda - now;
+
+
+  negative = false
+
+  if (distance < 0){
+    negative = true
+    prefix = '+'
+    distance = distance * -1
+    reset_agenda_time()
+    set_colour_agenda_time('danger')
+  }
+
+  var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+  var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+  document.getElementById("agenda-time").innerHTML = prefix + hours + "h " + minutes + "m " + seconds + "s ";
+
+  if (!negative && minutes == 0){
+    reset_agenda_time()
+    set_colour_agenda_time('warning')
+  }
+
+}, 1000);
+<% end %>
+
+function reset_agenda_time(){
+    $('#agenda-time').removeClass('text-success').removeClass('text-warning').removeClass('text-danger')
+    $('#agenda-button').removeClass('btn-success').removeClass('btn-warning').removeClass('btn-danger')
+}
+function set_colour_agenda_time(colour){
+    $('#agenda-time').addClass('text-'+colour)
+    $('#agenda-button').addClass('btn-'+colour)
+}
+
+</script>
+
+
+<% end %>
+
+
+<div class="row bg-primary text-light py-2">
+  <div class="col my-auto ms-2">
+    <div class="row"><div class="col">Started at: </div></div>
+    <div class="row"><div class="col"><h3 class='text-light'><%= @hosted_meeting.started_at.strftime('%d %b %H:%M')%></h3></div></div>  
+  </div>
+
+  <div class="col-4 my-auto">
+
+    <% if @current_agenda_item.present? %>
+        <div class="row">
+          <div class="col-3 text-end">Current Topic: </div>
+          <div class="col"><h3 class='text-light'><%= @current_agenda_item['name'] %> - <%= @current_agenda_item['duration_minutes'] %> minutes</h3></div>
+        </div>
+    <% else %>
+        <div class="row">
+          <div class="col"><h3 class='text-light'>No Agenda items</h3></div>
+        </div>
+    <% end %>
+    <% if @next_agenda_item.present? and @next_agenda_item['id'] != -1 %>
+        <div class="row">
+          <div class="col-3 text-end text-light">Next Topic: </div>
+          <div class="col"><%= @next_agenda_item['name'] %> - <%= @next_agenda_item['duration_minutes'] %> minutes</div>
+        </div>
+    <% end %>
+
+  </div>
+
+
+  <div class="col my-auto text-end">
+   <% if @current_agenda_item.present? %>
+    <div class="row"><div class="col">Current Agenda Item:</div></div>
+    <div class="row"><div class="col"><h3 class='text-success' id='agenda-time'></h3></div></div>
+    <% end %>
+  </div>
+  <div class="col my-auto">
+    <% if @current_agenda_item.present? %>
+      <% if @next_agenda_item['id'] != -1 %>
+        <%= button_to 'Next Agenda Item', organisation_meeting_hosted_meeting_finish_agenda_path(@organisation, @meeting, @hosted_meeting, @current_agenda_item['id'], @next_agenda_item['id']), id: 'agenda-button', class: 'btn btn-success', method: :post, data: {turbo: false}%>
+      <% else %>  
+        <%= button_to 'Finish last topic', organisation_meeting_hosted_meeting_finish_agenda_path(@organisation, @meeting, @hosted_meeting, @current_agenda_item['id'], @next_agenda_item['id']), id: 'agenda-button', class: 'btn btn-success', method: :post, data: {turbo: false}%>
+      <% end %>    
+    <% end %>
+  </div>
+
+
+
+  <div class="col my-auto text-end">
+    <div class="row"><div class="col">Meeting Time: </div></div>
+    <div class="row"><div class="col"><h3 class='text-light' id='meeting-time'></h3></div></div>
+  </div>
+  <div class="col-2 text-center my-auto me-2">
+  <%= link_to 'Add Action / Minute', '#', class: 'btn btn-success' %>
+    <div class='d-inline-flex'>
+      <%= button_to 'End Meeting', organisation_meeting_hosted_meeting_finish_path(@organisation, @meeting, @hosted_meeting), method: :post, data: {turbo: false}, class: 'btn btn-danger'%>
+    </div>
+  </div>
+</div>

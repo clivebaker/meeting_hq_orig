@@ -6,7 +6,7 @@ class MeetingActionsController < ApplicationController
 
   # GET /meeting_actions or /meeting_actions.json
   def index
-    @meeting_actions = MeetingAction.all
+    @meeting_actions = MeetingAction.where(meeting_id: @meeting.id)
   end
 
   # GET /meeting_actions/1 or /meeting_actions/1.json
@@ -37,6 +37,22 @@ class MeetingActionsController < ApplicationController
       end
     end
   end
+
+
+
+  def complete
+
+    @meeting_action = MeetingAction.find(params[:meeting_action_id])
+    @meeting_action.close! if @meeting_action.may_close? 
+   
+    respond_to do |format|
+        format.html { redirect_to organisation_meeting_meeting_actions_url(@organisation, @meeting), notice: "Item was successfully closed." }
+    end
+
+
+
+  end
+
 
   # PATCH/PUT /meeting_actions/1 or /meeting_actions/1.json
   def update

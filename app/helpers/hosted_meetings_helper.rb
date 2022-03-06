@@ -1,0 +1,2 @@
+module HostedMeetingsHelper
+end

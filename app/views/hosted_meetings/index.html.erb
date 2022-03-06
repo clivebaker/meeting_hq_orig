@@ -1,0 +1,77 @@
+<main class="content">
+	<div class="container-fluid p-0">
+
+	  <h1 class="h3 mb-3">Previous <%= @meeting.name.pluralize %></h1>
+
+			<div class="row">
+
+            <% @meeting.hosted_meetings.each do |hosted_meeting| %>
+						<div class="col-4">
+							<div class="card">
+								<div class="card-header">
+                  <div class="row">
+                    <div class="col">Date: <h5 class="card-title mb-0"><%= hosted_meeting.started_at.strftime('%d %B %Y') %></h5></div>
+                    <div class="col text-end">Time: <h5 class="card-title mb-0"><%= hosted_meeting.started_at.strftime('%H:%M') %></h5></div>
+                  </div>
+									
+								</div>
+								<div class="card-body">
+						
+									<table class="table table-sm my-2">
+										<tbody>
+											<tr>
+												<th>Started By</th>
+												<td><%= hosted_meeting.user.name%></td>
+											</tr>
+											<tr>
+												<th>Started At</th>
+												<td><%= hosted_meeting.started_at.strftime('%d %B %Y %H:%M') %></td>
+											</tr>
+											<tr>
+												<th>Ended At</th>
+												<td><%= hosted_meeting.ended_at.strftime('%d %B %Y %H:%M') %></td>
+											</tr>
+											<tr>
+												<th>Meeting Duration</th>
+												<td><%= distance_of_time_in_words(hosted_meeting.ended_at, hosted_meeting.started_at, include_seconds: true)%></td>
+											</tr>
+										</tbody>
+									</table>
+
+								
+                  <div class='mt-2'>&nbsp;</div>
+									<strong>Agenda</strong>
+
+									<ul class="timeline mt-2 mb-0">
+                    <% hosted_meeting.agenda['items'].each do |agenda_item| %>
+										<li class="timeline-item">
+											<strong><%= agenda_item['name'] %> (<%= agenda_item['duration_minutes'] %> minutes)</strong>
+											<span class="float-end text-muted text-sm">
+                        <%
+                          start_time = Time.parse(agenda_item['started_at'])if agenda_item['started_at'].present?
+                          end_time = Time.parse(agenda_item['ended_at']) if agenda_item['ended_at'].present?
+                        %>
+                        <%= distance_of_time_in_words(end_time, start_time, include_seconds: true) if end_time.present? and start_time.present? %>
+                      </span>
+											<p>&nbsp;</p>
+										</li>
+                    <% end %>
+									
+									</ul>
+
+								</div>
+							</div>
+						</div>
+            <% end %>
+
+					</div>
+
+				</div>
+			</main>
+
+
+
+
+
+
+

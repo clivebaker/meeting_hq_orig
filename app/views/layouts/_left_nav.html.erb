@@ -32,10 +32,15 @@
 										
 										<ul id="multi-<%=organisation.id%>-1" class="sidebar-dropdown list-unstyled <%#= collapse_meeting((@organisation.id if @organisation), organisation.id)  %>">
 											<li class="sidebar-item <%= active((@organisation.id if @organisation), organisation.id) if @meeting.blank? and ['meetings', 'agendas', 'meeting_actions'].include?(params[:controller])%>">
-												<%= link_to 'Meeting Settings', organisation_meetings_path(organisation), class: "sidebar-link", 'data-bs-target': "#" %>
+												<%= link_to 'Manage Meetings', organisation_meetings_path(organisation), class: "sidebar-link", 'data-bs-target': "#" %>
 											</li>										
 												<% organisation.meetings.each do |meeting| %>
 													<li class="sidebar-item <%= active((@meeting.id if @meeting), meeting.id)%> " >
+														<%= link_to organisation_meeting_path(organisation, meeting), class: "sidebar-link" do %>
+															<%= meeting.name %> 
+														<% end %>
+													</li>
+													<!-- li class="sidebar-item <%= active((@meeting.id if @meeting), meeting.id)%> " >
 														<%= link_to organisation_meeting_path(organisation, meeting), 'data-bs-target': "#multi-#{organisation.id}-2-#{meeting.id}", 'data-bs-toggle': "collapse", class: "sidebar-link collapsed  #{active((@meeting.id if @meeting), meeting.id) == 'active' ? 'secondary-nav' : ''}" do %>
 															<%= meeting.name %> 
 														<% end %>
@@ -50,7 +55,7 @@
 															<li class="sidebar-item <%= meeting_component_active((@meeting.id if @meeting), meeting.id, ['meeting_actions'], ['index', 'new', 'show', 'edit']) %> <%#=  (['meeting_actions'].include?(params[:controller]) and ['index'].include?(params[:action])) ? 'active' : ''%>">
 																<%= link_to 'Actions', organisation_meeting_meeting_actions_path(organisation, meeting), class: "sidebar-link", 'data-bs-target': "#" %>
 															</li>										
-													</ul>
+													</ul-->
 												<% end %>
 
 										</ul>

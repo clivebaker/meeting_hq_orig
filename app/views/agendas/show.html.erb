@@ -66,9 +66,9 @@
                     <% end %>
                     </div>
                     <div class='d-inline-flex'>
-                    <%= button_to @organisation, method: :delete, class: 'btn btn-secondary' do %>
-                      <i class="fas fa-trash-alt"></i> Delete item
-                    <% end  %>                 
+                         <%= button_to organisation_meeting_agenda_path(@organisation, @meeting, @agenda), method: :delete, class: 'btn btn-secondary' do %>
+                            <i class="fas fa-trash-alt"></i>  Delete Item
+                          <% end  %>               
                     </div>
 
                   

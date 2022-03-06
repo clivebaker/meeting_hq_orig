@@ -5,7 +5,7 @@ class AgendasController < ApplicationController
 
   # GET /agendas or /agendas.json
   def index
-    @agendas = Agenda.all
+    @agendas = Agenda.where(meeting_id: @meeting.id)
   end
 
   # GET /agendas/1 or /agendas/1.json
@@ -47,7 +47,7 @@ class AgendasController < ApplicationController
     @agenda.close! if @agenda.may_close? 
    
     respond_to do |format|
-        format.html { redirect_to organisation_meeting_agenda_url(@organisation, @meeting, @agenda), notice: "Item was successfully moved." }
+        format.html { redirect_to organisation_meeting_agendas_url(@organisation, @meeting), notice: "Item was successfully moved." }
     end
 
 

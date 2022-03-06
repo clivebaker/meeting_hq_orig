@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2022_03_06_002641) do
+ActiveRecord::Schema[7.0].define(version: 2022_03_06_125328) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -29,6 +29,18 @@ ActiveRecord::Schema[7.0].define(version: 2022_03_06_002641) do
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "hosted_meetings", force: :cascade do |t|
+    t.bigint "meeting_id", null: false
+    t.datetime "started_at", precision: nil
+    t.datetime "ended_at", precision: nil
+    t.integer "started_by"
+    t.jsonb "agenda", default: {}
+    t.jsonb "slides", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["meeting_id"], name: "index_hosted_meetings_on_meeting_id"
   end
 
   create_table "master_slide_template_components", force: :cascade do |t|
@@ -171,6 +183,7 @@ ActiveRecord::Schema[7.0].define(version: 2022_03_06_002641) do
   end
 
   add_foreign_key "agendas", "meetings"
+  add_foreign_key "hosted_meetings", "meetings"
   add_foreign_key "master_slide_template_components", "components"
   add_foreign_key "master_slide_template_components", "master_slide_templates"
   add_foreign_key "meeting_actions", "meetings"

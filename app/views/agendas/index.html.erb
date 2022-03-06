@@ -41,7 +41,11 @@
 									<h5 class="card-title mb-0">Agenda Items</h5>
 
                   <div class='display-5 mt-4'>
+                  <% if @agendas.active.present? %>
                   Meeting Duration: <span class='text-primary'><%= @agendas.active.map{|a| a.duration_minutes}.inject(:+) %></span> minutes
+                  <% else %>
+                  Please add an agenda item.
+                  <% end %>
                   </div>
 								</div>
 								<div class="card-body">
@@ -63,38 +67,31 @@
                       <tr>
                         
                         <td><%= agenda.position %></td>
-                        <td><%= agenda.name %></td>
+                        <td>
+                          <%= link_to  agenda.name, edit_organisation_meeting_agenda_path(@organisation, @meeting, agenda) , class: 'btn btn-link'  %>
+                           
+                        </td>
                         <td><%= agenda.duration_minutes %></td>
 
                       <td class='text-end'>
 
                       
 <div class='d-inline-flex'>
-                        <%= button_to organisation_meeting_agenda_move_path(@organisation, @meeting, agenda, :up), method: :post, class: 'btn btn-warning' do  %>
+                        <%= button_to organisation_meeting_agenda_move_path(@organisation, @meeting, agenda, :up), method: :post, class: 'btn btn-link' do  %>
                         <i class="fas fa-arrow-up"></i>
                         <% end unless agenda.first? %>
 </div>
 <div class='d-inline-flex'>
 
-                        <%= button_to organisation_meeting_agenda_move_path(@organisation, @meeting, agenda, :down), method: :post, class: 'btn btn-warning' do  %>
+                        <%= button_to organisation_meeting_agenda_move_path(@organisation, @meeting, agenda, :down), method: :post, class: 'btn btn-link' do  %>
                         <i class="fas fa-arrow-down"></i>
                         <% end unless agenda.last? %>
 </div>
-<div class='d-inline-flex'>
 
-                          <%= link_to organisation_meeting_agenda_path(@organisation, @meeting, agenda) , class: 'btn btn-primary' do %>
-                           View
-                          <% end %>      
-</div>
-<div class='d-inline-flex'>
 
-                          <%= link_to edit_organisation_meeting_agenda_path(@organisation, @meeting, agenda) , class: 'btn btn-primary' do %>
-                            <i class="fas fa-edit"></i> 
-                          <% end %>         
-</div>
 <div class='d-inline-flex'>
-                          <%= button_to organisation_meeting_agenda_path(@organisation, @meeting, agenda), method: :delete, class: 'btn btn-secondary' do %>
-                            <i class="fas fa-trash-alt"></i> 
+                           <%= button_to organisation_meeting_agenda_complete_path(@organisation, @meeting, agenda), method: :post,  class: 'btn btn-success' do %>
+                              Done <i class="fas fa-check"></i> 
                           <% end  %>                 
 </div>
                         </td>

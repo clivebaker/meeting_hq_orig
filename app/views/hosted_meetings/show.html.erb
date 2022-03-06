@@ -1,0 +1,11 @@
+
+
+
+MEETING SCREEN HERE
+
+<br><br>
+<ul>
+<% @hosted_meeting.agenda['items'].each do |item|%>
+<li>duration: <%= item['duration_minutes']%>: name: <%= item['name']%> started_at: <%= item['started_at']%> ended_at: <%= item['ended_at']%>: </li>
+<% end %>
+</ul>

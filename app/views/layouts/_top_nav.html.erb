@@ -12,11 +12,25 @@
         </a>
 
 
-				<ul class="navbar-nav">
-					<li class="nav-item px-2 dropdown">
-				
-					</li>
-				</ul>
+				<% if @meeting.present? and @meeting.id.present? %>
+
+					<span class="text-dark"><%= @meeting.name %></span>			
+					<%= link_to organisation_meeting_path(@organisation, @meeting), class: "nav-link" do %>Summary <% end %>
+					<%= link_to 'Agenda', organisation_meeting_agendas_path(@organisation, @meeting), class: "nav-link" %>
+					<%= link_to 'Actions', organisation_meeting_meeting_actions_path(@organisation, @meeting), class: "nav-link" %>
+					<%= link_to 'Previous Meetings', organisation_meeting_hosted_meetings_path(@organisation, @meeting), class: "nav-link" %>
+					<% if @meeting.agendas.present? %>
+						<% if @meeting.hosted_meeting_running %>
+						<%= button_to 'START MEETING', organisation_meeting_hosted_meetings_path(@organisation, @meeting), target: "meeting-#{@meeting.id}", method: :post, data: {turbo: false},class: "nav-link btn btn-danger btn-sm" %>
+						<% else %>
+							<%= button_to 'Join', organisation_meeting_hosted_meeting_path(@organisation, @meeting, @meeting.running_meeting), target: "meeting-#{@meeting.id}", method: :get, data: {turbo: false},class: "nav-link btn btn-danger btn-sm" %>
+						<% end %>
+					<% else %>
+						You need an Agenda item to start a meeitng
+					<% end %>
+				<% end %>
+
+
 
 				<div class="navbar-collapse collapse">
 					<ul class="navbar-nav navbar-align">

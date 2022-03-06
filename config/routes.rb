@@ -1,5 +1,5 @@
 Rails.application.routes.draw do
-  
+
   namespace :home do
     get 'index'
     get 'pricing'
@@ -43,6 +43,11 @@ Rails.application.routes.draw do
     end
     post 'master_slide_template/:master_slide_template_id', to: 'slide_templates#add_master', as: :add_master
     resources :meetings do
+      resources :hosted_meetings do
+        post :finish
+        post 'finish_agenda/:current_agenda_id/next/:next_agenda_id', to: 'hosted_meetings#finish_agenda', as: :finish_agenda
+        
+      end
       resources :slides
       resources :agendas do
         post 'move/:direction', to: 'agendas#move', as: :move
@@ -50,7 +55,7 @@ Rails.application.routes.draw do
       end
       resources :meeting_actions do
         post 'move/:direction', to: 'meeting_actions#move', as: :move
-        post 'complete', to: 'agendas#complete', as: :complete
+        post 'complete', to: 'meeting_actions#complete', as: :complete
       end
     end
   end

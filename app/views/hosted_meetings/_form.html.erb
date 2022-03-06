@@ -1,0 +1,47 @@
+<%= form_with(model: hosted_meeting) do |form| %>
+  <% if hosted_meeting.errors.any? %>
+    <div style="color: red">
+      <h2><%= pluralize(hosted_meeting.errors.count, "error") %> prohibited this hosted_meeting from being saved:</h2>
+
+      <ul>
+        <% hosted_meeting.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :meeting_id, style: "display: block" %>
+    <%= form.text_field :meeting_id %>
+  </div>
+
+  <div>
+    <%= form.label :started_at, style: "display: block" %>
+    <%= form.datetime_field :started_at %>
+  </div>
+
+  <div>
+    <%= form.label :ended_at, style: "display: block" %>
+    <%= form.datetime_field :ended_at %>
+  </div>
+
+  <div>
+    <%= form.label :started_by, style: "display: block" %>
+    <%= form.number_field :started_by %>
+  </div>
+
+  <div>
+    <%= form.label :agenda, style: "display: block" %>
+    <%= form.text_field :agenda %>
+  </div>
+
+  <div>
+    <%= form.label :slides, style: "display: block" %>
+    <%= form.text_field :slides %>
+  </div>
+
+  <div>
+    <%= form.submit %>
+  </div>
+<% end %>

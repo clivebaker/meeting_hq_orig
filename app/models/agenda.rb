@@ -5,7 +5,7 @@ class Agenda < ApplicationRecord
   has_paper_trail
 
   belongs_to :meeting
-  acts_as_list scope: :meeting
+  acts_as_list scope: [:meeting_id, :aasm_state]
 
   validates_presence_of [:name, :duration_minutes], on: [:update, :create], message: "can't be blank"
 
@@ -13,6 +13,7 @@ class Agenda < ApplicationRecord
 
   default_scope { order(position: :asc)}
  
+
   aasm do
     state :active, initial: true
     state :future, :closed
