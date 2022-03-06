@@ -7,7 +7,7 @@ class Agenda < ApplicationRecord
   belongs_to :meeting
   acts_as_list scope: :meeting
 
-  validates_presence_of :name, on: [:update, :create], message: "can't be blank"
+  validates_presence_of [:name, :duration_minutes], on: [:update, :create], message: "can't be blank"
 
   delegate :name, to: :meeting, prefix: true
 

@@ -9,7 +9,7 @@ class Users::RegistrationsController < Devise::RegistrationsController
 
   def choose_layout
     if params[:controller] == 'users/registrations' and  params[:action] == "edit"
-    'application'
+      'application'
     else
       'devise'
     end

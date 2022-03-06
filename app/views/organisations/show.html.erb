@@ -56,13 +56,17 @@
                   </div>
                   <div class="col text-end">
                   
+                    <div class='d-inline-flex'>
                     <%= link_to edit_organisation_path(@organisation) , class: 'btn btn-primary' do %>
                       <i class="fas fa-edit"></i> Edit this organisation
                     <% end %>
-                    <%= link_to @organisation, method: :delete, class: 'btn btn-secondary' do %>
-                      <i class="fas fa-trash-alt"></i> Delete this organisation
-                    <% end  if @organisation.meetings.blank? %>                 
-                  
+                    </div>
+
+                    <div class='d-inline-flex'>
+                      <%= button_to @organisation, method: :delete, class: 'btn btn-secondary',  data: {turbo: false} do %>
+                        <i class="fas fa-trash-alt"></i> Delete this organisation
+                      <% end  if @organisation.meetings.blank? and @organisation.slide_templates.blank? %>                 
+                    </div>
                   
                   
                   </div>
@@ -96,14 +100,23 @@
                     <thead>
                       <tr>
                         <th>Name</th>
+                        <th>Status</th>
+                        <th>Role</th>
                         <th data-orderable="false"></th>
                       </tr>
                     </thead>
                     <tbody>
-                      <% @organisation.organisation_users.active.each do |organisation_users| %>
+                      <% @organisation.organisation_users.active.each do |organisation_user| %>
                       <tr>
-                        <td><%= organisation_users.user_name %></td>
-                        <td class='text-end'><%= button_to 'Remove from Organisation', organisation_remove_user_path(@organisation, organisation_users.user_id), data: { "turbo-method": :post }, class: 'btn btn-secondary' if current_user.id != organisation_users.user_id %></td>
+                        <td><%= organisation_user.user_name %></td>
+                        <td><%= organisation_user.user.invitation_token.present? ?  "Invited" : 'Active' %></td>
+                        <td><%= organisation_user.role.join(', ') %></td>
+                        <td class='text-end'>
+                        <%  if current_user.id != organisation_user.user_id and !organisation_user.role.include?('owner')  %>
+                          <%= button_to 'Remove from Organisation', organisation_remove_user_path(@organisation, organisation_user.user_id), data: {turbo: false}, method: :post, class: 'btn btn-secondary'%></td>
+                        <% else %>
+                          <strong>Cannot remove</strong>
+                        <% end %>
                       </tr>
                       <% end %>
                      
@@ -134,10 +147,10 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <% @organisation.organisation_users.discarded.each do |organisation_users| %>
+                      <% @organisation.organisation_users.discarded.each do |organisation_user| %>
                       <tr>
-                        <td><%= organisation_users.user_name %></td>
-                        <td class='text-end'><%= button_to 'Add back to Organisation', organisation_add_user_path(@organisation, organisation_users.user_id), data: { "turbo-method": :post }, class: 'btn btn-secondary' if current_user.id != organisation_users.user_id %></td>
+                        <td><%= organisation_user.user_name %></td>
+                        <td class='text-end'><%= button_to 'Add back to Organisation', organisation_add_user_path(@organisation, organisation_user.user_id), data: { "turbo-method": :post }, class: 'btn btn-secondary' if current_user.id != organisation_user.user_id %></td>
                       </tr>
                       <% end %>
                      

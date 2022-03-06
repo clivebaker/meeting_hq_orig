@@ -11,7 +11,10 @@ class User < ApplicationRecord
   
 
   def name
-    "#{first_name} #{last_name}"
+    ret = "#{first_name} #{last_name}" 
+    ret = email if ret.blank?
+
+    ret
   end
 
   def initials

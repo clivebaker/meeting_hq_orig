@@ -27,7 +27,14 @@ class OrganisationsController < ApplicationController
 
     respond_to do |format|
       if @organisation.save
-        @organisation.users << current_user
+        @org_user = OrganisationUser.find_or_create_by(
+          user_id: current_user.id,
+          organisation_id: @organisation.id,
+          invited: false,
+          role: ['owner']
+        )
+
+        
         format.html { redirect_to organisation_url(@organisation), notice: "Organisation was successfully created." }
         format.json { render :show, status: :created, location: @organisation }
       else

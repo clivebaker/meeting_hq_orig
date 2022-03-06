@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2022_02_20_234448) do
+ActiveRecord::Schema[7.0].define(version: 2022_03_06_002641) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -21,6 +21,7 @@ ActiveRecord::Schema[7.0].define(version: 2022_02_20_234448) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "aasm_state"
+    t.integer "duration_minutes"
     t.index ["meeting_id"], name: "index_agendas_on_meeting_id"
   end
 
@@ -149,6 +150,7 @@ ActiveRecord::Schema[7.0].define(version: 2022_02_20_234448) do
     t.integer "invitations_count", default: 0
     t.string "first_name"
     t.string "last_name"
+    t.boolean "super_admin", default: false
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["invitation_token"], name: "index_users_on_invitation_token", unique: true
     t.index ["invited_by_id"], name: "index_users_on_invited_by_id"

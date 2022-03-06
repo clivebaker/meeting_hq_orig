@@ -20,6 +20,10 @@ Rails.application.routes.draw do
   end
   resources :components
 
+  get 'resend_invite', to: 'users/resend_invitations#resend_invite', as: :resend_invite
+  post 'resend_invite_thankyou', to: 'users/resend_invitations#resend_invite_thankyou', as: :invite_thankyou
+
+
   resources :master_slide_templates do 
     post 'component/:component_id/add', to: 'master_slide_templates#add_component', as: 'add_component'
   end

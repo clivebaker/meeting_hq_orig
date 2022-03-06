@@ -106,6 +106,6 @@ class AgendasController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def agenda_params
-      params.require(:agenda).permit(:meeting_id, :name)
+      params.require(:agenda).permit(:meeting_id, :name, :duration_minutes)
     end
 end

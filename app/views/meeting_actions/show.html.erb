@@ -46,24 +46,31 @@
                         <strong>State:</strong>
                         <%= @meeting_action.aasm_state %>
                       </p>
-                      <%= button_to "Mark Complete", organisation_meeting_meeting_action_complete_path(@organisation, @meeting, @meeting_action), method: :post,  class: 'btn btn-primary' %>
+                      <div class='d-inline-flex'>
+                        <%= button_to "Mark Complete", organisation_meeting_meeting_action_complete_path(@organisation, @meeting, @meeting_action), method: :post,  class: 'btn btn-primary' %>
+                      </div>
                     </div>
                   </div>
 
                 <div class="row">
                   <div class="col">
+                    <div class='d-inline-flex'>
                     <%= link_to organisation_meeting_meeting_actions_path(@organisation, @meeting), class: 'btn btn-secondary' do %>
                       Back to Actions
                     <% end %>
+                    </div>
                   </div>
                   <div class="col text-end">
-                  
+                  <div class='d-inline-flex'>
                     <%= link_to edit_organisation_meeting_meeting_action_path(@organisation, @meeting, @meeting_action) , class: 'btn btn-secondary' do %>
                       <i class="fas fa-edit"></i> Edit action
                     <% end %>
-                    <%= button_to organisation_meeting_meeting_action_path(@organisation, @meeting, @meeting_action), method: :delete, class: 'btn btn-secondary mt-1' do %>
+                    </div>
+                    <div class='d-inline-flex'>
+                    <%= button_to organisation_meeting_meeting_action_path(@organisation, @meeting, @meeting_action), method: :delete, class: 'btn btn-secondary' do %>
                       <i class="fas fa-trash-alt"></i> Delete item
-                    <% end  %>                 
+                    <% end  %> 
+                    </div>                
                   </div>
                 </div>
 

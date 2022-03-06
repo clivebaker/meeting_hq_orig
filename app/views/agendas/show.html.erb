@@ -60,14 +60,17 @@
                     <% end %>
                   </div>
                   <div class="col text-end">
-                  
+                  <div class='d-inline-flex'>
                     <%= link_to edit_organisation_meeting_agenda_path(@organisation, @meeting, @agenda) , class: 'btn btn-secondary' do %>
                       <i class="fas fa-edit"></i> Edit item
                     <% end %>
-                    <%= button_to @organisation, method: :delete, class: 'btn btn-secondary mt-1' do %>
+                    </div>
+                    <div class='d-inline-flex'>
+                    <%= button_to @organisation, method: :delete, class: 'btn btn-secondary' do %>
                       <i class="fas fa-trash-alt"></i> Delete item
                     <% end  %>                 
-                  
+                    </div>
+
                   
                   
                   </div>

@@ -1,0 +1,38 @@
+
+
+<div class="main d-flex justify-content-center w-100">
+		<main class="content d-flex p-0">
+			<div class="container d-flex flex-column">
+				<div class="row">
+					<div class="col-sm-10 col-md-8 col-lg-6 mx-auto d-table h-100">
+						<div class="d-table-cell align-middle">
+
+							<div class="text-center mt-4">
+								<h1 class="h2">Invite resend</h1>
+
+							</div>
+							<div class="card">
+								<div class="card-body">
+									<div class="m-sm-4">
+                      <%= form_tag invite_thankyou_path, data: {turbo: false} do %>
+                        <div class="mb-3">
+                          <%= label_tag :email, nil, class: 'form-label'%>
+                          <%= email_field_tag :email, nil, class: 'form-control', required: true %>
+                        </div>
+
+                        <%= submit_tag 'Request invitation Link', class: 'btn btn-primary' %>
+                      <% end %>
+                      <%#= render "devise/shared/links" %>
+									</div>
+								</div>
+							</div>
+
+						</div>
+					</div>
+				</div>
+			</div>
+		</main>
+	</div>
+
+
+

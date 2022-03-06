@@ -1,6 +1,6 @@
 class Home::FeaturesController < ApplicationPublicController
   
-  layout 'home'
+  layout 'devise'
 
   def presentations
 

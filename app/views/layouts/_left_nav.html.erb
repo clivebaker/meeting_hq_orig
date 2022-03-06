@@ -1,7 +1,7 @@
 		<nav id="sidebar" class="sidebar">
 			<div class="sidebar-content js-simplebar">
 				<a class="sidebar-brand" href="/">
-					<span class="align-middle me-3"><%= image_tag 'logo.png', height: 80 %></span>
+					<span class="align-middle me-3"><%= image_tag 'logo-left-nav.png', height: 160 %></span>
         </a>
 
 				<ul class="sidebar-nav">
@@ -70,22 +70,23 @@
 						<% end %>
 					</li>
 
-					<li class="sidebar-item ">
-						<%= link_to master_slide_templates_path, class: "sidebar-link" do %>
-							<i class="fa-solid fa-brackets-curly"></i>
-							<span class="align-middle">Master Slide Templates</span>
-							<span class="badge badge-sidebar-primary"></span>
-						<% end %>
-					</li>
+					<% if current_user.super_admin %>
+						<li class="sidebar-item ">
+							<%= link_to master_slide_templates_path, class: "sidebar-link" do %>
+								<i class="fa-solid fa-brackets-curly"></i>
+								<span class="align-middle">Master Slide Templates</span>
+								<span class="badge badge-sidebar-primary"></span>
+							<% end %>
+						</li>
 
-					<li class="sidebar-item ">
-						<%= link_to components_path, class: "sidebar-link" do %>
-							<i class="fa-solid fa-brackets-curly"></i>
-							<span class="align-middle">Components</span>
-							<span class="badge badge-sidebar-primary"></span>
-						<% end %>
-					</li>
-
+						<li class="sidebar-item ">
+							<%= link_to components_path, class: "sidebar-link" do %>
+								<i class="fa-solid fa-brackets-curly"></i>
+								<span class="align-middle">Components</span>
+								<span class="badge badge-sidebar-primary"></span>
+							<% end %>
+						</li>
+					<% end %>
 
 				</ul>
 

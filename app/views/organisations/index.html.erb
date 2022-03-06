@@ -59,12 +59,12 @@
                         </td>
                         <td class='text-end'>
                           <%= link_to edit_organisation_path(organisation) , class: 'btn btn-primary' do %>
-                            <i class="fas fa-edit"></i> Edit this meeting
+                            <i class="fas fa-edit"></i> Edit this organisation
                           <% end %>         
                         </td>
                         <td class='text-end'>
-                          <%= button_to organisation_path(organisation), method: :delete, class: 'btn btn-secondary d-inline mt-1' do %>
-                            <i class="fas fa-trash-alt"></i> Delete this meeting
+                          <%= button_to organisation_path(organisation), method: :delete, form: { data: { turbo_confirm: 'Are you sure you want to delete this organisation.' }}, class: 'btn btn-secondary d-inline mt-1' do %>
+                            <i class="fas fa-trash-alt"></i> Delete this organisation
                           <% end  if organisation.meetings.blank? %>                 
                         </td>
                       </tr>
@@ -75,7 +75,7 @@
 
                   <div class="row">
                     <div class="col">
-                      <%= link_to "New meeting", new_organisation_path(), class: 'btn btn-primary' %>
+                      <%= link_to "New Organisation", new_organisation_path(), class: 'btn btn-primary' %>
                     </div>
                     <div class="col text-end">
                     

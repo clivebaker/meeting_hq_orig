@@ -32,11 +32,31 @@
     </div>
     <div class="row">
       <div class="col">
-        <ul>
-          <% @meeting.agendas.each do |agenda| %>
-            <li class='list-unstyled'><strong><%= agenda.position %>:</strong> <%= agenda.name %></li>
-          <% end %>
-        </ul>
+
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th class='text-end'>Position</th>
+              <th>Name</th>
+              <th class='text-end'>Duration (minutes)</th>
+            </tr>
+          </thead>
+          <tbody>
+           <% @meeting.agendas.each do |agenda| %>
+            <tr>
+              <td class='text-end'><strong><%= agenda.position %>:</strong> </td>
+              <td><%= agenda.name %></td>
+              <td class='text-end'><%= agenda.duration_minutes %></td>
+            </tr>
+             <% end %>
+            <tr>
+              <td class='text-end'></td>
+              <td>Meeting Duration</td>
+              <td class='text-end'><%= @meeting.agendas.map{|a| a.duration_minutes}.inject(:+) %></td>
+            </tr>
+          </tbody>
+        </table>
+
       </div>
     </div>
 
@@ -49,22 +69,27 @@
     </div>
     <div class="row">
       <div class="col">
-        <ul><% @meeting.meeting_actions.each do |action| %>
-            <li class='list-unstyled'>
-            
-            <div class="row">
-              <div class="col"><strong><%= action.position %>: <%= action.name %></strong> </div>
-            </div>
-           <div class="row">
-              <div class="col px-4"><i>Detail:</i> <%= action.note %></div>
-            </div>
-           <div class="row">
-              <div class="col px-4"><i>For:</i> <%= action.user_name %> (<%= action.user_initials %>)</div>
-            </div>
-               
-            </li>
-          <% end %>
-        </ul>
+
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th class='text-end'>Position</th>
+              <th>Note</th>
+              <th class='text-end'>Owner</th>
+            </tr>
+          </thead>
+          <tbody>
+          <% @meeting.meeting_actions.each do |action| %>
+            <tr>
+              <td class='text-end'><strong><%= action.position %>:</strong> </td>
+              <td><%= action.note %></td>
+              <td class='text-end'><%= action.user_name %> (<%= action.user_initials %>)</td>
+            </tr>
+             <% end %>
+          </tbody>
+        </table>
+
+
       </div>
     </div>
 
