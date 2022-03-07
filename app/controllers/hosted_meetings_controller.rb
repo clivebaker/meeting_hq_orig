@@ -24,26 +24,47 @@ class HostedMeetingsController < ApplicationController
 
     @agendas = @hosted_meeting.agenda['items']
     @duration = @hosted_meeting.agenda['items'].map{|s| s['duration_minutes']}.inject(:+)
+    @current_agenda_item = {}
     @next_agenda_item = {}
     count = 0
+
+    any_started_agenda_items = @agendas.select{|x| x['started_at']}.present?
+    unless any_started_agenda_items
+      @current_agenda_item = {'id': -1, 'name': 'Meeting Gathering', 'duration_minutes': 0}.as_json
+    end
+
 
     @agendas.reject{|x| x['ended_at'].present?}.each do |s| 
       if s[:started_at].blank?
         count += 1 
+
         if count <= 2 
-          if count == 1 
+          if  @current_agenda_item.blank?
             @current_agenda_item = s
           else
-            @next_agenda_item = s
-          end                      
-        end 
+            if @next_agenda_item.blank?
+              @next_agenda_item = s
+            end
+          end
+
+          # if count == 1 and any_started_agenda_items
+          #   @current_agenda_item = s
+          # else
+          #   @next_agenda_item = s
+          # end                      
+        
+        
+        
+        end
+        
       end 
     end 
 
     @next_agenda_item['id'] = -1 if @next_agenda_item.blank?
-    if @current_agenda_item.present?
+    if @current_agenda_item.present? and @current_agenda_item['started_at'].present?
       @next_start_time = Time.parse(@current_agenda_item['started_at']) + @current_agenda_item['duration_minutes'].minutes
     end
+
   end
 
   # GET /hosted_meetings/new
@@ -62,7 +83,7 @@ class HostedMeetingsController < ApplicationController
     @hosted_meeting.user = current_user
     @hosted_meeting.started_at = start_time
     @agenda_instance = @meeting.agendas.active.as_json
-    @agenda_instance.first['started_at'] = start_time
+    # @agenda_instance.first['started_at'] = start_time
     @hosted_meeting.agenda = {items: @agenda_instance}
   
     respond_to do |format|
@@ -105,7 +126,9 @@ class HostedMeetingsController < ApplicationController
     @hosted_meeting = HostedMeeting.find(params[:hosted_meeting_id])
     @current_agenda_id = params[:current_agenda_id].to_i
     @next_agenda_id = params[:next_agenda_id].to_i
-    @hosted_meeting.agenda['items'].select{|s| s['id'] == @current_agenda_id}.first['ended_at'] = action_time if @current_agenda_id.present?
+    unless @current_agenda_id == -1
+      @hosted_meeting.agenda['items'].select{|s| s['id'] == @current_agenda_id}.first['ended_at'] = action_time if @current_agenda_id.present?
+    end
     if @next_agenda_id != -1
       @hosted_meeting.agenda['items'].select{|s| s['id'] == @next_agenda_id}.first['started_at'] = action_time if @next_agenda_id.present?
     end
