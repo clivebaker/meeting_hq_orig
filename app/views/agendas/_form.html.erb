@@ -1,4 +1,4 @@
-<%= form_with(model: [@organisation, @meeting, agenda]) do |form| %>
+<%= form_with(model: [@business_unit, @meeting, agenda]) do |form| %>
   <% if agenda.errors.any? %>
     <div style="color: red">
       <h2><%= pluralize(agenda.errors.count, "error") %> prohibited this agenda from being saved:</h2>

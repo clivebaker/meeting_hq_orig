@@ -43,29 +43,29 @@
 	
 										</div>
 									</div>
-									<h5 class="card-title mb-0"><%= @organisation.name %> Organisation</h5>
+									<h5 class="card-title mb-0"><%= @business_unit.name %> Business unit</h5>
 								</div>
 								<div class="card-body">
 
 
                 <div class="row">
                   <div class="col">
-                    <%= link_to new_user_invitation_path(organisation_id: @organisation.id), class: 'btn btn-primary' do %>
-                      <i class="far fa-users"></i> Invite users to this organisation 
+                    <%= link_to new_user_invitation_path(business_unit_id: @business_unit.id), class: 'btn btn-primary' do %>
+                      <i class="far fa-users"></i> Invite users to this Business unit 
                     <% end %>
                   </div>
                   <div class="col text-end">
                   
                     <div class='d-inline-flex'>
-                    <%= link_to edit_organisation_path(@organisation) , class: 'btn btn-primary' do %>
-                      <i class="fas fa-edit"></i> Edit this organisation
+                    <%= link_to edit_business_unit_path(@business_unit) , class: 'btn btn-primary' do %>
+                      <i class="fas fa-edit"></i> Edit this Business unit
                     <% end %>
                     </div>
 
                     <div class='d-inline-flex'>
-                      <%= button_to @organisation, method: :delete, class: 'btn btn-secondary',  data: {turbo: false} do %>
-                        <i class="fas fa-trash-alt"></i> Delete this organisation
-                      <% end  if @organisation.meetings.blank? and @organisation.slide_templates.blank? %>                 
+                      <%= button_to @business_unit, method: :delete, class: 'btn btn-secondary',  data: {turbo: false} do %>
+                        <i class="fas fa-trash-alt"></i> Delete this business_unit
+                      <% end  if @business_unit.meetings.blank? and @business_unit.slide_templates.blank? %>                 
                     </div>
                   
                   
@@ -92,7 +92,7 @@
 
 										</div>
 									</div>
-									<h5 class="card-title mb-0"><%= @organisation.name %> active users</h5>
+									<h5 class="card-title mb-0"><%= @business_unit.name %> active users</h5>
 								</div>
 								<div class="card-body">
 								
@@ -106,14 +106,14 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <% @organisation.organisation_users.active.each do |organisation_user| %>
+                      <% @business_unit.business_unit_users.active.each do |business_unit_user| %>
                       <tr>
-                        <td><%= organisation_user.user_name %></td>
-                        <td><%= organisation_user.user.invitation_token.present? ?  "Invited" : 'Active' %></td>
-                        <td><%= organisation_user.role.join(', ') %></td>
+                        <td><%= business_unit_user.user_name %></td>
+                        <td><%= business_unit_user.user.invitation_token.present? ?  "Invited" : 'Active' %></td>
+                        <td><%= business_unit_user.role.join(', ') %></td>
                         <td class='text-end'>
-                        <%  if current_user.id != organisation_user.user_id and !organisation_user.role.include?('owner')  %>
-                          <%= button_to 'Remove from Organisation', organisation_remove_user_path(@organisation, organisation_user.user_id), data: {turbo: false}, method: :post, class: 'btn btn-secondary'%></td>
+                        <%  if current_user.id != business_unit_user.user_id and !business_unit_user.role.include?('owner')  %>
+                          <%= button_to 'Remove from Business unit', business_unit_remove_user_path(@business_unit, business_unit_user.user_id), data: {turbo: false}, method: :post, class: 'btn btn-secondary'%></td>
                         <% else %>
                           <strong>Cannot remove</strong>
                         <% end %>
@@ -134,7 +134,7 @@
 
 										</div>
 									</div>
-									<h5 class="card-title mb-0"><%= @organisation.name %> archived users</h5>
+									<h5 class="card-title mb-0"><%= @business_unit.name %> archived users</h5>
 								</div>
 								<div class="card-body">
 
@@ -147,10 +147,10 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <% @organisation.organisation_users.discarded.each do |organisation_user| %>
+                      <% @business_unit.business_unit_users.discarded.each do |business_unit_user| %>
                       <tr>
-                        <td><%= organisation_user.user_name %></td>
-                        <td class='text-end'><%= button_to 'Add back to Organisation', organisation_add_user_path(@organisation, organisation_user.user_id), data: { "turbo-method": :post }, class: 'btn btn-secondary' if current_user.id != organisation_user.user_id %></td>
+                        <td><%= business_unit_user.user_name %></td>
+                        <td class='text-end'><%= button_to 'Add back to Business unit', business_unit_add_user_path(@business_unit, business_unit_user.user_id), data: { "turbo-method": :post }, class: 'btn btn-secondary' if current_user.id != business_unit_user.user_id %></td>
                       </tr>
                       <% end %>
                      

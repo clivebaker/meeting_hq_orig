@@ -4,10 +4,10 @@ class ApplicationController < ActionController::Base
 
   before_action :authenticate_user!
   before_action :configure_permitted_parameters, if:  :devise_controller?
-  # before_action :set_organisations
+  # before_action :set_business_units
 
-  # def set_organisations
-  #   @organisations = current_user.organizations
+  # def set_business_units
+  #   @business_units = current_user.organizations
   # end
 
   def configure_permitted_parameters

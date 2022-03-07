@@ -1,9 +1,9 @@
-class OrganisationUser < ApplicationRecord
+class BusinessUnitUser < ApplicationRecord
 
   has_paper_trail
 
   belongs_to :user
-  belongs_to :organisation
+  belongs_to :business_unit
 
   include Discard::Model
 

@@ -1,5 +1,5 @@
 class SlidesController < ApplicationController
-  before_action :set_organisation
+  before_action :set_business_unit
   before_action :set_meeting
   before_action :set_slide, only: %i[ show edit update destroy ]
 
@@ -61,8 +61,8 @@ class SlidesController < ApplicationController
 
   private
 
-  def set_organisation
-    @organisation = Organisation.find(params[:organisation_id])
+  def set_business_unit
+    @business_unit = BusinessUnit.find(params[:business_unit_id])
   end
   
   # Use callbacks to share common setup or constraints between actions.

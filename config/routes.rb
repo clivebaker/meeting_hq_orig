@@ -33,11 +33,11 @@ Rails.application.routes.draw do
   devise_for :users, controllers: { invitations: 'users/invitations', registrations: 'users/registrations'}
   
 
-  resources :organisations do
+  resources :business_units do
     post 'slide_template_component_update', to: 'slide_templates#update_component', as: 'update_component'
 
-    post "user/:user_id/remove", to: 'users/organisations#remove', as: :remove_user
-    post "user/:user_id/add", to: 'users/organisations#add', as: :add_user
+    post "user/:user_id/remove", to: 'users/business_units#remove', as: :remove_user
+    post "user/:user_id/add", to: 'users/business_units#add', as: :add_user
     resources :slide_templates do 
       post 'component/:component_id/add', to: 'slide_templates#add_component', as: 'add_component'
     end

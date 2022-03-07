@@ -1,6 +1,6 @@
 module ApplicationHelper
 
-  def collapse_organisation(nav_id, set_id)
+  def collapse_business_unit(nav_id, set_id)
     controller = params[:controller]
     'collapse' unless nav_id == set_id
   end

@@ -1,10 +1,10 @@
 class MeetingsController < ApplicationController
-  before_action :set_organisation
+  before_action :set_business_unit
   before_action :set_meeting, only: %i[ show edit update destroy ]
 
   # GET /meetings or /meetings.json
   def index
-    @meetings = Meeting.where(organisation_id: @organisation.id)
+    @meetings = Meeting.where(business_unit_id: @business_unit.id)
   end
 
   # GET /meetings/1 or /meetings/1.json
@@ -14,7 +14,7 @@ class MeetingsController < ApplicationController
   # GET /meetings/new
   def new
     @meeting = Meeting.new
-    @meeting.organisation_id = @organisation.id
+    @meeting.business_unit_id = @business_unit.id
   end
 
   # GET /meetings/1/edit
@@ -27,7 +27,7 @@ class MeetingsController < ApplicationController
 
     respond_to do |format|
       if @meeting.save
-        format.html { redirect_to organisation_meeting_url(@organisation, @meeting), notice: "Meeting was successfully created." }
+        format.html { redirect_to business_unit_meeting_url(@business_unit, @meeting), notice: "Meeting was successfully created." }
         format.json { render :show, status: :created, location: @meeting }
       else
         format.html { render :new, status: :unprocessable_entity }
@@ -40,7 +40,7 @@ class MeetingsController < ApplicationController
   def update
     respond_to do |format|
       if @meeting.update(meeting_params)
-        format.html { redirect_to organisation_meeting_url(@organisation, @meeting), notice: "Meeting was successfully updated." }
+        format.html { redirect_to business_unit_meeting_url(@business_unit, @meeting), notice: "Meeting was successfully updated." }
         format.json { render :show, status: :ok, location: @meeting }
       else
         format.html { render :edit, status: :unprocessable_entity }
@@ -54,7 +54,7 @@ class MeetingsController < ApplicationController
     @meeting.destroy
 
     respond_to do |format|
-      format.html { redirect_to organisation_meetings_url(@organisation), notice: "Meeting was successfully destroyed." }
+      format.html { redirect_to business_unit_meetings_url(@business_unit), notice: "Meeting was successfully destroyed." }
       format.json { head :no_content }
     end
   end
@@ -62,8 +62,8 @@ class MeetingsController < ApplicationController
   private
 
 
-    def set_organisation
-      @organisation = Organisation.find(params[:organisation_id])
+    def set_business_unit
+      @business_unit = BusinessUnit.find(params[:business_unit_id])
     end
     
     # Use callbacks to share common setup or constraints between actions.
@@ -73,6 +73,6 @@ class MeetingsController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def meeting_params
-      params.require(:meeting).permit(:organisation_id, :name)
+      params.require(:meeting).permit(:business_unit_id, :name)
     end
 end

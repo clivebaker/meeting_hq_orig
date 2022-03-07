@@ -1,8 +1,8 @@
 <!--<ul>
   <li><%= link_to "Log Out", destroy_user_session_path, 'data-turbo-method': :delete, class: "dropdown-item" if current_user %></li>
-  <li><%= link_to "Organisations", organisations_path if current_user %></li>
-  <li><%= link_to "Organisation: #{@organisation.name}", organisation_path(@organisation) if @organisation and @organisation.id.present? %></li>
-  <li><%= link_to "Meeting: #{@meeting.name}", organisation_meeting_path(@organisation, @meeting) if @meeting and @meeting.id.present? %></li>
+  <li><%= link_to "business_units", business_units_path if current_user %></li>
+  <li><%= link_to "business_unit: #{@business_unit.name}", business_unit_path(@business_unit) if @business_unit and @business_unit.id.present? %></li>
+  <li><%= link_to "Meeting: #{@meeting.name}", business_unit_meeting_path(@business_unit, @meeting) if @meeting and @meeting.id.present? %></li>
 </ul>
 -->
 
@@ -15,15 +15,15 @@
 				<% if @meeting.present? and @meeting.id.present? %>
 
 					<span class="text-dark"><%= @meeting.name %></span>			
-					<%= link_to organisation_meeting_path(@organisation, @meeting), class: "nav-link" do %>Summary <% end %>
-					<%= link_to 'Agenda', organisation_meeting_agendas_path(@organisation, @meeting), class: "nav-link" %>
-					<%= link_to 'Actions', organisation_meeting_meeting_actions_path(@organisation, @meeting), class: "nav-link" %>
-					<%= link_to 'Previous Meetings', organisation_meeting_hosted_meetings_path(@organisation, @meeting), class: "nav-link" %>
+					<%= link_to business_unit_meeting_path(@business_unit, @meeting), class: "nav-link" do %>Summary <% end %>
+					<%= link_to 'Agenda', business_unit_meeting_agendas_path(@business_unit, @meeting), class: "nav-link" %>
+					<%= link_to 'Actions', business_unit_meeting_meeting_actions_path(@business_unit, @meeting), class: "nav-link" %>
+					<%= link_to 'Previous Meetings', business_unit_meeting_hosted_meetings_path(@business_unit, @meeting), class: "nav-link" %>
 					<% if @meeting.agendas.present? %>
 						<% if @meeting.hosted_meeting_running %>
-						<%= button_to 'START MEETING', organisation_meeting_hosted_meetings_path(@organisation, @meeting), target: "meeting-#{@meeting.id}", method: :post, data: {turbo: false},class: "nav-link btn btn-danger btn-sm" %>
+						<%= button_to 'START MEETING', business_unit_meeting_hosted_meetings_path(@business_unit, @meeting), target: "meeting-#{@meeting.id}", method: :post, data: {turbo: false},class: "nav-link btn btn-danger btn-sm" %>
 						<% else %>
-							<%= button_to 'Join', organisation_meeting_hosted_meeting_path(@organisation, @meeting, @meeting.running_meeting), target: "meeting-#{@meeting.id}", method: :get, data: {turbo: false},class: "nav-link btn btn-danger btn-sm" %>
+							<%= button_to 'Join', business_unit_meeting_hosted_meeting_path(@business_unit, @meeting, @meeting.running_meeting), target: "meeting-#{@meeting.id}", method: :get, data: {turbo: false},class: "nav-link btn btn-danger btn-sm" %>
 						<% end %>
 					<% else %>
 						You need an Agenda item to start a meeitng

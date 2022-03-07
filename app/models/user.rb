@@ -6,8 +6,8 @@ class User < ApplicationRecord
 
   validates_presence_of [:first_name, :last_name], on: [:update, :create], message: "can't be blank"
 
-  has_many :organisation_users       
-  has_many :organisations, through: :organisation_users
+  has_many :business_unit_users       
+  has_many :business_units, through: :business_unit_users
   
 
   def name

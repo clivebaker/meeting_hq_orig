@@ -68,7 +68,7 @@
                         
                         <td><%= agenda.position %></td>
                         <td>
-                          <%= link_to  agenda.name, edit_organisation_meeting_agenda_path(@organisation, @meeting, agenda) , class: 'btn btn-link'  %>
+                          <%= link_to  agenda.name, edit_business_unit_meeting_agenda_path(@business_unit, @meeting, agenda) , class: 'btn btn-link'  %>
                            
                         </td>
                         <td><%= agenda.duration_minutes %></td>
@@ -77,20 +77,20 @@
 
                       
 <div class='d-inline-flex'>
-                        <%= button_to organisation_meeting_agenda_move_path(@organisation, @meeting, agenda, :up), method: :post, class: 'btn btn-link' do  %>
+                        <%= button_to business_unit_meeting_agenda_move_path(@business_unit, @meeting, agenda, :up), method: :post, class: 'btn btn-link' do  %>
                         <i class="fas fa-arrow-up"></i>
                         <% end unless agenda.first? %>
 </div>
 <div class='d-inline-flex'>
 
-                        <%= button_to organisation_meeting_agenda_move_path(@organisation, @meeting, agenda, :down), method: :post, class: 'btn btn-link' do  %>
+                        <%= button_to business_unit_meeting_agenda_move_path(@business_unit, @meeting, agenda, :down), method: :post, class: 'btn btn-link' do  %>
                         <i class="fas fa-arrow-down"></i>
                         <% end unless agenda.last? %>
 </div>
 
 
 <div class='d-inline-flex'>
-                           <%= button_to organisation_meeting_agenda_complete_path(@organisation, @meeting, agenda), method: :post,  class: 'btn btn-success' do %>
+                           <%= button_to business_unit_meeting_agenda_complete_path(@business_unit, @meeting, agenda), method: :post,  class: 'btn btn-success' do %>
                               Done <i class="fas fa-check"></i> 
                           <% end  %>                 
 </div>
@@ -103,10 +103,10 @@
 
                   <div class="row mt-3">
                     <div class="col">
-                      <%= link_to "New agenda item", new_organisation_meeting_agenda_path(@organisation, @meeting), class: 'btn btn-primary' %>
+                      <%= link_to "New agenda item", new_business_unit_meeting_agenda_path(@business_unit, @meeting), class: 'btn btn-primary' %>
                     </div>
                     <div class="col text-end">
-                      <%= link_to 'Back to Meeting', organisation_meeting_path(@organisation, @meeting), class: 'btn btn-secondary' %>
+                      <%= link_to 'Back to Meeting', business_unit_meeting_path(@business_unit, @meeting), class: 'btn btn-secondary' %>
                     </div>
                   </div>
 
