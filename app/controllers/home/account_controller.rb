@@ -4,5 +4,11 @@ class Home::AccountController < ApplicationController
 
   def landing
 
+
+    @organisations = current_user.organisations
+
+
   end
+
+  
 end

@@ -43,6 +43,11 @@ binary-extensions@^2.0.0:
   resolved "https://registry.yarnpkg.com/binary-extensions/-/binary-extensions-2.2.0.tgz#75f502eeaf9ffde42fc98829645be4ea76bd9e2d"
   integrity sha512-jDctJ/IVQbZoJykoeHbhXpOlNBqGNcwXJKJog42E5HDPUwQTSdjCHdihjj0DlnheQ7blbT6dHOafNAiS8ooQKA==
 
+bootstrap@^3.4.1:
+  version "3.4.1"
+  resolved "https://registry.yarnpkg.com/bootstrap/-/bootstrap-3.4.1.tgz#c3a347d419e289ad11f4033e3c4132b87c081d72"
+  integrity sha512-yN5oZVmRCwe5aKwzRj6736nSmKDX7pLYwsXiCj/EYmo16hODaBiT4En5btW/jhBF/seV+XMx3aYwukYC3A49DA==
+
 braces@~3.0.2:
   version "3.0.2"
   resolved "https://registry.yarnpkg.com/braces/-/braces-3.0.2.tgz#3454e1a462ee8d599e236df336cd9ea4f8afe107"
@@ -283,7 +288,7 @@ is-number@^7.0.0:
   resolved "https://registry.yarnpkg.com/is-number/-/is-number-7.0.0.tgz#7535345b896734d5f80c4d06c50955527a14f12b"
   integrity sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng==
 
-jquery@>=1.7, jquery@^3.6.0:
+jquery@>=1.7, jquery@^3.4.1, jquery@^3.6.0:
   version "3.6.0"
   resolved "https://registry.yarnpkg.com/jquery/-/jquery-3.6.0.tgz#c72a09f15c1bdce142f49dbf1170bdf8adac2470"
   integrity sha512-JVzAR/AjBvVt2BmYhxRCSYysDsPcssdmTFnzyLEts9qNwmjmu4JTAMYubEfwVOSwpQ1I1sKKFcxhZCI2buerfw==
@@ -297,6 +302,14 @@ notyf@^3.10.0:
   version "3.10.0"
   resolved "https://registry.yarnpkg.com/notyf/-/notyf-3.10.0.tgz#67a64443c69ea0e6495c56ea0f91198860163d06"
   integrity sha512-Mtnp+0qiZxgrH+TzVlzhWyZceHdAZ/UWK0/ju9U0HQeDpap1mZ8cC7H5wSI5mwgni6yeAjaxsTw0sbMK+aSuHw==
+
+patternfly-bootstrap-treeview@^2.1.10:
+  version "2.1.10"
+  resolved "https://registry.yarnpkg.com/patternfly-bootstrap-treeview/-/patternfly-bootstrap-treeview-2.1.10.tgz#f96043734bb4ecac951783e2745e3f9a8873ffd4"
+  integrity sha512-P9+iFu34CwX+R5Fd7/EWbxTug0q9mDj53PnZIIh5ie54KX2kD0+54lCWtpD9SVylDwDtDv3n3A6gbFVkx7HsuA==
+  dependencies:
+    bootstrap "^3.4.1"
+    jquery "^3.4.1"
 
 picomatch@^2.0.4, picomatch@^2.2.1:
   version "2.3.1"

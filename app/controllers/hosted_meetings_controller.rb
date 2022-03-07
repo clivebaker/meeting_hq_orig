@@ -1,4 +1,5 @@
 class HostedMeetingsController < ApplicationController
+  before_action :set_organisation
   before_action :set_hosted_meeting, only: %i[ show edit update destroy ]
   before_action :set_business_unit
   before_action :set_meeting
@@ -88,7 +89,7 @@ class HostedMeetingsController < ApplicationController
   
     respond_to do |format|
       if @hosted_meeting.save
-        format.html { redirect_to business_unit_meeting_hosted_meeting_url(@business_unit, @meeting, @hosted_meeting), notice: "Hosted meeting was successfully started." }
+        format.html { redirect_to organisation_business_unit_meeting_hosted_meeting_url(@organisation, @business_unit, @meeting, @hosted_meeting), notice: "Hosted meeting was successfully started." }
         format.json { render :show, status: :created, location: @hosted_meeting }
       else
         format.html { render :new, status: :unprocessable_entity }
@@ -115,7 +116,7 @@ class HostedMeetingsController < ApplicationController
     @hosted_meeting.ended_at = Time.new
     respond_to do |format|
       if @hosted_meeting.save
-        format.html { redirect_to business_unit_meeting_url(@business_unit, @meeting), notice: "Hosted meeting was ended." }
+        format.html { redirect_to organisation_business_unit_meeting_url(@organisation, @business_unit, @meeting), notice: "Hosted meeting was ended." }
       else
         format.html { render :edit, status: :unprocessable_entity }
       end
@@ -134,7 +135,7 @@ class HostedMeetingsController < ApplicationController
     end
     respond_to do |format|
       if @hosted_meeting.save
-        format.html { redirect_to business_unit_meeting_hosted_meeting_url(@business_unit, @meeting, @hosted_meeting), notice: "Agenda Item completed." }
+        format.html { redirect_to organisation_business_unit_meeting_hosted_meeting_url(@organisation, @business_unit, @meeting, @hosted_meeting), notice: "Agenda Item completed." }
       else
         format.html { render :edit, status: :unprocessable_entity }
       end
@@ -158,6 +159,10 @@ class HostedMeetingsController < ApplicationController
   end
   def set_business_unit
     @business_unit = BusinessUnit.find(params[:business_unit_id])
+  end
+
+  def set_organisation
+    @organisation = Organisation.find(params[:organisation_id])
   end
 
     # Use callbacks to share common setup or constraints between actions.

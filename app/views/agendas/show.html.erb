@@ -49,24 +49,24 @@
                         <strong>State:</strong>
                         <%= @agenda.aasm_state %>
                       </p>
-                      <%= button_to "Mark Complete", business_unit_meeting_agenda_complete_path(@business_unit, @meeting, @agenda), method: :post,  class: 'btn btn-primary' %>
+                      <%= button_to "Mark Complete", organisation_business_unit_meeting_agenda_complete_path(@organisation, @business_unit, @meeting, @agenda), method: :post,  class: 'btn btn-primary' %>
                     </div>
                   </div>
 
                 <div class="row">
                   <div class="col">
-                    <%= link_to business_unit_meeting_agendas_path(@business_unit, @meeting), class: 'btn btn-secondary' do %>
+                    <%= link_to organisation_business_unit_meeting_agendas_path(@organisation, @business_unit, @meeting), class: 'btn btn-secondary' do %>
                       Back to Agenda
                     <% end %>
                   </div>
                   <div class="col text-end">
                   <div class='d-inline-flex'>
-                    <%= link_to edit_business_unit_meeting_agenda_path(@business_unit, @meeting, @agenda) , class: 'btn btn-secondary' do %>
+                    <%= link_to edit_organisation_business_unit_meeting_agenda_path(@organisation, @business_unit, @meeting, @agenda) , class: 'btn btn-secondary' do %>
                       <i class="fas fa-edit"></i> Edit item
                     <% end %>
                     </div>
                     <div class='d-inline-flex'>
-                         <%= button_to business_unit_meeting_agenda_path(@business_unit, @meeting, @agenda), method: :delete, class: 'btn btn-secondary' do %>
+                         <%= button_to organisation_business_unit_meeting_agenda_path(@organisation, @business_unit, @meeting, @agenda), method: :delete, class: 'btn btn-secondary' do %>
                             <i class="fas fa-trash-alt"></i>  Delete Item
                           <% end  %>               
                     </div>

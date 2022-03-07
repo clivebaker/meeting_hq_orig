@@ -1,9 +1,10 @@
 class BusinessUnitsController < ApplicationController
+  before_action :set_organisation
   before_action :set_business_unit, only: %i[ show edit update destroy ]
 
   # GET /business_units or /business_units.json
   def index
-    @business_units = BusinessUnit.joins(:business_unit_users).where("business_unit_users.user_id = ?", current_user.id)
+    @business_units = BusinessUnit.joins(:business_unit_users).where(organisation_id: @organisation.id).where("business_unit_users.user_id = ?", current_user.id)
   end
 
   # GET /business_units/1 or /business_units/1.json
@@ -35,7 +36,7 @@ class BusinessUnitsController < ApplicationController
         )
 
         
-        format.html { redirect_to business_unit_url(@business_unit), notice: "business_unit was successfully created." }
+        format.html { redirect_to organisation_url(@organisation), notice: "business_unit was successfully created." }
         format.json { render :show, status: :created, location: @business_unit }
       else
         format.html { render :new, status: :unprocessable_entity }
@@ -48,7 +49,7 @@ class BusinessUnitsController < ApplicationController
   def update
     respond_to do |format|
       if @business_unit.update(business_unit_params)
-        format.html { redirect_to business_unit_url(@business_unit), notice: "business_unit was successfully updated." }
+        format.html { redirect_to organisation_business_unit_url(@organisation, @business_unit), notice: "business_unit was successfully updated." }
         format.json { render :show, status: :ok, location: @business_unit }
       else
         format.html { render :edit, status: :unprocessable_entity }
@@ -73,9 +74,12 @@ class BusinessUnitsController < ApplicationController
     def set_business_unit
       @business_unit = BusinessUnit.find(params[:id])
     end
+    def set_organisation
+      @organisation = Organisation.find(params[:organisation_id])
+    end
 
     # Only allow a list of trusted parameters through.
     def business_unit_params
-      params.require(:business_unit).permit(:name)
+      params.require(:business_unit).permit(:name, :organisation_id)
     end
 end

@@ -7,9 +7,21 @@
       <div class="col-12">
         <div class="card">
           <div class="card-header">
-            <h5 class="card-title mb-0">Landing</h5>
+            <h5 class="card-title mb-0">My Organisations</h5>
           </div>
           <div class="card-body">
+          <% if @organisations.blank? %>
+            <h3>Welcome to Meeting HQ</h3>
+            <p>You need to add an organisation.  By creating the organisation you are the "Owner" of the organisation</p>
+          <% else %>
+            <% @organisations.each do |organisation| %>
+              <div class="row">
+                <div class="col"><%= organisation.name %></div>
+                <div class="col"></div>
+              </div>
+            <% end %>
+          <% end %>
+            <%= link_to "New organisation", new_organisation_path %>
           </div>
         </div>
       </div>

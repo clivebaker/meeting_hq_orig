@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2022_03_07_084214) do
+ActiveRecord::Schema[7.0].define(version: 2022_03_07_135728) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -42,6 +42,8 @@ ActiveRecord::Schema[7.0].define(version: 2022_03_07_084214) do
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "organisation_id", null: false
+    t.index ["organisation_id"], name: "index_business_units_on_organisation_id"
   end
 
   create_table "components", force: :cascade do |t|
@@ -104,6 +106,24 @@ ActiveRecord::Schema[7.0].define(version: 2022_03_07_084214) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["business_unit_id"], name: "index_meetings_on_business_unit_id"
+  end
+
+  create_table "organisation_users", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "organisation_id", null: false
+    t.boolean "invited"
+    t.datetime "discarded"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.jsonb "role", default: []
+    t.index ["organisation_id"], name: "index_organisation_users_on_organisation_id"
+    t.index ["user_id"], name: "index_organisation_users_on_user_id"
+  end
+
+  create_table "organisations", force: :cascade do |t|
+    t.string "name"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "slide_template_components", force: :cascade do |t|
@@ -185,12 +205,15 @@ ActiveRecord::Schema[7.0].define(version: 2022_03_07_084214) do
   add_foreign_key "agendas", "meetings"
   add_foreign_key "business_unit_users", "business_units"
   add_foreign_key "business_unit_users", "users"
+  add_foreign_key "business_units", "organisations"
   add_foreign_key "hosted_meetings", "meetings"
   add_foreign_key "master_slide_template_components", "components"
   add_foreign_key "master_slide_template_components", "master_slide_templates"
   add_foreign_key "meeting_actions", "meetings"
   add_foreign_key "meeting_actions", "users"
   add_foreign_key "meetings", "business_units"
+  add_foreign_key "organisation_users", "organisations"
+  add_foreign_key "organisation_users", "users"
   add_foreign_key "slide_template_components", "components"
   add_foreign_key "slide_template_components", "slide_templates"
   add_foreign_key "slide_templates", "business_units"

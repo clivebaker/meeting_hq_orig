@@ -1,57 +1,63 @@
 class Users::InvitationsController < Devise::InvitationsController
   
-  layout 'devise'
+  layout 'application'
   
 
   def new
     @business_unit_id = params[:business_unit_id]
+    @organisation_id = params[:organisation_id]
+    @organisation = Organisation.find(@organisation_id)
     super
   end
   def create
 
     @business_unit_id = params[:user][:business_unit_id]
+    @organisation_id = params[:user][:organisation_id]
 
     invited_user = User.find_by(email: params[:user][:email])
     if invited_user.present?
-      associate_business_unit(invited_user, params[:user][:business_unit_id])
-      redirect_to business_unit_path(@business_unit_id), notice: 'This user has an account and has been added to your business_unit' and return
+
+      associate_business_unit(invited_user, @organisation_id, @business_unit_id)
+      redirect_to organisation_business_unit_path(@organisation_id, @business_unit_id), notice: 'This user has an account and has been added to your business_unit' and return
 
     else
+      
       super
 
     end
-
-
 
 end
 
 
   private
 
-    # This is called when creating invitation.
-    # It should return an instance of resource class.
     def invite_resource
-      # skip sending emails on invite
 
-     # invited_user = User.find_by(email: params[:user][:email])
+      @business_unit_id = params[:user][:business_unit_id]
+      @organisation_id = params[:user][:organisation_id]
+  
 
-     # if invited_user.blank?
-        # invited_user.deliver_invitation if invited_user.present?
         invited_user = User.invite!({:email => params[:user][:email]}, current_user) 
-        associate_business_unit(invited_user, params[:user][:business_unit_id])
+        associate_business_unit(invited_user, @organisation_id, @business_unit_id)
         super
-    #  else
-    #    associate_business_unit(invited_user, params[:user][:business_unit_id])  
-    #  end
-
 
     end
 
-    def associate_business_unit(user, business_unit_id)
-      @org_user = BusinessUnitUser.find_or_create_by(
+    def associate_business_unit(user, organisation_id, business_unit_id)
+      @business_user = BusinessUnitUser.find_or_create_by(
         user_id: user.id,
         business_unit_id: business_unit_id,
-        invited: true
+        invited: true,
+        role: [:user].as_json
+      )
+#      binding.pry
+      @business_user.role = (@business_user.role + ['user']).uniq 
+      @business_user.save
+      @org_user = OrganisationUser.find_or_create_by(
+        user_id: user.id,
+        organisation_id: organisation_id,
+        invited: true,
+        role: [:user].as_json
       )
 #      binding.pry
       @org_user.role = (@org_user.role + ['user']).uniq 
@@ -61,7 +67,7 @@ end
 
 
     def after_invite_path_for(inviter, invitee)
-      business_unit_path(@org_user.business_unit_id)
+      organisation_business_unit_path(@org_user.organisation_id, @business_user.business_unit_id)
     end
 
     def after_accept_path_for(resource) 

@@ -8,7 +8,12 @@ require("jquery")
 import JQuery from 'jquery';
 window.$ = window.JQuery = JQuery;
 
+import 'bootstrap-treeview'
+
 import "datatables.net";
+
+
+
 //import "datatables.net-bs5";
 
 import DataTable from 'datatables.net-bs5';

@@ -1,4 +1,4 @@
-<%= form_with(model: business_unit) do |form| %>
+<%= form_with(model: [@organisation, business_unit]) do |form| %>
   <% if business_unit.errors.any? %>
     <div style="color: red">
       <h2><%= pluralize(business_unit.errors.count, "error") %> prohibited this business_unit from being saved:</h2>
@@ -10,6 +10,7 @@
       </ul>
     </div>
   <% end %>
+    <%= form.hidden_field :organisation_id, value: @organisation.id,  class: 'form-control' %>
 
   <div class='mb-3'>
     <%= form.label :name, style: "display: block", class: 'form-label' %>

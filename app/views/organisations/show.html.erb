@@ -1,0 +1,50 @@
+
+
+<main class="content">
+  <div class="container-fluid p-0">
+    <div class="row">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <div class="row">
+                <div class="col"><h5 class="card-title mb-0"><%= @organisation.name %></h5></div>
+                <div class="col text-end">
+                
+                <%= link_to edit_organisation_path(@organisation) do %>
+                  <i class="fal fa-edit"></i> 
+                <% end %>
+                <div class='d-inline-flex'>
+                  <%= button_to organisation_path(@organisation), data: {turbo: false}, method: :delete, class: 'btn btn-link' do %>
+                    <i class="fal fa-trash-can"></i> 
+                  <% end %>
+                </div>                
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+
+              <%= link_to 'Add Business Unit', new_organisation_business_unit_path(@organisation), class: 'btn btn-primary' %>
+              <% @organisation.business_units.each do |business_unit|%>
+                <div class="row border-bottom pt-4">
+                  <div class="col"><i class="fa-duotone fa-apartment"></i> <%= link_to business_unit.name, organisation_business_unit_path(@organisation, business_unit), class: 'ps-1'%></div>
+                  <div class="col text-end">
+                    <%= link_to new_organisation_business_unit_meeting_path(@organisation, business_unit) do %>
+                      <i class="fal fa-plus"></i> <%= "Add Meeitng to #{business_unit.name}"%>
+                    <% end %>
+                  </div>
+                </div>
+                <% business_unit.meetings.each do |meeting| %>
+                  <div class="row pt-1">
+                    <div class="col ms-4 border-stsart"><i class="fa-duotone fa-handshake-simple"></i> <%= link_to meeting.name, organisation_business_unit_meeting_path(@organisation, business_unit, meeting), class: 'ps-1' %></div>
+                    <div class="col text-end"></div>
+                  </div>               
+                <% end %>     
+              <% end %>
+            
+            
+            </div>
+          </div>
+        </div>
+    </div>
+  </div>
+</main>

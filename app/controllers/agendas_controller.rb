@@ -1,4 +1,5 @@
 class AgendasController < ApplicationController
+  before_action :set_organisation
   before_action :set_business_unit
   before_action :set_meeting
   before_action :set_agenda, only: %i[ show edit update destroy ]
@@ -33,7 +34,7 @@ class AgendasController < ApplicationController
     end
 
     respond_to do |format|
-        format.html { redirect_to business_unit_meeting_agendas_url(@business_unit, @meeting), notice: "Item was successfully moved." }
+        format.html { redirect_to organisation_business_unit_meeting_agendas_url(@organisation, @business_unit, @meeting), notice: "Item was successfully moved." }
     end
 
 
@@ -47,7 +48,7 @@ class AgendasController < ApplicationController
     @agenda.close! if @agenda.may_close? 
    
     respond_to do |format|
-        format.html { redirect_to business_unit_meeting_agendas_url(@business_unit, @meeting), notice: "Item was successfully moved." }
+        format.html { redirect_to organisation_business_unit_meeting_agendas_url(@organisation, @business_unit, @meeting), notice: "Item was successfully moved." }
     end
 
 
@@ -60,7 +61,7 @@ class AgendasController < ApplicationController
 
     respond_to do |format|
       if @agenda.save
-        format.html { redirect_to business_unit_meeting_agendas_url(@business_unit, @meeting), notice: "Agenda was successfully created." }
+        format.html { redirect_to organisation_business_unit_meeting_agendas_url(@organisation, @business_unit, @meeting), notice: "Agenda was successfully created." }
         format.json { render :show, status: :created, location: @agenda }
       else
         format.html { render :new, status: :unprocessable_entity }
@@ -73,7 +74,7 @@ class AgendasController < ApplicationController
   def update
     respond_to do |format|
       if @agenda.update(agenda_params)
-        format.html { redirect_to business_unit_meeting_agendas_url(@business_unit, @meeting), notice: "Agenda was successfully updated." }
+        format.html { redirect_to organisation_business_unit_meeting_agendas_url(@organisation, @business_unit, @meeting), notice: "Agenda was successfully updated." }
         format.json { render :show, status: :ok, location: @agenda }
       else
         format.html { render :edit, status: :unprocessable_entity }
@@ -87,7 +88,7 @@ class AgendasController < ApplicationController
     @agenda.destroy
 
     respond_to do |format|
-      format.html { redirect_to business_unit_meeting_agendas_url(@business_unit, @meeting), notice: "Agenda was successfully destroyed." }
+      format.html { redirect_to organisation_business_unit_meeting_agendas_url(@organisation, @business_unit, @meeting), notice: "Agenda was successfully destroyed." }
       format.json { head :no_content }
     end
   end
@@ -98,6 +99,9 @@ class AgendasController < ApplicationController
     end
     def set_business_unit
       @business_unit = BusinessUnit.find(params[:business_unit_id])
+    end
+    def set_organisation
+      @organisation = Organisation.find(params[:organisation_id])
     end
     # Use callbacks to share common setup or constraints between actions.
     def set_agenda
