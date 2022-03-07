@@ -1,11 +1,54 @@
 
 
 
-MEETING SCREEN HERE
 
-<br><br>
-<ul>
-<% @hosted_meeting.agenda['items'].each do |item|%>
-<li>duration: <%= item['duration_minutes']%>: name: <%= item['name']%> started_at: <%= item['started_at']%> ended_at: <%= item['ended_at']%>: </li>
-<% end %>
-</ul>
+
+
+
+
+<div class="main d-flex justify-content-center w-100 pt-5">
+		<main class="content d-flex p-0">
+			<div class="container d-flex flex-column">
+				<div class="row">
+					<div class="col-sm-12 col-md-10 col-lg-8 mx-auto d-table h-100">
+						<div class="d-table-cell align-middle">
+
+							<div class="text-center mt-4">
+								<h1 class="h2">Meeting Agenda</h1>
+
+							</div>
+							<div class="card">
+								<div class="card-body">
+									<div class="m-sm-4">
+
+                    <% @hosted_meeting.agenda['items'].each do |item|%>
+                      <div class="row border-bottom py-2">
+                        <div class="col-8 fs-2"><%= item['name']%></div>
+                        <div class="col-4  fs-2 text-end"><%= item['duration_minutes']%> minutes</div>
+                      </div>
+                    <% end %>
+
+									</div>
+								</div>
+							</div>
+
+						</div>
+					</div>
+				</div>
+			</div>
+		</main>
+	</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+

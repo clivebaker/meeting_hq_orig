@@ -82,8 +82,8 @@ function set_colour_agenda_time(colour){
 
     <% if @current_agenda_item.present? %>
         <div class="row">
-          <div class="col-3 text-end">Current Topic: </div>
-          <div class="col"><h3 class='text-light'><%= @current_agenda_item['name'] %> - <%= @current_agenda_item['duration_minutes'] %> minutes</h3></div>
+          <div class="col-3 text-end"><% if  @current_agenda_item['id'] != -1 %>Current Topic: <% end %></div>
+          <div class="col"><h3 class='text-light'><%= @current_agenda_item['name'] %><% if  @current_agenda_item['id'] != -1 %> - <%= @current_agenda_item['duration_minutes'] %> minutes<% end %></h3></div>
         </div>
     <% else %>
         <div class="row">
@@ -101,7 +101,7 @@ function set_colour_agenda_time(colour){
 
 
   <div class="col my-auto text-end">
-   <% if @current_agenda_item.present? %>
+   <% if @current_agenda_item.present? and  @current_agenda_item['id'] != -1 %>
     <div class="row"><div class="col">Current Agenda Item:</div></div>
     <div class="row"><div class="col"><h3 class='text-success' id='agenda-time'></h3></div></div>
     <% end %>
@@ -109,7 +109,9 @@ function set_colour_agenda_time(colour){
   <div class="col my-auto">
     <% if @current_agenda_item.present? %>
       <% if @next_agenda_item['id'] != -1 %>
-        <%= button_to 'Next Agenda Item', business_unit_meeting_hosted_meeting_finish_agenda_path(@business_unit, @meeting, @hosted_meeting, @current_agenda_item['id'], @next_agenda_item['id']), id: 'agenda-button', class: 'btn btn-success', method: :post, data: {turbo: false}%>
+        <% button_text =  @current_agenda_item['id'] != -1 ? 'Next Agenda Item' : 'Start first Agenda Item'%>
+        <%= button_to button_text, business_unit_meeting_hosted_meeting_finish_agenda_path(@business_unit, @meeting, @hosted_meeting, @current_agenda_item['id'], @next_agenda_item['id']), id: 'agenda-button', class: 'btn btn-success', method: :post, data: {turbo: false}%>
+ 
       <% else %>  
         <%= button_to 'Finish last topic', business_unit_meeting_hosted_meeting_finish_agenda_path(@business_unit, @meeting, @hosted_meeting, @current_agenda_item['id'], @next_agenda_item['id']), id: 'agenda-button', class: 'btn btn-success', method: :post, data: {turbo: false}%>
       <% end %>    
