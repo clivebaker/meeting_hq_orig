@@ -1,5 +1,5 @@
 class SlideTemplatesController < ApplicationController
-  before_action :set_organisation
+  before_action :set_business_unit
   before_action :set_slide_template, only: %i[ show edit update destroy ]
 
   skip_before_action :verify_authenticity_token, only: :update_component
@@ -16,13 +16,13 @@ class SlideTemplatesController < ApplicationController
 
 
     @components = Component.all
-    @update_path = organisation_update_component_path(@organisation)
+    @update_path = business_unit_update_component_path(@business_unit)
   end
 
   # GET /slide_templates/new
   def new
     @slide_template = SlideTemplate.new
-    @slide_template.organisation_id = @organisation.id
+    @slide_template.business_unit_id = @business_unit.id
   end
 
   # GET /slide_templates/1/edit
@@ -37,7 +37,7 @@ class SlideTemplatesController < ApplicationController
       component_id: @component.id,
       slide_template_id: @slide_template.id
     )
-   redirect_to organisation_slide_template_path(@organisation, @slide_template)
+   redirect_to business_unit_slide_template_path(@business_unit, @slide_template)
   end
 
   def update_component
@@ -56,7 +56,7 @@ class SlideTemplatesController < ApplicationController
     
     @slide_template_component.save
     respond_to do |format|
-      format.html { redirect_to organisation_slide_template_path(@organisation, @slide_template_component.slide_template) }
+      format.html { redirect_to business_unit_slide_template_path(@business_unit, @slide_template_component.slide_template) }
       format.json { render json: @slide_template_component.to_json}
     end
   end
@@ -66,7 +66,7 @@ class SlideTemplatesController < ApplicationController
     @master_slide_template = MasterSlideTemplate.find(params[:master_slide_template_id])
     @master_slide_template_components = @master_slide_template.master_slide_template_components
     
-    @slide_template = SlideTemplate.create(organisation: @organisation, name: @master_slide_template.name, enabled: true)
+    @slide_template = SlideTemplate.create(business_unit: @business_unit, name: @master_slide_template.name, enabled: true)
 
     @master_slide_template_components.each do |master_slide_template_component|
 
@@ -83,7 +83,7 @@ class SlideTemplatesController < ApplicationController
     end
 
     respond_to do |format|
-      format.html { redirect_to organisation_slide_templates_path(@organisation), notice: "Master Slide template was copied." }
+      format.html { redirect_to business_unit_slide_templates_path(@business_unit), notice: "Master Slide template was copied." }
     end
 
   end
@@ -94,7 +94,7 @@ class SlideTemplatesController < ApplicationController
 
     respond_to do |format|
       if @slide_template.save
-        format.html { redirect_to organisation_slide_template_url(@organisation, @slide_template), notice: "Slide template was successfully created." }
+        format.html { redirect_to business_unit_slide_template_url(@business_unit, @slide_template), notice: "Slide template was successfully created." }
         format.json { render :show, status: :created, location: @slide_template }
       else
         format.html { render :new, status: :unprocessable_entity }
@@ -107,7 +107,7 @@ class SlideTemplatesController < ApplicationController
   def update
     respond_to do |format|
       if @slide_template.update(slide_template_params)
-        format.html { redirect_to  organisation_slide_template_url(@organisation, @slide_template), notice: "Slide template was successfully updated." }
+        format.html { redirect_to  business_unit_slide_template_url(@business_unit, @slide_template), notice: "Slide template was successfully updated." }
         format.json { render :show, status: :ok, location: @slide_template }
       else
         format.html { render :edit, status: :unprocessable_entity }
@@ -121,15 +121,15 @@ class SlideTemplatesController < ApplicationController
     @slide_template.destroy
 
     respond_to do |format|
-      format.html { redirect_to organisation_slide_templates_url(@organisation), notice: "Slide template was successfully destroyed." }
+      format.html { redirect_to business_unit_slide_templates_url(@business_unit), notice: "Slide template was successfully destroyed." }
       format.json { head :no_content }
     end
   end
 
   private
 
-    def set_organisation
-      @organisation = Organisation.find(params[:organisation_id])
+    def set_business_unit
+      @business_unit = BusinessUnit.find(params[:business_unit_id])
     end
 
     # Use callbacks to share common setup or constraints between actions.
@@ -139,6 +139,6 @@ class SlideTemplatesController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def slide_template_params
-      params.require(:slide_template).permit(:organisation_id, :name, :content, :enabled)
+      params.require(:slide_template).permit(:business_unit_id, :name, :content, :enabled)
     end
 end

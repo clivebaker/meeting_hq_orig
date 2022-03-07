@@ -5,55 +5,51 @@
         </a>
 
 				<ul class="sidebar-nav">
-					
-					
-
-
 					<li class="sidebar-item">
 						<a data-bs-target="#multi" data-bs-toggle="collapse" class="sidebar-link collapsed">
-              <i class="fal fa-house-night"></i> <span class="align-middle">Organisations</span>
+              <i class="fal fa-house-night"></i> <span class="align-middle">Business Unit</span>
             </a>
 						<ul id="multi" class="sidebar-dropdown list-unstyled collapseW" data-bs-parent="#sidebar">
-						<% current_user.organisations.each do |organisation| %>
+						<% current_user.business_units.each do |business_unit| %>
 							<li class="sidebar-item">
-								<a data-bs-target="#multi-<%=organisation.id%>" data-bs-toggle="collapse" class="sidebar-link collapsed">
-                  <%= organisation.name %>
+								<a data-bs-target="#multi-<%=business_unit.id%>" data-bs-toggle="collapse" class="sidebar-link collapsed">
+                  <%= business_unit.name %>
                 </a>
-								<ul id="multi-<%=organisation.id%>" class="sidebar-dropdown list-unstyled <%= collapse_organisation((@organisation.id if @organisation), organisation.id) %>">
-									<li class="sidebar-item <%= active((@organisation.id if @organisation), organisation.id) if @meeting.blank? and params[:controller] == 'organisations'%>">
-										<%= link_to 'Org Settings', organisation_path(organisation), class: "sidebar-link", 'data-bs-target': "#" %>
+								<ul id="multi-<%=business_unit.id%>" class="sidebar-dropdown list-unstyled <%= collapse_business_unit((@business_unit.id if @business_unit), business_unit.id) %>">
+									<li class="sidebar-item <%= active((@business_unit.id if @business_unit), business_unit.id) if @meeting.blank? and params[:controller] == 'business_units'%>">
+										<%= link_to 'Org Settings', business_unit_path(business_unit), class: "sidebar-link", 'data-bs-target': "#" %>
 									</li>
-									<li class="sidebar-item <%= active((@organisation.id if @organisation), organisation.id) if @meeting.blank? and params[:controller] == 'slide_templates'%>">
-										<%= link_to 'Slide Templates', organisation_slide_templates_path(organisation), class: "sidebar-link", 'data-bs-target': "#" %>
+									<li class="sidebar-item <%= active((@business_unit.id if @business_unit), business_unit.id) if @meeting.blank? and params[:controller] == 'slide_templates'%>">
+										<%= link_to 'Slide Templates', business_unit_slide_templates_path(business_unit), class: "sidebar-link", 'data-bs-target': "#" %>
 									</li>
 									<li class="sidebar-item">
 										<% debug = "" %>
-                     <%= link_to "Meetings #{debug}", '#', 'data-bs-target': "#multi-#{organisation.id}-1", 'data-bs-toggle': "collapse", class: "sidebar-link collapsed" %>
+                     <%= link_to "Meetings #{debug}", '#', 'data-bs-target': "#multi-#{business_unit.id}-1", 'data-bs-toggle': "collapse", class: "sidebar-link collapsed" %>
 										
-										<ul id="multi-<%=organisation.id%>-1" class="sidebar-dropdown list-unstyled <%#= collapse_meeting((@organisation.id if @organisation), organisation.id)  %>">
-											<li class="sidebar-item <%= active((@organisation.id if @organisation), organisation.id) if @meeting.blank? and ['meetings', 'agendas', 'meeting_actions'].include?(params[:controller])%>">
-												<%= link_to 'Manage Meetings', organisation_meetings_path(organisation), class: "sidebar-link", 'data-bs-target': "#" %>
+										<ul id="multi-<%=business_unit.id%>-1" class="sidebar-dropdown list-unstyled <%#= collapse_meeting((@business_unit.id if @business_unit), business_unit.id)  %>">
+											<li class="sidebar-item <%= active((@business_unit.id if @business_unit), business_unit.id) if @meeting.blank? and ['meetings', 'agendas', 'meeting_actions'].include?(params[:controller])%>">
+												<%= link_to 'Manage Meetings', business_unit_meetings_path(business_unit), class: "sidebar-link", 'data-bs-target': "#" %>
 											</li>										
-												<% organisation.meetings.each do |meeting| %>
+												<% business_unit.meetings.each do |meeting| %>
 													<li class="sidebar-item <%= active((@meeting.id if @meeting), meeting.id)%> " >
-														<%= link_to organisation_meeting_path(organisation, meeting), class: "sidebar-link" do %>
+														<%= link_to business_unit_meeting_path(business_unit, meeting), class: "sidebar-link" do %>
 															<%= meeting.name %> 
 														<% end %>
 													</li>
 													<!-- li class="sidebar-item <%= active((@meeting.id if @meeting), meeting.id)%> " >
-														<%= link_to organisation_meeting_path(organisation, meeting), 'data-bs-target': "#multi-#{organisation.id}-2-#{meeting.id}", 'data-bs-toggle': "collapse", class: "sidebar-link collapsed  #{active((@meeting.id if @meeting), meeting.id) == 'active' ? 'secondary-nav' : ''}" do %>
+														<%= link_to business_unit_meeting_path(business_unit, meeting), 'data-bs-target': "#multi-#{business_unit.id}-2-#{meeting.id}", 'data-bs-toggle': "collapse", class: "sidebar-link collapsed  #{active((@meeting.id if @meeting), meeting.id) == 'active' ? 'secondary-nav' : ''}" do %>
 															<%= meeting.name %> 
 														<% end %>
 													</li>
-														<ul id="multi-<%=organisation.id%>-2-<%=meeting.id%>" class="sidebar-dropdown list-unstyled  <%= collapse_meeting((@meeting.id if @meeting), meeting.id, ['meetings', 'agendas', 'meeting_actions'])  %>">
+														<ul id="multi-<%=business_unit.id%>-2-<%=meeting.id%>" class="sidebar-dropdown list-unstyled  <%= collapse_meeting((@meeting.id if @meeting), meeting.id, ['meetings', 'agendas', 'meeting_actions'])  %>">
 															<li class="sidebar-item  <%= meeting_component_active((@meeting.id if @meeting), meeting.id, ['meetings'], ['show', 'edit']) %> <%#=  (['meetings'].include?(params[:controller]) and ['show'].include?(params[:action])) ? 'active' : ''%>">
-																<%= link_to organisation_meeting_path(organisation, meeting), class: "sidebar-link" do %>Summary <% end %>
+																<%= link_to business_unit_meeting_path(business_unit, meeting), class: "sidebar-link" do %>Summary <% end %>
 															</li>
 															<li class="sidebar-item  <%= meeting_component_active((@meeting.id if @meeting), meeting.id, ['agendas'], ['index', 'new', 'show', 'edit']) %><%#=  (['agendas'].include?(params[:controller]) and ['index'].include?(params[:action])) ? 'active' : ''%>">
-																<%= link_to 'Agenda', organisation_meeting_agendas_path(organisation, meeting), class: "sidebar-link", 'data-bs-target': "#" %>
+																<%= link_to 'Agenda', business_unit_meeting_agendas_path(business_unit, meeting), class: "sidebar-link", 'data-bs-target': "#" %>
 															</li>
 															<li class="sidebar-item <%= meeting_component_active((@meeting.id if @meeting), meeting.id, ['meeting_actions'], ['index', 'new', 'show', 'edit']) %> <%#=  (['meeting_actions'].include?(params[:controller]) and ['index'].include?(params[:action])) ? 'active' : ''%>">
-																<%= link_to 'Actions', organisation_meeting_meeting_actions_path(organisation, meeting), class: "sidebar-link", 'data-bs-target': "#" %>
+																<%= link_to 'Actions', business_unit_meeting_meeting_actions_path(business_unit, meeting), class: "sidebar-link", 'data-bs-target': "#" %>
 															</li>										
 													</ul-->
 												<% end %>
@@ -68,9 +64,9 @@
 
 
 					<li class="sidebar-item ">
-						<%= link_to organisations_path, class: "sidebar-link" do %>
+						<%= link_to business_units_path, class: "sidebar-link" do %>
 							<i class="fal fa-house-night"></i> 
-							<span class="align-middle">Manage Organisations</span>
+							<span class="align-middle">Manage Business units</span>
 							<span class="badge badge-sidebar-primary"></span>
 						<% end %>
 					</li>

@@ -4,7 +4,7 @@
 
 <script>
 
-  var countDownDate = new Date("<%= (@hosted_meeting.started_at + @duration.minutes).strftime('%Y-%m-%d %H:%M:%S') %>").getTime();
+  var countDownDate = <%= (@hosted_meeting.started_at + @duration.minutes).to_i * 1000 %>;
   var x = setInterval(function() {
   var now = new Date().getTime();
   var prefix = ''
@@ -15,6 +15,7 @@
     distance = distance * -1
 
   }
+//console.log('countDownDate', countDownDate)
 
   var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
@@ -26,7 +27,7 @@
 }, 1000);
 
 <% if @next_start_time.present? %>
-  var countDownDateAgenda = new Date("<%= (@next_start_time).strftime('%Y-%m-%d %H:%M:%S') %>").getTime();
+  var countDownDateAgenda = <%= (@next_start_time).to_i * 1000 %>;
   var y = setInterval(function() {
   var prefix = ''
   var now = new Date().getTime();
@@ -71,7 +72,6 @@ function set_colour_agenda_time(colour){
 
 <% end %>
 
-
 <div class="row bg-primary text-light py-2">
   <div class="col my-auto ms-2">
     <div class="row"><div class="col">Started at: </div></div>
@@ -109,9 +109,9 @@ function set_colour_agenda_time(colour){
   <div class="col my-auto">
     <% if @current_agenda_item.present? %>
       <% if @next_agenda_item['id'] != -1 %>
-        <%= button_to 'Next Agenda Item', organisation_meeting_hosted_meeting_finish_agenda_path(@organisation, @meeting, @hosted_meeting, @current_agenda_item['id'], @next_agenda_item['id']), id: 'agenda-button', class: 'btn btn-success', method: :post, data: {turbo: false}%>
+        <%= button_to 'Next Agenda Item', business_unit_meeting_hosted_meeting_finish_agenda_path(@business_unit, @meeting, @hosted_meeting, @current_agenda_item['id'], @next_agenda_item['id']), id: 'agenda-button', class: 'btn btn-success', method: :post, data: {turbo: false}%>
       <% else %>  
-        <%= button_to 'Finish last topic', organisation_meeting_hosted_meeting_finish_agenda_path(@organisation, @meeting, @hosted_meeting, @current_agenda_item['id'], @next_agenda_item['id']), id: 'agenda-button', class: 'btn btn-success', method: :post, data: {turbo: false}%>
+        <%= button_to 'Finish last topic', business_unit_meeting_hosted_meeting_finish_agenda_path(@business_unit, @meeting, @hosted_meeting, @current_agenda_item['id'], @next_agenda_item['id']), id: 'agenda-button', class: 'btn btn-success', method: :post, data: {turbo: false}%>
       <% end %>    
     <% end %>
   </div>
@@ -125,7 +125,7 @@ function set_colour_agenda_time(colour){
   <div class="col-2 text-center my-auto me-2">
   <%= link_to 'Add Action / Minute', '#', class: 'btn btn-success' %>
     <div class='d-inline-flex'>
-      <%= button_to 'End Meeting', organisation_meeting_hosted_meeting_finish_path(@organisation, @meeting, @hosted_meeting), method: :post, data: {turbo: false}, class: 'btn btn-danger'%>
+      <%= button_to 'End Meeting', business_unit_meeting_hosted_meeting_finish_path(@business_unit, @meeting, @hosted_meeting), method: :post, data: {turbo: false}, class: 'btn btn-danger'%>
     </div>
   </div>
 </div>

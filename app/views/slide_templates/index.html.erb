@@ -28,7 +28,7 @@
               <tr>
                 <td><%= slide_template.name %></td>
                 <td><i class="fa-solid <%= slide_template.enabled ? 'fa-circle-check text-success' : 'fa-circle-x text-danger' %>"></i></td>
-                <td class='text-end'><%= link_to "Show this slide template", organisation_slide_template_path(@organisation, slide_template), data: {turbo: false} %></td>
+                <td class='text-end'><%= link_to "Show this slide template", business_unit_slide_template_path(@business_unit, slide_template), data: {turbo: false} %></td>
               </tr>
             <% end %>
             </tbody>
@@ -36,7 +36,7 @@
 
 
 
-          <%= link_to "New slide template", new_organisation_slide_template_path(@organisation) %>
+          <%= link_to "New slide template", new_business_unit_slide_template_path(@business_unit) %>
 
         </div>
       </div>
@@ -61,7 +61,7 @@
               <div class="row">
                 <div class="col"><%= master_slide_template.name %></div>
                 <div class="col text-end">
-                  <%= button_to organisation_add_master_path(@organisation, master_slide_template), methos: :post, class: 'btn btn-primary' do %>
+                  <%= button_to business_unit_add_master_path(@business_unit, master_slide_template), methos: :post, class: 'btn btn-primary' do %>
                     <i class="fa-solid fa-circle-plus"></i>
                   <% end %>
 

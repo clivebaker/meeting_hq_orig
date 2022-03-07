@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2022_03_06_125328) do
+ActiveRecord::Schema[7.0].define(version: 2022_03_07_084214) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -23,6 +23,25 @@ ActiveRecord::Schema[7.0].define(version: 2022_03_06_125328) do
     t.string "aasm_state"
     t.integer "duration_minutes"
     t.index ["meeting_id"], name: "index_agendas_on_meeting_id"
+  end
+
+  create_table "business_unit_users", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "business_unit_id", null: false
+    t.jsonb "role", default: []
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.boolean "invited", default: false
+    t.datetime "discarded_at"
+    t.index ["business_unit_id"], name: "index_business_unit_users_on_business_unit_id"
+    t.index ["discarded_at"], name: "index_business_unit_users_on_discarded_at"
+    t.index ["user_id"], name: "index_business_unit_users_on_user_id"
+  end
+
+  create_table "business_units", force: :cascade do |t|
+    t.string "name"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "components", force: :cascade do |t|
@@ -80,30 +99,11 @@ ActiveRecord::Schema[7.0].define(version: 2022_03_06_125328) do
   end
 
   create_table "meetings", force: :cascade do |t|
-    t.bigint "organisation_id", null: false
+    t.bigint "business_unit_id", null: false
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["organisation_id"], name: "index_meetings_on_organisation_id"
-  end
-
-  create_table "organisation_users", force: :cascade do |t|
-    t.bigint "user_id", null: false
-    t.bigint "organisation_id", null: false
-    t.jsonb "role", default: []
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.boolean "invited", default: false
-    t.datetime "discarded_at"
-    t.index ["discarded_at"], name: "index_organisation_users_on_discarded_at"
-    t.index ["organisation_id"], name: "index_organisation_users_on_organisation_id"
-    t.index ["user_id"], name: "index_organisation_users_on_user_id"
-  end
-
-  create_table "organisations", force: :cascade do |t|
-    t.string "name"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.index ["business_unit_id"], name: "index_meetings_on_business_unit_id"
   end
 
   create_table "slide_template_components", force: :cascade do |t|
@@ -123,13 +123,13 @@ ActiveRecord::Schema[7.0].define(version: 2022_03_06_125328) do
   end
 
   create_table "slide_templates", force: :cascade do |t|
-    t.bigint "organisation_id", null: false
+    t.bigint "business_unit_id", null: false
     t.string "name"
     t.text "content"
     t.boolean "enabled"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["organisation_id"], name: "index_slide_templates_on_organisation_id"
+    t.index ["business_unit_id"], name: "index_slide_templates_on_business_unit_id"
   end
 
   create_table "slides", force: :cascade do |t|
@@ -183,17 +183,17 @@ ActiveRecord::Schema[7.0].define(version: 2022_03_06_125328) do
   end
 
   add_foreign_key "agendas", "meetings"
+  add_foreign_key "business_unit_users", "business_units"
+  add_foreign_key "business_unit_users", "users"
   add_foreign_key "hosted_meetings", "meetings"
   add_foreign_key "master_slide_template_components", "components"
   add_foreign_key "master_slide_template_components", "master_slide_templates"
   add_foreign_key "meeting_actions", "meetings"
   add_foreign_key "meeting_actions", "users"
-  add_foreign_key "meetings", "organisations"
-  add_foreign_key "organisation_users", "organisations"
-  add_foreign_key "organisation_users", "users"
+  add_foreign_key "meetings", "business_units"
   add_foreign_key "slide_template_components", "components"
   add_foreign_key "slide_template_components", "slide_templates"
-  add_foreign_key "slide_templates", "organisations"
+  add_foreign_key "slide_templates", "business_units"
   add_foreign_key "slides", "meetings"
   add_foreign_key "slides", "slide_templates"
 end

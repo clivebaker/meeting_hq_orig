@@ -1,4 +1,4 @@
-<%= form_with(model: [@organisation, slide_template]) do |form| %>
+<%= form_with(model: [@business_unit, slide_template]) do |form| %>
   <% if slide_template.errors.any? %>
     <div style="color: red">
       <h2><%= pluralize(slide_template.errors.count, "error") %> prohibited this slide_template from being saved:</h2>
@@ -11,7 +11,7 @@
     </div>
   <% end %>
 
-    <%= form.hidden_field :organisation_id %>
+    <%= form.hidden_field :business_unit_id %>
  
   <div class='mb-3'>
     <%= form.label :name, style: "display: block", class: 'form-label'  %>

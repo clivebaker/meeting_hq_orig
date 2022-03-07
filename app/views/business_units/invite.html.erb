@@ -1,0 +1,12 @@
+
+<p><%= @business_unit.name %></p>
+<p>Invite user to this business_unit</p>
+
+<%= form_tag business_unit_invite_path(@business_unit) do %>
+
+
+<%= text_field_tag :invite_email %>
+
+<%=  submit_tag "Invite" %>
+
+<% end %>

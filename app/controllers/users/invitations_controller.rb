@@ -4,17 +4,17 @@ class Users::InvitationsController < Devise::InvitationsController
   
 
   def new
-    @organisation_id = params[:organisation_id]
+    @business_unit_id = params[:business_unit_id]
     super
   end
   def create
 
-    @organisation_id = params[:user][:organisation_id]
+    @business_unit_id = params[:user][:business_unit_id]
 
     invited_user = User.find_by(email: params[:user][:email])
     if invited_user.present?
-      associate_organisation(invited_user, params[:user][:organisation_id])
-      redirect_to organisation_path(@organisation_id), notice: 'This user has an account and has been added to your organisation' and return
+      associate_business_unit(invited_user, params[:user][:business_unit_id])
+      redirect_to business_unit_path(@business_unit_id), notice: 'This user has an account and has been added to your business_unit' and return
 
     else
       super
@@ -38,19 +38,19 @@ end
      # if invited_user.blank?
         # invited_user.deliver_invitation if invited_user.present?
         invited_user = User.invite!({:email => params[:user][:email]}, current_user) 
-        associate_organisation(invited_user, params[:user][:organisation_id])
+        associate_business_unit(invited_user, params[:user][:business_unit_id])
         super
     #  else
-    #    associate_organisation(invited_user, params[:user][:organisation_id])  
+    #    associate_business_unit(invited_user, params[:user][:business_unit_id])  
     #  end
 
 
     end
 
-    def associate_organisation(user, organisation_id)
-      @org_user = OrganisationUser.find_or_create_by(
+    def associate_business_unit(user, business_unit_id)
+      @org_user = BusinessUnitUser.find_or_create_by(
         user_id: user.id,
-        organisation_id: organisation_id,
+        business_unit_id: business_unit_id,
         invited: true
       )
 #      binding.pry
@@ -61,7 +61,7 @@ end
 
 
     def after_invite_path_for(inviter, invitee)
-      organisation_path(@org_user.organisation_id)
+      business_unit_path(@org_user.business_unit_id)
     end
 
     def after_accept_path_for(resource) 
