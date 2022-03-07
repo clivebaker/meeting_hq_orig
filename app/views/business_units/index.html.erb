@@ -36,7 +36,7 @@
 	
 										</div>
 									</div>
-									<h5 class="card-title mb-0">business_units</h5>
+									<h5 class="card-title mb-0">Business units</h5>
 								</div>
 								<div class="card-body">
 
@@ -55,15 +55,15 @@
                       <tr>
                         <td><%= business_unit.name %></td>
                         <td class='text-end'>
-                          <%= link_to link_to "Show this business_unit", business_unit, class: 'btn btn-primary' %>
+                          <%= link_to link_to "Show this business_unit", organisation_business_unit_path(@organisation, business_unit), class: 'btn btn-primary' %>
                         </td>
                         <td class='text-end'>
-                          <%= link_to edit_business_unit_path(business_unit) , class: 'btn btn-primary' do %>
+                          <%= link_to edit_organisation_business_unit_path(@organisation, business_unit) , class: 'btn btn-primary' do %>
                             <i class="fas fa-edit"></i> Edit this business_unit
                           <% end %>         
                         </td>
                         <td class='text-end'>
-                          <%= button_to business_unit_path(business_unit), method: :delete, form: { data: { turbo_confirm: 'Are you sure you want to delete this business_unit.' }}, class: 'btn btn-secondary d-inline mt-1' do %>
+                          <%= button_to organisation_business_unit_path(@organisation, business_unit), method: :delete, form: { data: { turbo_confirm: 'Are you sure you want to delete this business_unit.' }}, class: 'btn btn-secondary d-inline mt-1' do %>
                             <i class="fas fa-trash-alt"></i> Delete this business_unit
                           <% end  if business_unit.meetings.blank? %>                 
                         </td>
@@ -75,7 +75,7 @@
 
                   <div class="row">
                     <div class="col">
-                      <%= link_to "New business_unit", new_business_unit_path(), class: 'btn btn-primary' %>
+                      <%= link_to "New Business unit", new_organisation_business_unit_path(@organisation), class: 'btn btn-primary' %>
                     </div>
                     <div class="col text-end">
                     

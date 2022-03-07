@@ -180,17 +180,17 @@ const links = document.querySelectorAll("form");
             <div class="col text-end">
                     
               <div class='d-inline-flex'>
-              <%= link_to business_unit_slide_templates_path(@business_unit) , class: 'btn btn-primary'  do %>
+              <%= link_to organisation_business_unit_slide_templates_path(@organisation, @business_unit) , class: 'btn btn-primary'  do %>
                   Back
                 <% end %>
               </div>
               <div class='d-inline-flex'>
-              <%= link_to edit_business_unit_slide_template_path(@business_unit, @slide_template) , class: 'btn btn-primary' do %>
+              <%= link_to edit_organisation_business_unit_slide_template_path(@organisation, @business_unit, @slide_template) , class: 'btn btn-primary' do %>
                 <i class="fas fa-edit"></i> 
                 <% end %>
               </div>
             <div class='d-inline-flex'>
-              <%=  button_to business_unit_slide_template_path(@business_unit, @slide_template), method: :delete, class: 'btn btn-danger'   do %>
+              <%=  button_to organisation_business_unit_slide_template_path(@organisation, @business_unit, @slide_template), method: :delete, class: 'btn btn-danger'   do %>
                 <i class="fas fa-trash-alt"></i> 
                 <% end %>
               </div>
@@ -326,7 +326,7 @@ const links = document.querySelectorAll("form");
         <div class="card-body">
           <% @components.each do |component| %>
           <div class="row">
-            <div class="col"> <%= button_to 'add', business_unit_slide_template_add_component_path(@business_unit, @slide_template, component), method: :post, data: {turbo: false}, class: 'add-component', 'data-component_id': component.id %></div>
+            <div class="col"> <%= button_to 'add', organisation_business_unit_slide_template_add_component_path(@organisation, @business_unit, @slide_template, component), method: :post, data: {turbo: false}, class: 'add-component', 'data-component_id': component.id %></div>
             <div class="col"> <%= component.name %></div>
           </div>
           <% end %>

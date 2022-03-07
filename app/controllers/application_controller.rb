@@ -4,11 +4,11 @@ class ApplicationController < ActionController::Base
 
   before_action :authenticate_user!
   before_action :configure_permitted_parameters, if:  :devise_controller?
-  # before_action :set_business_units
+  before_action :set_organisations
 
-  # def set_business_units
-  #   @business_units = current_user.organizations
-  # end
+  def set_organisations
+    @organisations = current_user.organisations
+  end
 
   def configure_permitted_parameters
     devise_parameter_sanitizer.permit(:accept_invitation, keys: [:first_name, :last_name])

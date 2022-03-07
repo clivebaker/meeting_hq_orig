@@ -8,6 +8,9 @@ class User < ApplicationRecord
 
   has_many :business_unit_users       
   has_many :business_units, through: :business_unit_users
+ 
+  has_many :organisation_users       
+  has_many :organisations, through: :organisation_users
   
 
   def name

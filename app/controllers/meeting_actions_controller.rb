@@ -1,4 +1,5 @@
 class MeetingActionsController < ApplicationController
+  before_action :set_organisation
   before_action :set_business_unit
   before_action :set_meeting
   before_action :set_meeting_action, only: %i[ show edit update destroy ]
@@ -29,7 +30,7 @@ class MeetingActionsController < ApplicationController
 
     respond_to do |format|
       if @meeting_action.save
-        format.html { redirect_to business_unit_meeting_meeting_action_url(@business_unit, @meeting, @meeting_action), notice: "Meeting action was successfully created." }
+        format.html { redirect_to organisation_business_unit_meeting_meeting_action_url(@organisation, @business_unit, @meeting, @meeting_action), notice: "Meeting action was successfully created." }
         format.json { render :show, status: :created, location: @meeting_action }
       else
         format.html { render :new, status: :unprocessable_entity }
@@ -46,7 +47,7 @@ class MeetingActionsController < ApplicationController
     @meeting_action.close! if @meeting_action.may_close? 
    
     respond_to do |format|
-        format.html { redirect_to business_unit_meeting_meeting_actions_url(@business_unit, @meeting), notice: "Item was successfully closed." }
+        format.html { redirect_to organisation_business_unit_meeting_meeting_actions_url(@organisation, @business_unit, @meeting), notice: "Item was successfully closed." }
     end
 
 
@@ -58,7 +59,7 @@ class MeetingActionsController < ApplicationController
   def update
     respond_to do |format|
       if @meeting_action.update(meeting_action_params)
-        format.html { redirect_to business_unit_meeting_meeting_action_url(@business_unit, @meeting, @meeting_action), notice: "Meeting action was successfully updated." }
+        format.html { redirect_to organisation_business_unit_meeting_meeting_action_url(@organisation, @business_unit, @meeting, @meeting_action), notice: "Meeting action was successfully updated." }
         format.json { render :show, status: :ok, location: @meeting_action }
       else
         format.html { render :edit, status: :unprocessable_entity }
@@ -72,7 +73,7 @@ class MeetingActionsController < ApplicationController
     @meeting_action.destroy
 
     respond_to do |format|
-      format.html { redirect_to business_unit_meeting_meeting_actions_url(@business_unit, @meeting), notice: "Meeting action was successfully destroyed." }
+      format.html { redirect_to organisation_business_unit_meeting_meeting_actions_url(@organisation, @business_unit, @meeting), notice: "Meeting action was successfully destroyed." }
       format.json { head :no_content }
     end
   end
@@ -90,7 +91,7 @@ class MeetingActionsController < ApplicationController
     end
 
     respond_to do |format|
-        format.html { redirect_to business_unit_meeting_meeting_actions_url(@business_unit, @meeting), notice: "Action was successfully moved." }
+        format.html { redirect_to organisation_business_unit_meeting_meeting_actions_url(@organisation, @business_unit, @meeting), notice: "Action was successfully moved." }
     end
 
 
@@ -109,6 +110,9 @@ class MeetingActionsController < ApplicationController
 
     def set_business_unit
       @business_unit = BusinessUnit.find(params[:business_unit_id])
+    end
+   def set_organisation
+      @organisation = Organisation.find(params[:organisation_id])
     end
     def set_meeting
       @meeting = Meeting.find(params[:meeting_id])
