@@ -7,7 +7,7 @@ class ApplicationController < ActionController::Base
   before_action :set_organisations
 
   def set_organisations
-    @organisations = current_user.organisations
+    @organisations = current_user.organisations if current_user.present?
   end
 
   def configure_permitted_parameters
