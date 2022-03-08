@@ -1,38 +1,29 @@
-
-
-
-
 <main class="content">
-				<div class="container-fluid p-0">
+	<div class="container-fluid p-0">
 
-				<div class="row">
-						<div class="col-12">
-							<div class="card">
-								<div class="card-header">
-									<div class="card-actions float-end">
-										<div class="dropdown position-relative">
-	
-										</div>
-									</div>
-									<h5 class="card-title mb-0">Edit Business unit</h5>
-								</div>
-								<div class="card-body">
+		<div class="row">
+			<div class="col-12">
+				<div class="card">
+					<div class="card-header">
+						<h5 class="card-title mb-0">Edit Business unit</h5>
+					</div>
+					<div class="card-body">
 
-                  <%= render "form", business_unit: @business_unit %>
+						<%= render "form", business_unit: @business_unit %>
 
-                  <div class="row">
-                    <div class="col">
-                      <%= link_to "Show this business_unit", organisation_business_unit_path(@organisation, @business_unit), class: 'btn btn-secondary'  %>
-                    </div>
-                    <div class="col text-end">
-                      <%= link_to "Back",organisation_url(@organisation), class: 'btn btn-secondary' %>
-                    </div>
-                  </div>
-
-                </div>
+						<div class="row">
+							<div class="col">
+								<%= link_to "Show this business_unit", organisation_business_unit_path(@organisation, @business_unit), class: 'btn btn-secondary'  %>
+							</div>
+							<div class="col text-end">
+								<%= link_to "Back",organisation_url(@organisation), class: 'btn btn-secondary' %>
 							</div>
 						</div>
-					</div>
 
+					</div>
 				</div>
-			</main>
+			</div>
+		</div>
+
+	</div>
+</main>
