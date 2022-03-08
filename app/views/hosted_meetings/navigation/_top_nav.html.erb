@@ -73,13 +73,21 @@ function set_colour_agenda_time(colour){
 <% end %>
 
 <div class="row bg-primary text-light py-2">
-  <div class="col my-auto ms-2">
-    <div class="row"><div class="col">Started at: </div></div>
-    <div class="row"><div class="col"><h3 class='text-light'><%= @hosted_meeting.started_at.strftime('%d %b %H:%M')%></h3></div></div>  
+
+
+  
+  <div class="col-2 text-start ms-2 my-auto">
+    <div class='d-inline-flex'>
+      <%= button_to organisation_business_unit_meeting_hosted_meeting_finish_path(@organisation, @business_unit, @meeting, @hosted_meeting), method: :post, data: {turbo: false}, class: 'btn btn-danger' do %>
+        <i class="fa-regular fa-circle-check"></i> Finish
+      <% end %>
+    </div>
+     <%= link_to '#', class: 'btn btn-success' do %>
+      <i class="fa-regular fa-circle-plus"></i> Action / Minute
+     <% end %>
   </div>
 
-  <div class="col-4 my-auto">
-
+  <div class="col my-auto">
     <% if @current_agenda_item.present? %>
         <div class="row">
           <div class="col-3 text-end"><% if  @current_agenda_item['id'] != -1 %>Current Topic: <% end %></div>
@@ -87,7 +95,7 @@ function set_colour_agenda_time(colour){
         </div>
     <% else %>
         <div class="row">
-          <div class="col"><h3 class='text-light'>No Agenda items</h3></div>
+          <div class="col my-auto fs-3">No Agenda items</div>
         </div>
     <% end %>
     <% if @next_agenda_item.present? and @next_agenda_item['id'] != -1 %>
@@ -96,38 +104,40 @@ function set_colour_agenda_time(colour){
           <div class="col"><%= @next_agenda_item['name'] %> - <%= @next_agenda_item['duration_minutes'] %> minutes</div>
         </div>
     <% end %>
-
   </div>
 
 
-  <div class="col my-auto text-end">
-   <% if @current_agenda_item.present? and  @current_agenda_item['id'] != -1 %>
-    <div class="row"><div class="col">Current Agenda Item:</div></div>
-    <div class="row"><div class="col"><h3 class='text-success' id='agenda-time'></h3></div></div>
-    <% end %>
-  </div>
-  <div class="col my-auto">
+  <div class="col-1 my-auto text-center my-auto">
     <% if @current_agenda_item.present? %>
       <% if @next_agenda_item['id'] != -1 %>
         <% button_text =  @current_agenda_item['id'] != -1 ? 'Next Agenda Item' : 'Start first Agenda Item'%>
-        <%= button_to button_text, organisation_business_unit_meeting_hosted_meeting_finish_agenda_path(@organisation, @business_unit, @meeting, @hosted_meeting, @current_agenda_item['id'], @next_agenda_item['id']), id: 'agenda-button', class: 'btn btn-success', method: :post, data: {turbo: false}%>
- 
+        <%= button_to  organisation_business_unit_meeting_hosted_meeting_finish_agenda_path(@organisation, @business_unit, @meeting, @hosted_meeting, @current_agenda_item['id'], @next_agenda_item['id']), id: 'agenda-button', class: 'btn btn-success', method: :post, data: {turbo: false} do %>
+          Next <i class="fa-solid fa-circle-chevron-right"></i><%#= button_text %>
+        <% end %>
       <% else %>  
-        <%= button_to 'Finish last topic', organisation_business_unit_meeting_hosted_meeting_finish_agenda_path(@organisation, @business_unit, @meeting, @hosted_meeting, @current_agenda_item['id'], @next_agenda_item['id']), id: 'agenda-button', class: 'btn btn-success', method: :post, data: {turbo: false}%>
+        <%= button_to organisation_business_unit_meeting_hosted_meeting_finish_agenda_path(@organisation, @business_unit, @meeting, @hosted_meeting, @current_agenda_item['id'], @next_agenda_item['id']), id: 'agenda-button', class: 'btn btn-warning', method: :post, data: {turbo: false} do %>
+          Finish <i class="fa-solid fa-flag-checkered"></i>
+        <% end %>
       <% end %>    
     <% end %>
   </div>
 
 
+  <div class="col-2 my-auto text-end my-auto">
+   <% if @current_agenda_item.present? and  @current_agenda_item['id'] != -1 %>
+      <div class="row">
+        <div class="col-6 fs-5 text-end my-auto fst-italic">Current Item:</div>
+        <div class='col-6 text-success fs-4 text-start d-inline-block my-auto' id='agenda-time'></div>
+      </div>
+    <% end %>
+    <div class="row">
+      <div class="col-6 fs-5  my-auto fst-italic">Meeting Time: </div>
+      <div class='col-6 fs-4 text-start d-inline-block my-auto' id='meeting-time'></div></div>
+  </div>
 
-  <div class="col my-auto text-end">
-    <div class="row"><div class="col">Meeting Time: </div></div>
-    <div class="row"><div class="col"><h3 class='text-light' id='meeting-time'></h3></div></div>
+  <div class="col-2 my-auto me-3 text-end my-auto">
+    <div class="row"><div class="col">Started at: </div></div>
+    <div class="row"><div class="col"><h3 class='text-light'><%= @hosted_meeting.started_at.strftime('%d %b %H:%M')%></h3></div></div>  
   </div>
-  <div class="col-2 text-center my-auto me-2">
-  <%= link_to 'Add Action / Minute', '#', class: 'btn btn-success' %>
-    <div class='d-inline-flex'>
-      <%= button_to 'End Meeting', organisation_business_unit_meeting_hosted_meeting_finish_path(@organisation, @business_unit, @meeting, @hosted_meeting), method: :post, data: {turbo: false}, class: 'btn btn-danger'%>
-    </div>
-  </div>
+
 </div>
