@@ -21,7 +21,9 @@ class User < ApplicationRecord
   end
 
   def initials
-    "#{first_name.first}#{last_name.first}".upcase
+    if first_name.present? and last_name.present?
+      "#{first_name.first}#{last_name.first}".upcase
+    end
   end
 
 

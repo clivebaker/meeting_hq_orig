@@ -13,10 +13,13 @@ class MeetingAction < ApplicationRecord
 
   delegate :name, to: :meeting, prefix: true
 
-  delegate :email, :name, :initials, to: :user, prefix: true
+  broadcasts_to :meeting
+
+
+  delegate :email, :name, :initials, to: :user, prefix: true, allow_nil: true
 
   
-  default_scope { order(position: :asc)}
+  default_scope { where(aasm_state: :active).order(position: :asc)}
   
 
   aasm do

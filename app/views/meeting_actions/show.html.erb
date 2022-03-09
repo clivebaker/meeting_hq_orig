@@ -43,6 +43,10 @@
                     <div class="col mb-3">
 
                       <p>
+                        <strong>Description:</strong>
+                        <%= @meeting_action.note %>
+                      </p>
+                      <p>
                         <strong>State:</strong>
                         <%= @meeting_action.aasm_state %>
                       </p>
@@ -93,7 +97,37 @@
 								</div>
 								<div class="card-body">
   
-                  <%= render @meeting_action %>
+                    <table id='versions-datatable' class="table table-striped" style="width:100%">
+      <thead>
+        <tr>
+          <th>Number</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Event</th>
+          <th>Who</th>
+          <th>Change</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @meeting_action.versions.each do |version| %>
+        <tr>
+          <td><%= version.index %></td>
+          <td><%= version.created_at.strftime("%d %b '%y") %></td>
+          <td><%= version.created_at.strftime("%H:%M") %></td>
+          <td><%= version.event %></td>
+          <td><%= User.find(version.whodunnit).name %></td>
+          <td>
+            <% changes = version.changeset %>
+            <ul>
+            <% changes.keys.reject{|s| ['updated_at', 'created_at'].include?(s)}.each do |key| %>
+              <li><%= key %> changed to '<%= changes[key].last %>'</li>
+            <% end unless version.event == 'create' %>
+            </ul>
+          </td>
+        </tr>
+        <% end %>
+      </tbody>
+    </table>
 
                 </div>
 							</div>

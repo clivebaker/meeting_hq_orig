@@ -49,11 +49,13 @@
                         <th>Note</th>
                         <th>User</th>
                         <th data-orderable="false"></th>
+                        <th></th>
 
                       </tr>
                     </thead>
                     <tbody>
-                      <% @meeting_actions.active.each do |meeting_action|  %>
+                      <%# @meeting_actions.active.each do |meeting_action|  %>
+                     <% @meeting_actions.each do |meeting_action|  %>
                       <tr>
                         
                         <td><%= meeting_action.position %></td>
@@ -64,6 +66,7 @@
                         </td>
                         <td><%= meeting_action.note %></td>
                         <td><%= meeting_action.user_name %> (<%= meeting_action.user_initials %>)</td>
+       <td><%= meeting_action.aasm_state %></td>
 
 
 

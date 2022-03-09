@@ -1,37 +1,9 @@
-
-
-    <table id='versions-datatable' class="table table-striped" style="width:100%">
-      <thead>
-        <tr>
-          <th>Number</th>
-          <th>Date</th>
-          <th>Time</th>
-          <th>Event</th>
-          <th>Who</th>
-          <th>Change</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% meeting_action.versions.each do |version| %>
-        <tr>
-          <td><%= version.index %></td>
-          <td><%= version.created_at.strftime("%d %b '%y") %></td>
-          <td><%= version.created_at.strftime("%H:%M") %></td>
-          <td><%= version.event %></td>
-          <td><%= User.find(version.whodunnit).name %></td>
-          <td>
-            <% changes = version.changeset %>
-            <ul>
-            <% changes.keys.reject{|s| ['updated_at', 'created_at'].include?(s)}.each do |key| %>
-              <li><%= key %> changed to '<%= changes[key].last %>'</li>
-            <% end unless version.event == 'create' %>
-            </ul>
-          </td>
-        </tr>
-        <% end %>
-      </tbody>
-    </table>
-    
-    
-    
-
+<div id="<%= dom_id meeting_action %>">
+  <div class="row">
+    <div class="col"><%= meeting_action.position%></div>
+    <div class="col"><%= meeting_action.aasm_state%></div>
+    <div class="col"><%= meeting_action.created_at.strftime("%d %b '%y") %></div>
+    <div class="col"><%= meeting_action.name %></div>
+    <div class="col"><%= meeting_action.note %></div>
+  </div>
+</div>
