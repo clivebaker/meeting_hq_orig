@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2022_03_07_135728) do
+ActiveRecord::Schema[7.0].define(version: 2022_03_08_113901) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -143,13 +143,13 @@ ActiveRecord::Schema[7.0].define(version: 2022_03_07_135728) do
   end
 
   create_table "slide_templates", force: :cascade do |t|
-    t.bigint "business_unit_id", null: false
+    t.bigint "organisation_id", null: false
     t.string "name"
     t.text "content"
     t.boolean "enabled"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["business_unit_id"], name: "index_slide_templates_on_business_unit_id"
+    t.index ["organisation_id"], name: "index_slide_templates_on_organisation_id"
   end
 
   create_table "slides", force: :cascade do |t|
@@ -216,7 +216,7 @@ ActiveRecord::Schema[7.0].define(version: 2022_03_07_135728) do
   add_foreign_key "organisation_users", "users"
   add_foreign_key "slide_template_components", "components"
   add_foreign_key "slide_template_components", "slide_templates"
-  add_foreign_key "slide_templates", "business_units"
+  add_foreign_key "slide_templates", "business_units", column: "organisation_id"
   add_foreign_key "slides", "meetings"
   add_foreign_key "slides", "slide_templates"
 end

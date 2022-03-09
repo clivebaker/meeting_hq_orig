@@ -23,8 +23,11 @@
             </div>
             <div class="card-body">
 
+							
               <%= link_to 'Add Business Unit', new_organisation_business_unit_path(@organisation), class: 'btn btn-primary' %>
-              <% @organisation.business_units.each do |business_unit|%>
+              <%= link_to 'Slide Templates', organisation_slide_templates_path(@organisation), class: "btn btn-primary" %>
+              <% @organisation.available_business_units(current_user).each do |business_unit|%>
+              
                 <div class="row border-bottom pt-4">
                   <div class="col"><i class="fa-duotone fa-apartment"></i> <%= link_to business_unit.name, organisation_business_unit_path(@organisation, business_unit), class: 'ps-1'%></div>
                   <div class="col text-end">

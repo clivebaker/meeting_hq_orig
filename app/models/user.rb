@@ -24,4 +24,11 @@ class User < ApplicationRecord
     "#{first_name.first}#{last_name.first}".upcase
   end
 
+
+  def available_business_units
+    binding.pry
+    business_units.joins(:business_unit_users).where('business_unit_users.user_id = ? and discarded_at IS NULL', id)
+
+  end
+
 end

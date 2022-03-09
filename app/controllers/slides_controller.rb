@@ -72,7 +72,7 @@ def set_organisation
   
   # Use callbacks to share common setup or constraints between actions.
   def set_meeting
-    @meeting = Meeting.find(params[:id])
+    @meeting = Meeting.find(params[:meeting_id])
   end
 
 
