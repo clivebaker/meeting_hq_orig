@@ -68,22 +68,15 @@ class HostedMeetingsController < ApplicationController
 
   end
 
-  def meeting_items
-    respond_to do |format|
-      format.json do
-        render json: {clive: 'was', here: 'here'}.as_json
-      end
-    end
-  end
 
   def add_test
    
     @server_side_time = Time.new
 
     respond_to do |format|
-      format.turbo_stream do
-        render turbo_stream: turbo_stream.replace('clive', partial: 'hosted_meetings/add_test')
-      end
+      format.turbo_stream  do
+        render turbo_stream: turbo_stream.replace('clive', partial: 'hosted_meetings/add_test', locals: {time: @server_side_time} )
+       end
     end
   end
 

@@ -49,7 +49,6 @@ Rails.application.routes.draw do
       
       resources :meetings do
         resources :hosted_meetings do
-          get :meeting_items
           post :add_test
           post :finish
           post 'finish_agenda/:current_agenda_id/next/:next_agenda_id', to: 'hosted_meetings#finish_agenda', as: :finish_agenda
