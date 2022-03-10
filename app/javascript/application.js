@@ -17,11 +17,11 @@ import "datatables.net-fixedheader";
 import DataTable from 'datatables.net-bs5';
 window.DataTable = DataTable();
 
-// import "./modules/bootstrap";
-// import "./modules/theme";
-// import "./modules/moment";
-// import "./modules/sidebar";
-// import "./modules/notyf";
+import "./modules/bootstrap";
+import "./modules/theme";
+import "./modules/moment";
+import "./modules/sidebar";
+import "./modules/notyf";
 
 
 
