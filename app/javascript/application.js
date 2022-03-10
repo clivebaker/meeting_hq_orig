@@ -3,31 +3,32 @@
 
 
 
-import "@hotwired/turbo-rails";
-import "./controllers";
+require("@hotwired/turbo-rails");
+require("./controllers");
 require("jquery");
+
 import JQuery from 'jquery';
 window.$ = window.JQuery = JQuery;
 
-import "datatables.net";
-import "datatables.net-buttons";
-import "datatables.net-buttons/js/buttons.html5.js";
-import "datatables.net-buttons/js/buttons.print.js";
-import "datatables.net-buttons-bs5";
-import "datatables.net-responsive";
-import "datatables.net-select";
-import "datatables.net-fixedheader";
+require("datatables.net");
+require("datatables.net-buttons");
+require("datatables.net-buttons/js/buttons.html5.js");
+require("datatables.net-buttons/js/buttons.print.js");
+require("datatables.net-buttons-bs5");
+require("datatables.net-responsive");
+require("datatables.net-select");
+require("datatables.net-fixedheader");
 
 import DataTable from 'datatables.net-bs5';
 window.DataTable = DataTable();
 
-import "./modules/bootstrap";
-import "./modules/theme";
-// import "./modules/dragula";
-// import "./modules/feather";
-import "./modules/moment";
-import "./modules/sidebar";
-import "./modules/notyf";
+require("./modules/bootstrap");
+require("./modules/theme");
+// require("./modules/dragula");
+// require("./modules/feather");
+require("./modules/moment");
+require("./modules/sidebar");
+require("./modules/notyf");
 
 
 

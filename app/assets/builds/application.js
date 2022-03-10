@@ -34,562 +34,11 @@
   var __toESM = (module, isNodeMode) => {
     return __reExport(__markAsModule(__defProp(module != null ? __create(__getProtoOf(module)) : {}, "default", !isNodeMode && module && module.__esModule ? { get: () => module.default, enumerable: true } : { value: module, enumerable: true })), module);
   };
-
-  // node_modules/@rails/actioncable/src/adapters.js
-  var adapters_default;
-  var init_adapters = __esm({
-    "node_modules/@rails/actioncable/src/adapters.js"() {
-      adapters_default = {
-        logger: self.console,
-        WebSocket: self.WebSocket
-      };
-    }
-  });
-
-  // node_modules/@rails/actioncable/src/logger.js
-  var logger_default;
-  var init_logger = __esm({
-    "node_modules/@rails/actioncable/src/logger.js"() {
-      init_adapters();
-      logger_default = {
-        log(...messages) {
-          if (this.enabled) {
-            messages.push(Date.now());
-            adapters_default.logger.log("[ActionCable]", ...messages);
-          }
-        }
-      };
-    }
-  });
-
-  // node_modules/@rails/actioncable/src/connection_monitor.js
-  var now, secondsSince, ConnectionMonitor, connection_monitor_default;
-  var init_connection_monitor = __esm({
-    "node_modules/@rails/actioncable/src/connection_monitor.js"() {
-      init_logger();
-      now = () => new Date().getTime();
-      secondsSince = (time2) => (now() - time2) / 1e3;
-      ConnectionMonitor = class {
-        constructor(connection) {
-          this.visibilityDidChange = this.visibilityDidChange.bind(this);
-          this.connection = connection;
-          this.reconnectAttempts = 0;
-        }
-        start() {
-          if (!this.isRunning()) {
-            this.startedAt = now();
-            delete this.stoppedAt;
-            this.startPolling();
-            addEventListener("visibilitychange", this.visibilityDidChange);
-            logger_default.log(`ConnectionMonitor started. stale threshold = ${this.constructor.staleThreshold} s`);
-          }
-        }
-        stop() {
-          if (this.isRunning()) {
-            this.stoppedAt = now();
-            this.stopPolling();
-            removeEventListener("visibilitychange", this.visibilityDidChange);
-            logger_default.log("ConnectionMonitor stopped");
-          }
-        }
-        isRunning() {
-          return this.startedAt && !this.stoppedAt;
-        }
-        recordPing() {
-          this.pingedAt = now();
-        }
-        recordConnect() {
-          this.reconnectAttempts = 0;
-          this.recordPing();
-          delete this.disconnectedAt;
-          logger_default.log("ConnectionMonitor recorded connect");
-        }
-        recordDisconnect() {
-          this.disconnectedAt = now();
-          logger_default.log("ConnectionMonitor recorded disconnect");
-        }
-        startPolling() {
-          this.stopPolling();
-          this.poll();
-        }
-        stopPolling() {
-          clearTimeout(this.pollTimeout);
-        }
-        poll() {
-          this.pollTimeout = setTimeout(() => {
-            this.reconnectIfStale();
-            this.poll();
-          }, this.getPollInterval());
-        }
-        getPollInterval() {
-          const { staleThreshold, reconnectionBackoffRate } = this.constructor;
-          const backoff = Math.pow(1 + reconnectionBackoffRate, Math.min(this.reconnectAttempts, 10));
-          const jitterMax = this.reconnectAttempts === 0 ? 1 : reconnectionBackoffRate;
-          const jitter = jitterMax * Math.random();
-          return staleThreshold * 1e3 * backoff * (1 + jitter);
-        }
-        reconnectIfStale() {
-          if (this.connectionIsStale()) {
-            logger_default.log(`ConnectionMonitor detected stale connection. reconnectAttempts = ${this.reconnectAttempts}, time stale = ${secondsSince(this.refreshedAt)} s, stale threshold = ${this.constructor.staleThreshold} s`);
-            this.reconnectAttempts++;
-            if (this.disconnectedRecently()) {
-              logger_default.log(`ConnectionMonitor skipping reopening recent disconnect. time disconnected = ${secondsSince(this.disconnectedAt)} s`);
-            } else {
-              logger_default.log("ConnectionMonitor reopening");
-              this.connection.reopen();
-            }
-          }
-        }
-        get refreshedAt() {
-          return this.pingedAt ? this.pingedAt : this.startedAt;
-        }
-        connectionIsStale() {
-          return secondsSince(this.refreshedAt) > this.constructor.staleThreshold;
-        }
-        disconnectedRecently() {
-          return this.disconnectedAt && secondsSince(this.disconnectedAt) < this.constructor.staleThreshold;
-        }
-        visibilityDidChange() {
-          if (document.visibilityState === "visible") {
-            setTimeout(() => {
-              if (this.connectionIsStale() || !this.connection.isOpen()) {
-                logger_default.log(`ConnectionMonitor reopening stale connection on visibilitychange. visibilityState = ${document.visibilityState}`);
-                this.connection.reopen();
-              }
-            }, 200);
-          }
-        }
-      };
-      ConnectionMonitor.staleThreshold = 6;
-      ConnectionMonitor.reconnectionBackoffRate = 0.15;
-      connection_monitor_default = ConnectionMonitor;
-    }
-  });
-
-  // node_modules/@rails/actioncable/src/internal.js
-  var internal_default;
-  var init_internal = __esm({
-    "node_modules/@rails/actioncable/src/internal.js"() {
-      internal_default = {
-        "message_types": {
-          "welcome": "welcome",
-          "disconnect": "disconnect",
-          "ping": "ping",
-          "confirmation": "confirm_subscription",
-          "rejection": "reject_subscription"
-        },
-        "disconnect_reasons": {
-          "unauthorized": "unauthorized",
-          "invalid_request": "invalid_request",
-          "server_restart": "server_restart"
-        },
-        "default_mount_path": "/cable",
-        "protocols": [
-          "actioncable-v1-json",
-          "actioncable-unsupported"
-        ]
-      };
-    }
-  });
-
-  // node_modules/@rails/actioncable/src/connection.js
-  var message_types, protocols, supportedProtocols, indexOf, Connection, connection_default;
-  var init_connection = __esm({
-    "node_modules/@rails/actioncable/src/connection.js"() {
-      init_adapters();
-      init_connection_monitor();
-      init_internal();
-      init_logger();
-      ({ message_types, protocols } = internal_default);
-      supportedProtocols = protocols.slice(0, protocols.length - 1);
-      indexOf = [].indexOf;
-      Connection = class {
-        constructor(consumer2) {
-          this.open = this.open.bind(this);
-          this.consumer = consumer2;
-          this.subscriptions = this.consumer.subscriptions;
-          this.monitor = new connection_monitor_default(this);
-          this.disconnected = true;
-        }
-        send(data) {
-          if (this.isOpen()) {
-            this.webSocket.send(JSON.stringify(data));
-            return true;
-          } else {
-            return false;
-          }
-        }
-        open() {
-          if (this.isActive()) {
-            logger_default.log(`Attempted to open WebSocket, but existing socket is ${this.getState()}`);
-            return false;
-          } else {
-            logger_default.log(`Opening WebSocket, current state is ${this.getState()}, subprotocols: ${protocols}`);
-            if (this.webSocket) {
-              this.uninstallEventHandlers();
-            }
-            this.webSocket = new adapters_default.WebSocket(this.consumer.url, protocols);
-            this.installEventHandlers();
-            this.monitor.start();
-            return true;
-          }
-        }
-        close({ allowReconnect } = { allowReconnect: true }) {
-          if (!allowReconnect) {
-            this.monitor.stop();
-          }
-          if (this.isActive()) {
-            return this.webSocket.close();
-          }
-        }
-        reopen() {
-          logger_default.log(`Reopening WebSocket, current state is ${this.getState()}`);
-          if (this.isActive()) {
-            try {
-              return this.close();
-            } catch (error2) {
-              logger_default.log("Failed to reopen WebSocket", error2);
-            } finally {
-              logger_default.log(`Reopening WebSocket in ${this.constructor.reopenDelay}ms`);
-              setTimeout(this.open, this.constructor.reopenDelay);
-            }
-          } else {
-            return this.open();
-          }
-        }
-        getProtocol() {
-          if (this.webSocket) {
-            return this.webSocket.protocol;
-          }
-        }
-        isOpen() {
-          return this.isState("open");
-        }
-        isActive() {
-          return this.isState("open", "connecting");
-        }
-        isProtocolSupported() {
-          return indexOf.call(supportedProtocols, this.getProtocol()) >= 0;
-        }
-        isState(...states) {
-          return indexOf.call(states, this.getState()) >= 0;
-        }
-        getState() {
-          if (this.webSocket) {
-            for (let state in adapters_default.WebSocket) {
-              if (adapters_default.WebSocket[state] === this.webSocket.readyState) {
-                return state.toLowerCase();
-              }
-            }
-          }
-          return null;
-        }
-        installEventHandlers() {
-          for (let eventName in this.events) {
-            const handler = this.events[eventName].bind(this);
-            this.webSocket[`on${eventName}`] = handler;
-          }
-        }
-        uninstallEventHandlers() {
-          for (let eventName in this.events) {
-            this.webSocket[`on${eventName}`] = function() {
-            };
-          }
-        }
-      };
-      Connection.reopenDelay = 500;
-      Connection.prototype.events = {
-        message(event) {
-          if (!this.isProtocolSupported()) {
-            return;
-          }
-          const { identifier, message, reason, reconnect, type } = JSON.parse(event.data);
-          switch (type) {
-            case message_types.welcome:
-              this.monitor.recordConnect();
-              return this.subscriptions.reload();
-            case message_types.disconnect:
-              logger_default.log(`Disconnecting. Reason: ${reason}`);
-              return this.close({ allowReconnect: reconnect });
-            case message_types.ping:
-              return this.monitor.recordPing();
-            case message_types.confirmation:
-              this.subscriptions.confirmSubscription(identifier);
-              return this.subscriptions.notify(identifier, "connected");
-            case message_types.rejection:
-              return this.subscriptions.reject(identifier);
-            default:
-              return this.subscriptions.notify(identifier, "received", message);
-          }
-        },
-        open() {
-          logger_default.log(`WebSocket onopen event, using '${this.getProtocol()}' subprotocol`);
-          this.disconnected = false;
-          if (!this.isProtocolSupported()) {
-            logger_default.log("Protocol is unsupported. Stopping monitor and disconnecting.");
-            return this.close({ allowReconnect: false });
-          }
-        },
-        close(event) {
-          logger_default.log("WebSocket onclose event");
-          if (this.disconnected) {
-            return;
-          }
-          this.disconnected = true;
-          this.monitor.recordDisconnect();
-          return this.subscriptions.notifyAll("disconnected", { willAttemptReconnect: this.monitor.isRunning() });
-        },
-        error() {
-          logger_default.log("WebSocket onerror event");
-        }
-      };
-      connection_default = Connection;
-    }
-  });
-
-  // node_modules/@rails/actioncable/src/subscription.js
-  var extend, Subscription;
-  var init_subscription = __esm({
-    "node_modules/@rails/actioncable/src/subscription.js"() {
-      extend = function(object, properties) {
-        if (properties != null) {
-          for (let key in properties) {
-            const value = properties[key];
-            object[key] = value;
-          }
-        }
-        return object;
-      };
-      Subscription = class {
-        constructor(consumer2, params = {}, mixin) {
-          this.consumer = consumer2;
-          this.identifier = JSON.stringify(params);
-          extend(this, mixin);
-        }
-        perform(action, data = {}) {
-          data.action = action;
-          return this.send(data);
-        }
-        send(data) {
-          return this.consumer.send({ command: "message", identifier: this.identifier, data: JSON.stringify(data) });
-        }
-        unsubscribe() {
-          return this.consumer.subscriptions.remove(this);
-        }
-      };
-    }
-  });
-
-  // node_modules/@rails/actioncable/src/subscription_guarantor.js
-  var SubscriptionGuarantor, subscription_guarantor_default;
-  var init_subscription_guarantor = __esm({
-    "node_modules/@rails/actioncable/src/subscription_guarantor.js"() {
-      init_logger();
-      SubscriptionGuarantor = class {
-        constructor(subscriptions) {
-          this.subscriptions = subscriptions;
-          this.pendingSubscriptions = [];
-        }
-        guarantee(subscription) {
-          if (this.pendingSubscriptions.indexOf(subscription) == -1) {
-            logger_default.log(`SubscriptionGuarantor guaranteeing ${subscription.identifier}`);
-            this.pendingSubscriptions.push(subscription);
-          } else {
-            logger_default.log(`SubscriptionGuarantor already guaranteeing ${subscription.identifier}`);
-          }
-          this.startGuaranteeing();
-        }
-        forget(subscription) {
-          logger_default.log(`SubscriptionGuarantor forgetting ${subscription.identifier}`);
-          this.pendingSubscriptions = this.pendingSubscriptions.filter((s) => s !== subscription);
-        }
-        startGuaranteeing() {
-          this.stopGuaranteeing();
-          this.retrySubscribing();
-        }
-        stopGuaranteeing() {
-          clearTimeout(this.retryTimeout);
-        }
-        retrySubscribing() {
-          this.retryTimeout = setTimeout(() => {
-            if (this.subscriptions && typeof this.subscriptions.subscribe === "function") {
-              this.pendingSubscriptions.map((subscription) => {
-                logger_default.log(`SubscriptionGuarantor resubscribing ${subscription.identifier}`);
-                this.subscriptions.subscribe(subscription);
-              });
-            }
-          }, 500);
-        }
-      };
-      subscription_guarantor_default = SubscriptionGuarantor;
-    }
-  });
-
-  // node_modules/@rails/actioncable/src/subscriptions.js
-  var Subscriptions;
-  var init_subscriptions = __esm({
-    "node_modules/@rails/actioncable/src/subscriptions.js"() {
-      init_subscription();
-      init_subscription_guarantor();
-      init_logger();
-      Subscriptions = class {
-        constructor(consumer2) {
-          this.consumer = consumer2;
-          this.guarantor = new subscription_guarantor_default(this);
-          this.subscriptions = [];
-        }
-        create(channelName, mixin) {
-          const channel = channelName;
-          const params = typeof channel === "object" ? channel : { channel };
-          const subscription = new Subscription(this.consumer, params, mixin);
-          return this.add(subscription);
-        }
-        add(subscription) {
-          this.subscriptions.push(subscription);
-          this.consumer.ensureActiveConnection();
-          this.notify(subscription, "initialized");
-          this.subscribe(subscription);
-          return subscription;
-        }
-        remove(subscription) {
-          this.forget(subscription);
-          if (!this.findAll(subscription.identifier).length) {
-            this.sendCommand(subscription, "unsubscribe");
-          }
-          return subscription;
-        }
-        reject(identifier) {
-          return this.findAll(identifier).map((subscription) => {
-            this.forget(subscription);
-            this.notify(subscription, "rejected");
-            return subscription;
-          });
-        }
-        forget(subscription) {
-          this.guarantor.forget(subscription);
-          this.subscriptions = this.subscriptions.filter((s) => s !== subscription);
-          return subscription;
-        }
-        findAll(identifier) {
-          return this.subscriptions.filter((s) => s.identifier === identifier);
-        }
-        reload() {
-          return this.subscriptions.map((subscription) => this.subscribe(subscription));
-        }
-        notifyAll(callbackName, ...args) {
-          return this.subscriptions.map((subscription) => this.notify(subscription, callbackName, ...args));
-        }
-        notify(subscription, callbackName, ...args) {
-          let subscriptions;
-          if (typeof subscription === "string") {
-            subscriptions = this.findAll(subscription);
-          } else {
-            subscriptions = [subscription];
-          }
-          return subscriptions.map((subscription2) => typeof subscription2[callbackName] === "function" ? subscription2[callbackName](...args) : void 0);
-        }
-        subscribe(subscription) {
-          if (this.sendCommand(subscription, "subscribe")) {
-            this.guarantor.guarantee(subscription);
-          }
-        }
-        confirmSubscription(identifier) {
-          logger_default.log(`Subscription confirmed ${identifier}`);
-          this.findAll(identifier).map((subscription) => this.guarantor.forget(subscription));
-        }
-        sendCommand(subscription, command) {
-          const { identifier } = subscription;
-          return this.consumer.send({ command, identifier });
-        }
-      };
-    }
-  });
-
-  // node_modules/@rails/actioncable/src/consumer.js
-  function createWebSocketURL(url) {
-    if (typeof url === "function") {
-      url = url();
-    }
-    if (url && !/^wss?:/i.test(url)) {
-      const a = document.createElement("a");
-      a.href = url;
-      a.href = a.href;
-      a.protocol = a.protocol.replace("http", "ws");
-      return a.href;
-    } else {
-      return url;
-    }
-  }
-  var Consumer;
-  var init_consumer = __esm({
-    "node_modules/@rails/actioncable/src/consumer.js"() {
-      init_connection();
-      init_subscriptions();
-      Consumer = class {
-        constructor(url) {
-          this._url = url;
-          this.subscriptions = new Subscriptions(this);
-          this.connection = new connection_default(this);
-        }
-        get url() {
-          return createWebSocketURL(this._url);
-        }
-        send(data) {
-          return this.connection.send(data);
-        }
-        connect() {
-          return this.connection.open();
-        }
-        disconnect() {
-          return this.connection.close({ allowReconnect: false });
-        }
-        ensureActiveConnection() {
-          if (!this.connection.isActive()) {
-            return this.connection.open();
-          }
-        }
-      };
-    }
-  });
-
-  // node_modules/@rails/actioncable/src/index.js
-  var src_exports = {};
-  __export(src_exports, {
-    Connection: () => connection_default,
-    ConnectionMonitor: () => connection_monitor_default,
-    Consumer: () => Consumer,
-    INTERNAL: () => internal_default,
-    Subscription: () => Subscription,
-    SubscriptionGuarantor: () => subscription_guarantor_default,
-    Subscriptions: () => Subscriptions,
-    adapters: () => adapters_default,
-    createConsumer: () => createConsumer,
-    createWebSocketURL: () => createWebSocketURL,
-    getConfig: () => getConfig,
-    logger: () => logger_default
-  });
-  function createConsumer(url = getConfig("url") || internal_default.default_mount_path) {
-    return new Consumer(url);
-  }
-  function getConfig(name) {
-    const element = document.head.querySelector(`meta[name='action-cable-${name}']`);
-    if (element) {
-      return element.getAttribute("content");
-    }
-  }
-  var init_src = __esm({
-    "node_modules/@rails/actioncable/src/index.js"() {
-      init_connection();
-      init_connection_monitor();
-      init_consumer();
-      init_internal();
-      init_subscription();
-      init_subscriptions();
-      init_subscription_guarantor();
-      init_adapters();
-      init_logger();
-    }
-  });
+  var __toCommonJS = /* @__PURE__ */ ((cache2) => {
+    return (module, temp) => {
+      return cache2 && cache2.get(module) || (temp = __reExport(__markAsModule({}), module, 1), cache2 && cache2.set(module, temp), temp);
+    };
+  })(typeof WeakMap !== "undefined" ? /* @__PURE__ */ new WeakMap() : 0);
 
   // node_modules/jquery/dist/jquery.js
   var require_jquery = __commonJS({
@@ -2357,10 +1806,10 @@
             },
             remove: function() {
               jQuery2.each(arguments, function(_, arg) {
-                var index;
-                while ((index = jQuery2.inArray(arg, list, index)) > -1) {
-                  list.splice(index, 1);
-                  if (index <= firingIndex) {
+                var index2;
+                while ((index2 = jQuery2.inArray(arg, list, index2)) > -1) {
+                  list.splice(index2, 1);
+                  if (index2 <= firingIndex) {
                     firingIndex--;
                   }
                 }
@@ -3024,33 +2473,33 @@
           return display;
         }
         function showHide(elements, show) {
-          var display, elem, values = [], index = 0, length = elements.length;
-          for (; index < length; index++) {
-            elem = elements[index];
+          var display, elem, values = [], index2 = 0, length = elements.length;
+          for (; index2 < length; index2++) {
+            elem = elements[index2];
             if (!elem.style) {
               continue;
             }
             display = elem.style.display;
             if (show) {
               if (display === "none") {
-                values[index] = dataPriv.get(elem, "display") || null;
-                if (!values[index]) {
+                values[index2] = dataPriv.get(elem, "display") || null;
+                if (!values[index2]) {
                   elem.style.display = "";
                 }
               }
               if (elem.style.display === "" && isHiddenWithinTree(elem)) {
-                values[index] = getDefaultDisplay(elem);
+                values[index2] = getDefaultDisplay(elem);
               }
             } else {
               if (display !== "none") {
-                values[index] = "none";
+                values[index2] = "none";
                 dataPriv.set(elem, "display", display);
               }
             }
           }
-          for (index = 0; index < length; index++) {
-            if (values[index] != null) {
-              elements[index].style.display = values[index];
+          for (index2 = 0; index2 < length; index2++) {
+            if (values[index2] != null) {
+              elements[index2].style.display = values[index2];
             }
           }
           return elements;
@@ -3718,10 +3167,10 @@
           args = flat(args);
           var fragment, first, scripts, hasScripts, node, doc, i = 0, l = collection2.length, iNoClone = l - 1, value = args[0], valueIsFunction = isFunction(value);
           if (valueIsFunction || l > 1 && typeof value === "string" && !support.checkClone && rchecked.test(value)) {
-            return collection2.each(function(index) {
-              var self2 = collection2.eq(index);
+            return collection2.each(function(index2) {
+              var self2 = collection2.eq(index2);
               if (valueIsFunction) {
-                args[0] = value.call(this, index, self2.html());
+                args[0] = value.call(this, index2, self2.html());
               }
               domManip(self2, args, callback, ignored);
             });
@@ -4417,9 +3866,9 @@
           return attrs;
         }
         function createTween(value, prop, animation) {
-          var tween, collection2 = (Animation.tweeners[prop] || []).concat(Animation.tweeners["*"]), index = 0, length = collection2.length;
-          for (; index < length; index++) {
-            if (tween = collection2[index].call(animation, prop, value)) {
+          var tween, collection2 = (Animation.tweeners[prop] || []).concat(Animation.tweeners["*"]), index2 = 0, length = collection2.length;
+          for (; index2 < length; index2++) {
+            if (tween = collection2[index2].call(animation, prop, value)) {
               return tween;
             }
           }
@@ -4543,27 +3992,27 @@
           }
         }
         function propFilter(props, specialEasing) {
-          var index, name, easing, value, hooks;
-          for (index in props) {
-            name = camelCase(index);
+          var index2, name, easing, value, hooks;
+          for (index2 in props) {
+            name = camelCase(index2);
             easing = specialEasing[name];
-            value = props[index];
+            value = props[index2];
             if (Array.isArray(value)) {
               easing = value[1];
-              value = props[index] = value[0];
+              value = props[index2] = value[0];
             }
-            if (index !== name) {
+            if (index2 !== name) {
               props[name] = value;
-              delete props[index];
+              delete props[index2];
             }
             hooks = jQuery2.cssHooks[name];
             if (hooks && "expand" in hooks) {
               value = hooks.expand(value);
               delete props[name];
-              for (index in value) {
-                if (!(index in props)) {
-                  props[index] = value[index];
-                  specialEasing[index] = easing;
+              for (index2 in value) {
+                if (!(index2 in props)) {
+                  props[index2] = value[index2];
+                  specialEasing[index2] = easing;
                 }
               }
             } else {
@@ -4572,15 +4021,15 @@
           }
         }
         function Animation(elem, properties, options) {
-          var result, stopped, index = 0, length = Animation.prefilters.length, deferred = jQuery2.Deferred().always(function() {
+          var result, stopped, index2 = 0, length = Animation.prefilters.length, deferred = jQuery2.Deferred().always(function() {
             delete tick.elem;
           }), tick = function() {
             if (stopped) {
               return false;
             }
-            var currentTime = fxNow || createFxNow(), remaining = Math.max(0, animation.startTime + animation.duration - currentTime), temp = remaining / animation.duration || 0, percent = 1 - temp, index2 = 0, length2 = animation.tweens.length;
-            for (; index2 < length2; index2++) {
-              animation.tweens[index2].run(percent);
+            var currentTime = fxNow || createFxNow(), remaining = Math.max(0, animation.startTime + animation.duration - currentTime), temp = remaining / animation.duration || 0, percent = 1 - temp, index3 = 0, length2 = animation.tweens.length;
+            for (; index3 < length2; index3++) {
+              animation.tweens[index3].run(percent);
             }
             deferred.notifyWith(elem, [animation, percent, remaining]);
             if (percent < 1 && length2) {
@@ -4609,13 +4058,13 @@
               return tween;
             },
             stop: function(gotoEnd) {
-              var index2 = 0, length2 = gotoEnd ? animation.tweens.length : 0;
+              var index3 = 0, length2 = gotoEnd ? animation.tweens.length : 0;
               if (stopped) {
                 return this;
               }
               stopped = true;
-              for (; index2 < length2; index2++) {
-                animation.tweens[index2].run(1);
+              for (; index3 < length2; index3++) {
+                animation.tweens[index3].run(1);
               }
               if (gotoEnd) {
                 deferred.notifyWith(elem, [animation, 1, 0]);
@@ -4627,8 +4076,8 @@
             }
           }), props = animation.props;
           propFilter(props, animation.opts.specialEasing);
-          for (; index < length; index++) {
-            result = Animation.prefilters[index].call(animation, elem, props, animation.opts);
+          for (; index2 < length; index2++) {
+            result = Animation.prefilters[index2].call(animation, elem, props, animation.opts);
             if (result) {
               if (isFunction(result.stop)) {
                 jQuery2._queueHooks(animation.elem, animation.opts.queue).stop = result.stop.bind(result);
@@ -4663,9 +4112,9 @@
             } else {
               props = props.match(rnothtmlwhite);
             }
-            var prop, index = 0, length = props.length;
-            for (; index < length; index++) {
-              prop = props[index];
+            var prop, index2 = 0, length = props.length;
+            for (; index2 < length; index2++) {
+              prop = props[index2];
               Animation.tweeners[prop] = Animation.tweeners[prop] || [];
               Animation.tweeners[prop].unshift(callback);
             }
@@ -4739,23 +4188,23 @@
               this.queue(type || "fx", []);
             }
             return this.each(function() {
-              var dequeue = true, index = type != null && type + "queueHooks", timers = jQuery2.timers, data = dataPriv.get(this);
-              if (index) {
-                if (data[index] && data[index].stop) {
-                  stopQueue(data[index]);
+              var dequeue = true, index2 = type != null && type + "queueHooks", timers = jQuery2.timers, data = dataPriv.get(this);
+              if (index2) {
+                if (data[index2] && data[index2].stop) {
+                  stopQueue(data[index2]);
                 }
               } else {
-                for (index in data) {
-                  if (data[index] && data[index].stop && rrun.test(index)) {
-                    stopQueue(data[index]);
+                for (index2 in data) {
+                  if (data[index2] && data[index2].stop && rrun.test(index2)) {
+                    stopQueue(data[index2]);
                   }
                 }
               }
-              for (index = timers.length; index--; ) {
-                if (timers[index].elem === this && (type == null || timers[index].queue === type)) {
-                  timers[index].anim.stop(gotoEnd);
+              for (index2 = timers.length; index2--; ) {
+                if (timers[index2].elem === this && (type == null || timers[index2].queue === type)) {
+                  timers[index2].anim.stop(gotoEnd);
                   dequeue = false;
-                  timers.splice(index, 1);
+                  timers.splice(index2, 1);
                 }
               }
               if (dequeue || !gotoEnd) {
@@ -4768,21 +4217,21 @@
               type = type || "fx";
             }
             return this.each(function() {
-              var index, data = dataPriv.get(this), queue = data[type + "queue"], hooks = data[type + "queueHooks"], timers = jQuery2.timers, length = queue ? queue.length : 0;
+              var index2, data = dataPriv.get(this), queue = data[type + "queue"], hooks = data[type + "queueHooks"], timers = jQuery2.timers, length = queue ? queue.length : 0;
               data.finish = true;
               jQuery2.queue(this, type, []);
               if (hooks && hooks.stop) {
                 hooks.stop.call(this, true);
               }
-              for (index = timers.length; index--; ) {
-                if (timers[index].elem === this && timers[index].queue === type) {
-                  timers[index].anim.stop(true);
-                  timers.splice(index, 1);
+              for (index2 = timers.length; index2--; ) {
+                if (timers[index2].elem === this && timers[index2].queue === type) {
+                  timers[index2].anim.stop(true);
+                  timers.splice(index2, 1);
                 }
               }
-              for (index = 0; index < length; index++) {
-                if (queue[index] && queue[index].finish) {
-                  queue[index].finish.call(this);
+              for (index2 = 0; index2 < length; index2++) {
+                if (queue[index2] && queue[index2].finish) {
+                  queue[index2].finish.call(this);
                 }
               }
               delete data.finish;
@@ -5209,15 +4658,15 @@
             },
             select: {
               get: function(elem) {
-                var value, option, i, options = elem.options, index = elem.selectedIndex, one = elem.type === "select-one", values = one ? null : [], max2 = one ? index + 1 : options.length;
-                if (index < 0) {
+                var value, option, i, options = elem.options, index2 = elem.selectedIndex, one = elem.type === "select-one", values = one ? null : [], max2 = one ? index2 + 1 : options.length;
+                if (index2 < 0) {
                   i = max2;
                 } else {
-                  i = one ? index : 0;
+                  i = one ? index2 : 0;
                 }
                 for (; i < max2; i++) {
                   option = options[i];
-                  if ((option.selected || i === index) && !option.disabled && (!option.parentNode.disabled || !nodeName(option.parentNode, "optgroup"))) {
+                  if ((option.selected || i === index2) && !option.disabled && (!option.parentNode.disabled || !nodeName(option.parentNode, "optgroup"))) {
                     value = jQuery2(option).val();
                     if (one) {
                       return value;
@@ -8989,7 +8438,7 @@
           }
         }
         function _fnApplyToChildren(fn, an1, an2) {
-          var index = 0, i = 0, iLen = an1.length;
+          var index2 = 0, i = 0, iLen = an1.length;
           var nNode1, nNode2;
           while (i < iLen) {
             nNode1 = an1[i].firstChild;
@@ -8997,11 +8446,11 @@
             while (nNode1) {
               if (nNode1.nodeType === 1) {
                 if (an2) {
-                  fn(nNode1, nNode2, index);
+                  fn(nNode1, nNode2, index2);
                 } else {
-                  fn(nNode1, index);
+                  fn(nNode1, index2);
                 }
-                index++;
+                index2++;
               }
               nNode1 = nNode1.nextSibling;
               nNode2 = an2 ? nNode2.nextSibling : null;
@@ -11812,6 +11261,5903 @@
     }
   });
 
+  // node_modules/datatables.net-bs5/js/dataTables.bootstrap5.js
+  var require_dataTables_bootstrap5 = __commonJS({
+    "node_modules/datatables.net-bs5/js/dataTables.bootstrap5.js"(exports, module) {
+      (function(factory) {
+        if (typeof define === "function" && define.amd) {
+          define(["jquery", "datatables.net"], function($6) {
+            return factory($6, window, document);
+          });
+        } else if (typeof exports === "object") {
+          module.exports = function(root, $6) {
+            if (!root) {
+              root = window;
+            }
+            if (!$6 || !$6.fn.dataTable) {
+              $6 = require_jquery_dataTables()(root, $6).$;
+            }
+            return factory($6, root, root.document);
+          };
+        } else {
+          factory(jQuery, window, document);
+        }
+      })(function($6, window2, document2, undefined2) {
+        "use strict";
+        var DataTable2 = $6.fn.dataTable;
+        $6.extend(true, DataTable2.defaults, {
+          dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>><'row'<'col-sm-12'tr>><'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+          renderer: "bootstrap"
+        });
+        $6.extend(DataTable2.ext.classes, {
+          sWrapper: "dataTables_wrapper dt-bootstrap5",
+          sFilterInput: "form-control form-control-sm",
+          sLengthSelect: "form-select form-select-sm",
+          sProcessing: "dataTables_processing card",
+          sPageButton: "paginate_button page-item"
+        });
+        DataTable2.ext.renderer.pageButton.bootstrap = function(settings, host, idx, buttons, page, pages) {
+          var api = new DataTable2.Api(settings);
+          var classes = settings.oClasses;
+          var lang = settings.oLanguage.oPaginate;
+          var aria = settings.oLanguage.oAria.paginate || {};
+          var btnDisplay, btnClass, counter = 0;
+          var attach = function(container, buttons2) {
+            var i, ien, node, button;
+            var clickHandler = function(e) {
+              e.preventDefault();
+              if (!$6(e.currentTarget).hasClass("disabled") && api.page() != e.data.action) {
+                api.page(e.data.action).draw("page");
+              }
+            };
+            for (i = 0, ien = buttons2.length; i < ien; i++) {
+              button = buttons2[i];
+              if (Array.isArray(button)) {
+                attach(container, button);
+              } else {
+                btnDisplay = "";
+                btnClass = "";
+                switch (button) {
+                  case "ellipsis":
+                    btnDisplay = "&#x2026;";
+                    btnClass = "disabled";
+                    break;
+                  case "first":
+                    btnDisplay = lang.sFirst;
+                    btnClass = button + (page > 0 ? "" : " disabled");
+                    break;
+                  case "previous":
+                    btnDisplay = lang.sPrevious;
+                    btnClass = button + (page > 0 ? "" : " disabled");
+                    break;
+                  case "next":
+                    btnDisplay = lang.sNext;
+                    btnClass = button + (page < pages - 1 ? "" : " disabled");
+                    break;
+                  case "last":
+                    btnDisplay = lang.sLast;
+                    btnClass = button + (page < pages - 1 ? "" : " disabled");
+                    break;
+                  default:
+                    btnDisplay = button + 1;
+                    btnClass = page === button ? "active" : "";
+                    break;
+                }
+                if (btnDisplay) {
+                  node = $6("<li>", {
+                    "class": classes.sPageButton + " " + btnClass,
+                    "id": idx === 0 && typeof button === "string" ? settings.sTableId + "_" + button : null
+                  }).append($6("<a>", {
+                    "href": "#",
+                    "aria-controls": settings.sTableId,
+                    "aria-label": aria[button],
+                    "data-dt-idx": counter,
+                    "tabindex": settings.iTabIndex,
+                    "class": "page-link"
+                  }).html(btnDisplay)).appendTo(container);
+                  settings.oApi._fnBindAction(node, { action: button }, clickHandler);
+                  counter++;
+                }
+              }
+            }
+          };
+          var activeEl;
+          try {
+            activeEl = $6(host).find(document2.activeElement).data("dt-idx");
+          } catch (e) {
+          }
+          attach($6(host).empty().html('<ul class="pagination"/>').children("ul"), buttons);
+          if (activeEl !== undefined2) {
+            $6(host).find("[data-dt-idx=" + activeEl + "]").trigger("focus");
+          }
+        };
+        return DataTable2;
+      });
+    }
+  });
+
+  // node_modules/@hotwired/turbo-rails/app/assets/javascripts/turbo.js
+  var turbo_exports = {};
+  __export(turbo_exports, {
+    Turbo: () => turbo_es2017Esm,
+    cable: () => cable
+  });
+  function findSubmitterFromClickTarget(target) {
+    const element = target instanceof Element ? target : target instanceof Node ? target.parentElement : null;
+    const candidate = element ? element.closest("input, button") : null;
+    return (candidate === null || candidate === void 0 ? void 0 : candidate.type) == "submit" ? candidate : null;
+  }
+  function clickCaptured(event) {
+    const submitter = findSubmitterFromClickTarget(event.target);
+    if (submitter && submitter.form) {
+      submittersByForm.set(submitter.form, submitter);
+    }
+  }
+  function frameLoadingStyleFromString(style) {
+    switch (style.toLowerCase()) {
+      case "lazy":
+        return FrameLoadingStyle.lazy;
+      default:
+        return FrameLoadingStyle.eager;
+    }
+  }
+  function expandURL(locatable) {
+    return new URL(locatable.toString(), document.baseURI);
+  }
+  function getAnchor(url) {
+    let anchorMatch;
+    if (url.hash) {
+      return url.hash.slice(1);
+    } else if (anchorMatch = url.href.match(/#(.*)$/)) {
+      return anchorMatch[1];
+    }
+  }
+  function getAction(form, submitter) {
+    const action = (submitter === null || submitter === void 0 ? void 0 : submitter.getAttribute("formaction")) || form.getAttribute("action") || form.action;
+    return expandURL(action);
+  }
+  function getExtension(url) {
+    return (getLastPathComponent(url).match(/\.[^.]*$/) || [])[0] || "";
+  }
+  function isHTML(url) {
+    return !!getExtension(url).match(/^(?:|\.(?:htm|html|xhtml))$/);
+  }
+  function isPrefixedBy(baseURL, url) {
+    const prefix = getPrefix(url);
+    return baseURL.href === expandURL(prefix).href || baseURL.href.startsWith(prefix);
+  }
+  function locationIsVisitable(location2, rootLocation) {
+    return isPrefixedBy(location2, rootLocation) && isHTML(location2);
+  }
+  function getRequestURL(url) {
+    const anchor = getAnchor(url);
+    return anchor != null ? url.href.slice(0, -(anchor.length + 1)) : url.href;
+  }
+  function toCacheKey(url) {
+    return getRequestURL(url);
+  }
+  function urlsAreEqual(left, right) {
+    return expandURL(left).href == expandURL(right).href;
+  }
+  function getPathComponents(url) {
+    return url.pathname.split("/").slice(1);
+  }
+  function getLastPathComponent(url) {
+    return getPathComponents(url).slice(-1)[0];
+  }
+  function getPrefix(url) {
+    return addTrailingSlash(url.origin + url.pathname);
+  }
+  function addTrailingSlash(value) {
+    return value.endsWith("/") ? value : value + "/";
+  }
+  function dispatch(eventName, { target, cancelable, detail } = {}) {
+    const event = new CustomEvent(eventName, {
+      cancelable,
+      bubbles: true,
+      detail
+    });
+    if (target && target.isConnected) {
+      target.dispatchEvent(event);
+    } else {
+      document.documentElement.dispatchEvent(event);
+    }
+    return event;
+  }
+  function nextAnimationFrame() {
+    return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+  }
+  function nextEventLoopTick() {
+    return new Promise((resolve) => setTimeout(() => resolve(), 0));
+  }
+  function nextMicrotask() {
+    return Promise.resolve();
+  }
+  function parseHTMLDocument(html = "") {
+    return new DOMParser().parseFromString(html, "text/html");
+  }
+  function unindent(strings, ...values) {
+    const lines = interpolate(strings, values).replace(/^\n/, "").split("\n");
+    const match = lines[0].match(/^\s+/);
+    const indent = match ? match[0].length : 0;
+    return lines.map((line) => line.slice(indent)).join("\n");
+  }
+  function interpolate(strings, values) {
+    return strings.reduce((result, string, i) => {
+      const value = values[i] == void 0 ? "" : values[i];
+      return result + string + value;
+    }, "");
+  }
+  function uuid() {
+    return Array.apply(null, {
+      length: 36
+    }).map((_, i) => {
+      if (i == 8 || i == 13 || i == 18 || i == 23) {
+        return "-";
+      } else if (i == 14) {
+        return "4";
+      } else if (i == 19) {
+        return (Math.floor(Math.random() * 4) + 8).toString(16);
+      } else {
+        return Math.floor(Math.random() * 15).toString(16);
+      }
+    }).join("");
+  }
+  function getAttribute(attributeName, ...elements) {
+    for (const value of elements.map((element) => element === null || element === void 0 ? void 0 : element.getAttribute(attributeName))) {
+      if (typeof value == "string")
+        return value;
+    }
+    return null;
+  }
+  function markAsBusy(...elements) {
+    for (const element of elements) {
+      if (element.localName == "turbo-frame") {
+        element.setAttribute("busy", "");
+      }
+      element.setAttribute("aria-busy", "true");
+    }
+  }
+  function clearBusyState(...elements) {
+    for (const element of elements) {
+      if (element.localName == "turbo-frame") {
+        element.removeAttribute("busy");
+      }
+      element.removeAttribute("aria-busy");
+    }
+  }
+  function fetchMethodFromString(method) {
+    switch (method.toLowerCase()) {
+      case "get":
+        return FetchMethod.get;
+      case "post":
+        return FetchMethod.post;
+      case "put":
+        return FetchMethod.put;
+      case "patch":
+        return FetchMethod.patch;
+      case "delete":
+        return FetchMethod.delete;
+    }
+  }
+  function formEnctypeFromString(encoding) {
+    switch (encoding.toLowerCase()) {
+      case FormEnctype.multipart:
+        return FormEnctype.multipart;
+      case FormEnctype.plain:
+        return FormEnctype.plain;
+      default:
+        return FormEnctype.urlEncoded;
+    }
+  }
+  function buildFormData(formElement, submitter) {
+    const formData = new FormData(formElement);
+    const name = submitter === null || submitter === void 0 ? void 0 : submitter.getAttribute("name");
+    const value = submitter === null || submitter === void 0 ? void 0 : submitter.getAttribute("value");
+    if (name && value != null && formData.get(name) != value) {
+      formData.append(name, value);
+    }
+    return formData;
+  }
+  function getCookieValue(cookieName) {
+    if (cookieName != null) {
+      const cookies = document.cookie ? document.cookie.split("; ") : [];
+      const cookie = cookies.find((cookie2) => cookie2.startsWith(cookieName));
+      if (cookie) {
+        const value = cookie.split("=").slice(1).join("=");
+        return value ? decodeURIComponent(value) : void 0;
+      }
+    }
+  }
+  function getMetaContent(name) {
+    const element = document.querySelector(`meta[name="${name}"]`);
+    return element && element.content;
+  }
+  function responseSucceededWithoutRedirect(response) {
+    return response.statusCode == 200 && !response.redirected;
+  }
+  function mergeFormDataEntries(url, entries) {
+    const searchParams = new URLSearchParams();
+    for (const [name, value] of entries) {
+      if (value instanceof File)
+        continue;
+      searchParams.append(name, value);
+    }
+    url.search = searchParams.toString();
+    return url;
+  }
+  function createPlaceholderForPermanentElement(permanentElement) {
+    const element = document.createElement("meta");
+    element.setAttribute("name", "turbo-permanent-placeholder");
+    element.setAttribute("content", permanentElement.id);
+    return element;
+  }
+  function copyElementAttributes(destinationElement, sourceElement) {
+    for (const { name, value } of [...sourceElement.attributes]) {
+      destinationElement.setAttribute(name, value);
+    }
+  }
+  function elementIsFocusable(element) {
+    return element && typeof element.focus == "function";
+  }
+  function readScrollLogicalPosition(value, defaultValue) {
+    if (value == "end" || value == "start" || value == "center" || value == "nearest") {
+      return value;
+    } else {
+      return defaultValue;
+    }
+  }
+  function elementType(element) {
+    if (elementIsScript(element)) {
+      return "script";
+    } else if (elementIsStylesheet(element)) {
+      return "stylesheet";
+    }
+  }
+  function elementIsTracked(element) {
+    return element.getAttribute("data-turbo-track") == "reload";
+  }
+  function elementIsScript(element) {
+    const tagName = element.tagName.toLowerCase();
+    return tagName == "script";
+  }
+  function elementIsNoscript(element) {
+    const tagName = element.tagName.toLowerCase();
+    return tagName == "noscript";
+  }
+  function elementIsStylesheet(element) {
+    const tagName = element.tagName.toLowerCase();
+    return tagName == "style" || tagName == "link" && element.getAttribute("rel") == "stylesheet";
+  }
+  function elementIsMetaElementWithName(element, name) {
+    const tagName = element.tagName.toLowerCase();
+    return tagName == "meta" && element.getAttribute("name") == name;
+  }
+  function elementWithoutNonce(element) {
+    if (element.hasAttribute("nonce")) {
+      element.setAttribute("nonce", "");
+    }
+    return element;
+  }
+  function isSuccessful(statusCode) {
+    return statusCode >= 200 && statusCode < 300;
+  }
+  function isAction(action) {
+    return action == "advance" || action == "replace" || action == "restore";
+  }
+  function fetchResponseFromEvent(event) {
+    var _a;
+    const fetchResponse = (_a = event.detail) === null || _a === void 0 ? void 0 : _a.fetchResponse;
+    if (fetchResponse instanceof FetchResponse) {
+      return fetchResponse;
+    }
+  }
+  function fetchResponseIsStream(response) {
+    var _a;
+    const contentType = (_a = response.contentType) !== null && _a !== void 0 ? _a : "";
+    return contentType.startsWith(StreamMessage.contentType);
+  }
+  function extendURLWithDeprecatedProperties(url) {
+    Object.defineProperties(url, deprecatedLocationPropertyDescriptors);
+  }
+  function start() {
+    session.start();
+  }
+  function registerAdapter(adapter) {
+    session.registerAdapter(adapter);
+  }
+  function visit(location2, options) {
+    session.visit(location2, options);
+  }
+  function connectStreamSource(source) {
+    session.connectStreamSource(source);
+  }
+  function disconnectStreamSource(source) {
+    session.disconnectStreamSource(source);
+  }
+  function renderStreamMessage(message) {
+    session.renderStreamMessage(message);
+  }
+  function clearCache() {
+    session.clearCache();
+  }
+  function setProgressBarDelay(delay) {
+    session.setProgressBarDelay(delay);
+  }
+  function setConfirmMethod(confirmMethod) {
+    FormSubmission.confirmMethod = confirmMethod;
+  }
+  function getFrameElementById(id) {
+    if (id != null) {
+      const element = document.getElementById(id);
+      if (element instanceof FrameElement) {
+        return element;
+      }
+    }
+  }
+  function activateElement(element, currentURL) {
+    if (element) {
+      const src = element.getAttribute("src");
+      if (src != null && currentURL != null && urlsAreEqual(src, currentURL)) {
+        throw new Error(`Matching <turbo-frame id="${element.id}"> element has a source URL which references itself`);
+      }
+      if (element.ownerDocument !== document) {
+        element = document.importNode(element, true);
+      }
+      if (element instanceof FrameElement) {
+        element.connectedCallback();
+        element.disconnectedCallback();
+        return element;
+      }
+    }
+  }
+  async function getConsumer() {
+    return consumer || setConsumer(createConsumer().then(setConsumer));
+  }
+  function setConsumer(newConsumer) {
+    return consumer = newConsumer;
+  }
+  async function createConsumer() {
+    const { createConsumer: createConsumer2 } = await Promise.resolve().then(function() {
+      return index;
+    });
+    return createConsumer2();
+  }
+  async function subscribeTo(channel, mixin) {
+    const { subscriptions } = await getConsumer();
+    return subscriptions.create(channel, mixin);
+  }
+  function createWebSocketURL(url) {
+    if (typeof url === "function") {
+      url = url();
+    }
+    if (url && !/^wss?:/i.test(url)) {
+      const a = document.createElement("a");
+      a.href = url;
+      a.href = a.href;
+      a.protocol = a.protocol.replace("http", "ws");
+      return a.href;
+    } else {
+      return url;
+    }
+  }
+  function createConsumer$1(url = getConfig("url") || INTERNAL.default_mount_path) {
+    return new Consumer(url);
+  }
+  function getConfig(name) {
+    const element = document.head.querySelector(`meta[name='action-cable-${name}']`);
+    if (element) {
+      return element.getAttribute("content");
+    }
+  }
+  var submittersByForm, FrameLoadingStyle, FrameElement, FetchResponse, FetchMethod, FetchRequest, AppearanceObserver, StreamMessage, FormSubmissionState, FormEnctype, FormSubmission, Snapshot, FormInterceptor, View, FrameView, LinkInterceptor, Bardo, Renderer, FrameRenderer, ProgressBar, HeadSnapshot, PageSnapshot, TimingMetric, VisitState, defaultOptions, SystemStatusCode, Visit, BrowserAdapter, CacheObserver, FormSubmitObserver, FrameRedirector, History, LinkClickObserver, Navigator, PageStage, PageObserver, ScrollObserver, StreamObserver, ErrorRenderer, PageRenderer, SnapshotCache, PageView, Session, deprecatedLocationPropertyDescriptors, session, navigator$1, Turbo, FrameController, SnapshotSubstitution, StreamActions, StreamElement, turbo_es2017Esm, consumer, cable, TurboCableStreamSourceElement, adapters, logger, now, secondsSince, ConnectionMonitor, INTERNAL, message_types, protocols, supportedProtocols, indexOf, Connection, extend, Subscription, SubscriptionGuarantor, Subscriptions, Consumer, index;
+  var init_turbo = __esm({
+    "node_modules/@hotwired/turbo-rails/app/assets/javascripts/turbo.js"() {
+      (function() {
+        if (window.Reflect === void 0 || window.customElements === void 0 || window.customElements.polyfillWrapFlushCallback) {
+          return;
+        }
+        const BuiltInHTMLElement = HTMLElement;
+        const wrapperForTheName = {
+          HTMLElement: function HTMLElement2() {
+            return Reflect.construct(BuiltInHTMLElement, [], this.constructor);
+          }
+        };
+        window.HTMLElement = wrapperForTheName["HTMLElement"];
+        HTMLElement.prototype = BuiltInHTMLElement.prototype;
+        HTMLElement.prototype.constructor = HTMLElement;
+        Object.setPrototypeOf(HTMLElement, BuiltInHTMLElement);
+      })();
+      (function(prototype) {
+        if (typeof prototype.requestSubmit == "function")
+          return;
+        prototype.requestSubmit = function(submitter) {
+          if (submitter) {
+            validateSubmitter(submitter, this);
+            submitter.click();
+          } else {
+            submitter = document.createElement("input");
+            submitter.type = "submit";
+            submitter.hidden = true;
+            this.appendChild(submitter);
+            submitter.click();
+            this.removeChild(submitter);
+          }
+        };
+        function validateSubmitter(submitter, form) {
+          submitter instanceof HTMLElement || raise(TypeError, "parameter 1 is not of type 'HTMLElement'");
+          submitter.type == "submit" || raise(TypeError, "The specified element is not a submit button");
+          submitter.form == form || raise(DOMException, "The specified element is not owned by this form element", "NotFoundError");
+        }
+        function raise(errorConstructor, message, name) {
+          throw new errorConstructor("Failed to execute 'requestSubmit' on 'HTMLFormElement': " + message + ".", name);
+        }
+      })(HTMLFormElement.prototype);
+      submittersByForm = /* @__PURE__ */ new WeakMap();
+      (function() {
+        if ("submitter" in Event.prototype)
+          return;
+        let prototype;
+        if ("SubmitEvent" in window && /Apple Computer/.test(navigator.vendor)) {
+          prototype = window.SubmitEvent.prototype;
+        } else if ("SubmitEvent" in window) {
+          return;
+        } else {
+          prototype = window.Event.prototype;
+        }
+        addEventListener("click", clickCaptured, true);
+        Object.defineProperty(prototype, "submitter", {
+          get() {
+            if (this.type == "submit" && this.target instanceof HTMLFormElement) {
+              return submittersByForm.get(this.target);
+            }
+          }
+        });
+      })();
+      (function(FrameLoadingStyle2) {
+        FrameLoadingStyle2["eager"] = "eager";
+        FrameLoadingStyle2["lazy"] = "lazy";
+      })(FrameLoadingStyle || (FrameLoadingStyle = {}));
+      FrameElement = class extends HTMLElement {
+        constructor() {
+          super();
+          this.loaded = Promise.resolve();
+          this.delegate = new FrameElement.delegateConstructor(this);
+        }
+        static get observedAttributes() {
+          return ["disabled", "loading", "src"];
+        }
+        connectedCallback() {
+          this.delegate.connect();
+        }
+        disconnectedCallback() {
+          this.delegate.disconnect();
+        }
+        reload() {
+          const { src } = this;
+          this.src = null;
+          this.src = src;
+        }
+        attributeChangedCallback(name) {
+          if (name == "loading") {
+            this.delegate.loadingStyleChanged();
+          } else if (name == "src") {
+            this.delegate.sourceURLChanged();
+          } else {
+            this.delegate.disabledChanged();
+          }
+        }
+        get src() {
+          return this.getAttribute("src");
+        }
+        set src(value) {
+          if (value) {
+            this.setAttribute("src", value);
+          } else {
+            this.removeAttribute("src");
+          }
+        }
+        get loading() {
+          return frameLoadingStyleFromString(this.getAttribute("loading") || "");
+        }
+        set loading(value) {
+          if (value) {
+            this.setAttribute("loading", value);
+          } else {
+            this.removeAttribute("loading");
+          }
+        }
+        get disabled() {
+          return this.hasAttribute("disabled");
+        }
+        set disabled(value) {
+          if (value) {
+            this.setAttribute("disabled", "");
+          } else {
+            this.removeAttribute("disabled");
+          }
+        }
+        get autoscroll() {
+          return this.hasAttribute("autoscroll");
+        }
+        set autoscroll(value) {
+          if (value) {
+            this.setAttribute("autoscroll", "");
+          } else {
+            this.removeAttribute("autoscroll");
+          }
+        }
+        get complete() {
+          return !this.delegate.isLoading;
+        }
+        get isActive() {
+          return this.ownerDocument === document && !this.isPreview;
+        }
+        get isPreview() {
+          var _a, _b;
+          return (_b = (_a = this.ownerDocument) === null || _a === void 0 ? void 0 : _a.documentElement) === null || _b === void 0 ? void 0 : _b.hasAttribute("data-turbo-preview");
+        }
+      };
+      FetchResponse = class {
+        constructor(response) {
+          this.response = response;
+        }
+        get succeeded() {
+          return this.response.ok;
+        }
+        get failed() {
+          return !this.succeeded;
+        }
+        get clientError() {
+          return this.statusCode >= 400 && this.statusCode <= 499;
+        }
+        get serverError() {
+          return this.statusCode >= 500 && this.statusCode <= 599;
+        }
+        get redirected() {
+          return this.response.redirected;
+        }
+        get location() {
+          return expandURL(this.response.url);
+        }
+        get isHTML() {
+          return this.contentType && this.contentType.match(/^(?:text\/([^\s;,]+\b)?html|application\/xhtml\+xml)\b/);
+        }
+        get statusCode() {
+          return this.response.status;
+        }
+        get contentType() {
+          return this.header("Content-Type");
+        }
+        get responseText() {
+          return this.response.clone().text();
+        }
+        get responseHTML() {
+          if (this.isHTML) {
+            return this.response.clone().text();
+          } else {
+            return Promise.resolve(void 0);
+          }
+        }
+        header(name) {
+          return this.response.headers.get(name);
+        }
+      };
+      (function(FetchMethod2) {
+        FetchMethod2[FetchMethod2["get"] = 0] = "get";
+        FetchMethod2[FetchMethod2["post"] = 1] = "post";
+        FetchMethod2[FetchMethod2["put"] = 2] = "put";
+        FetchMethod2[FetchMethod2["patch"] = 3] = "patch";
+        FetchMethod2[FetchMethod2["delete"] = 4] = "delete";
+      })(FetchMethod || (FetchMethod = {}));
+      FetchRequest = class {
+        constructor(delegate, method, location2, body = new URLSearchParams(), target = null) {
+          this.abortController = new AbortController();
+          this.resolveRequestPromise = (value) => {
+          };
+          this.delegate = delegate;
+          this.method = method;
+          this.headers = this.defaultHeaders;
+          this.body = body;
+          this.url = location2;
+          this.target = target;
+        }
+        get location() {
+          return this.url;
+        }
+        get params() {
+          return this.url.searchParams;
+        }
+        get entries() {
+          return this.body ? Array.from(this.body.entries()) : [];
+        }
+        cancel() {
+          this.abortController.abort();
+        }
+        async perform() {
+          var _a, _b;
+          const { fetchOptions } = this;
+          (_b = (_a = this.delegate).prepareHeadersForRequest) === null || _b === void 0 ? void 0 : _b.call(_a, this.headers, this);
+          await this.allowRequestToBeIntercepted(fetchOptions);
+          try {
+            this.delegate.requestStarted(this);
+            const response = await fetch(this.url.href, fetchOptions);
+            return await this.receive(response);
+          } catch (error2) {
+            if (error2.name !== "AbortError") {
+              this.delegate.requestErrored(this, error2);
+              throw error2;
+            }
+          } finally {
+            this.delegate.requestFinished(this);
+          }
+        }
+        async receive(response) {
+          const fetchResponse = new FetchResponse(response);
+          const event = dispatch("turbo:before-fetch-response", {
+            cancelable: true,
+            detail: {
+              fetchResponse
+            },
+            target: this.target
+          });
+          if (event.defaultPrevented) {
+            this.delegate.requestPreventedHandlingResponse(this, fetchResponse);
+          } else if (fetchResponse.succeeded) {
+            this.delegate.requestSucceededWithResponse(this, fetchResponse);
+          } else {
+            this.delegate.requestFailedWithResponse(this, fetchResponse);
+          }
+          return fetchResponse;
+        }
+        get fetchOptions() {
+          var _a;
+          return {
+            method: FetchMethod[this.method].toUpperCase(),
+            credentials: "same-origin",
+            headers: this.headers,
+            redirect: "follow",
+            body: this.isIdempotent ? null : this.body,
+            signal: this.abortSignal,
+            referrer: (_a = this.delegate.referrer) === null || _a === void 0 ? void 0 : _a.href
+          };
+        }
+        get defaultHeaders() {
+          return {
+            Accept: "text/html, application/xhtml+xml"
+          };
+        }
+        get isIdempotent() {
+          return this.method == FetchMethod.get;
+        }
+        get abortSignal() {
+          return this.abortController.signal;
+        }
+        async allowRequestToBeIntercepted(fetchOptions) {
+          const requestInterception = new Promise((resolve) => this.resolveRequestPromise = resolve);
+          const event = dispatch("turbo:before-fetch-request", {
+            cancelable: true,
+            detail: {
+              fetchOptions,
+              url: this.url,
+              resume: this.resolveRequestPromise
+            },
+            target: this.target
+          });
+          if (event.defaultPrevented)
+            await requestInterception;
+        }
+      };
+      AppearanceObserver = class {
+        constructor(delegate, element) {
+          this.started = false;
+          this.intersect = (entries) => {
+            const lastEntry = entries.slice(-1)[0];
+            if (lastEntry === null || lastEntry === void 0 ? void 0 : lastEntry.isIntersecting) {
+              this.delegate.elementAppearedInViewport(this.element);
+            }
+          };
+          this.delegate = delegate;
+          this.element = element;
+          this.intersectionObserver = new IntersectionObserver(this.intersect);
+        }
+        start() {
+          if (!this.started) {
+            this.started = true;
+            this.intersectionObserver.observe(this.element);
+          }
+        }
+        stop() {
+          if (this.started) {
+            this.started = false;
+            this.intersectionObserver.unobserve(this.element);
+          }
+        }
+      };
+      StreamMessage = class {
+        constructor(html) {
+          this.templateElement = document.createElement("template");
+          this.templateElement.innerHTML = html;
+        }
+        static wrap(message) {
+          if (typeof message == "string") {
+            return new this(message);
+          } else {
+            return message;
+          }
+        }
+        get fragment() {
+          const fragment = document.createDocumentFragment();
+          for (const element of this.foreignElements) {
+            fragment.appendChild(document.importNode(element, true));
+          }
+          return fragment;
+        }
+        get foreignElements() {
+          return this.templateChildren.reduce((streamElements, child) => {
+            if (child.tagName.toLowerCase() == "turbo-stream") {
+              return [...streamElements, child];
+            } else {
+              return streamElements;
+            }
+          }, []);
+        }
+        get templateChildren() {
+          return Array.from(this.templateElement.content.children);
+        }
+      };
+      StreamMessage.contentType = "text/vnd.turbo-stream.html";
+      (function(FormSubmissionState2) {
+        FormSubmissionState2[FormSubmissionState2["initialized"] = 0] = "initialized";
+        FormSubmissionState2[FormSubmissionState2["requesting"] = 1] = "requesting";
+        FormSubmissionState2[FormSubmissionState2["waiting"] = 2] = "waiting";
+        FormSubmissionState2[FormSubmissionState2["receiving"] = 3] = "receiving";
+        FormSubmissionState2[FormSubmissionState2["stopping"] = 4] = "stopping";
+        FormSubmissionState2[FormSubmissionState2["stopped"] = 5] = "stopped";
+      })(FormSubmissionState || (FormSubmissionState = {}));
+      (function(FormEnctype2) {
+        FormEnctype2["urlEncoded"] = "application/x-www-form-urlencoded";
+        FormEnctype2["multipart"] = "multipart/form-data";
+        FormEnctype2["plain"] = "text/plain";
+      })(FormEnctype || (FormEnctype = {}));
+      FormSubmission = class {
+        constructor(delegate, formElement, submitter, mustRedirect = false) {
+          this.state = FormSubmissionState.initialized;
+          this.delegate = delegate;
+          this.formElement = formElement;
+          this.submitter = submitter;
+          this.formData = buildFormData(formElement, submitter);
+          this.location = expandURL(this.action);
+          if (this.method == FetchMethod.get) {
+            mergeFormDataEntries(this.location, [...this.body.entries()]);
+          }
+          this.fetchRequest = new FetchRequest(this, this.method, this.location, this.body, this.formElement);
+          this.mustRedirect = mustRedirect;
+        }
+        static confirmMethod(message, element) {
+          return confirm(message);
+        }
+        get method() {
+          var _a;
+          const method = ((_a = this.submitter) === null || _a === void 0 ? void 0 : _a.getAttribute("formmethod")) || this.formElement.getAttribute("method") || "";
+          return fetchMethodFromString(method.toLowerCase()) || FetchMethod.get;
+        }
+        get action() {
+          var _a;
+          const formElementAction = typeof this.formElement.action === "string" ? this.formElement.action : null;
+          return ((_a = this.submitter) === null || _a === void 0 ? void 0 : _a.getAttribute("formaction")) || this.formElement.getAttribute("action") || formElementAction || "";
+        }
+        get body() {
+          if (this.enctype == FormEnctype.urlEncoded || this.method == FetchMethod.get) {
+            return new URLSearchParams(this.stringFormData);
+          } else {
+            return this.formData;
+          }
+        }
+        get enctype() {
+          var _a;
+          return formEnctypeFromString(((_a = this.submitter) === null || _a === void 0 ? void 0 : _a.getAttribute("formenctype")) || this.formElement.enctype);
+        }
+        get isIdempotent() {
+          return this.fetchRequest.isIdempotent;
+        }
+        get stringFormData() {
+          return [...this.formData].reduce((entries, [name, value]) => entries.concat(typeof value == "string" ? [[name, value]] : []), []);
+        }
+        get confirmationMessage() {
+          return this.formElement.getAttribute("data-turbo-confirm");
+        }
+        get needsConfirmation() {
+          return this.confirmationMessage !== null;
+        }
+        async start() {
+          const { initialized, requesting } = FormSubmissionState;
+          if (this.needsConfirmation) {
+            const answer = FormSubmission.confirmMethod(this.confirmationMessage, this.formElement);
+            if (!answer) {
+              return;
+            }
+          }
+          if (this.state == initialized) {
+            this.state = requesting;
+            return this.fetchRequest.perform();
+          }
+        }
+        stop() {
+          const { stopping, stopped } = FormSubmissionState;
+          if (this.state != stopping && this.state != stopped) {
+            this.state = stopping;
+            this.fetchRequest.cancel();
+            return true;
+          }
+        }
+        prepareHeadersForRequest(headers, request) {
+          if (!request.isIdempotent) {
+            const token = getCookieValue(getMetaContent("csrf-param")) || getMetaContent("csrf-token");
+            if (token) {
+              headers["X-CSRF-Token"] = token;
+            }
+            headers["Accept"] = [StreamMessage.contentType, headers["Accept"]].join(", ");
+          }
+        }
+        requestStarted(request) {
+          var _a;
+          this.state = FormSubmissionState.waiting;
+          (_a = this.submitter) === null || _a === void 0 ? void 0 : _a.setAttribute("disabled", "");
+          dispatch("turbo:submit-start", {
+            target: this.formElement,
+            detail: {
+              formSubmission: this
+            }
+          });
+          this.delegate.formSubmissionStarted(this);
+        }
+        requestPreventedHandlingResponse(request, response) {
+          this.result = {
+            success: response.succeeded,
+            fetchResponse: response
+          };
+        }
+        requestSucceededWithResponse(request, response) {
+          if (response.clientError || response.serverError) {
+            this.delegate.formSubmissionFailedWithResponse(this, response);
+          } else if (this.requestMustRedirect(request) && responseSucceededWithoutRedirect(response)) {
+            const error2 = new Error("Form responses must redirect to another location");
+            this.delegate.formSubmissionErrored(this, error2);
+          } else {
+            this.state = FormSubmissionState.receiving;
+            this.result = {
+              success: true,
+              fetchResponse: response
+            };
+            this.delegate.formSubmissionSucceededWithResponse(this, response);
+          }
+        }
+        requestFailedWithResponse(request, response) {
+          this.result = {
+            success: false,
+            fetchResponse: response
+          };
+          this.delegate.formSubmissionFailedWithResponse(this, response);
+        }
+        requestErrored(request, error2) {
+          this.result = {
+            success: false,
+            error: error2
+          };
+          this.delegate.formSubmissionErrored(this, error2);
+        }
+        requestFinished(request) {
+          var _a;
+          this.state = FormSubmissionState.stopped;
+          (_a = this.submitter) === null || _a === void 0 ? void 0 : _a.removeAttribute("disabled");
+          dispatch("turbo:submit-end", {
+            target: this.formElement,
+            detail: Object.assign({
+              formSubmission: this
+            }, this.result)
+          });
+          this.delegate.formSubmissionFinished(this);
+        }
+        requestMustRedirect(request) {
+          return !request.isIdempotent && this.mustRedirect;
+        }
+      };
+      Snapshot = class {
+        constructor(element) {
+          this.element = element;
+        }
+        get children() {
+          return [...this.element.children];
+        }
+        hasAnchor(anchor) {
+          return this.getElementForAnchor(anchor) != null;
+        }
+        getElementForAnchor(anchor) {
+          return anchor ? this.element.querySelector(`[id='${anchor}'], a[name='${anchor}']`) : null;
+        }
+        get isConnected() {
+          return this.element.isConnected;
+        }
+        get firstAutofocusableElement() {
+          return this.element.querySelector("[autofocus]");
+        }
+        get permanentElements() {
+          return [...this.element.querySelectorAll("[id][data-turbo-permanent]")];
+        }
+        getPermanentElementById(id) {
+          return this.element.querySelector(`#${id}[data-turbo-permanent]`);
+        }
+        getPermanentElementMapForSnapshot(snapshot) {
+          const permanentElementMap = {};
+          for (const currentPermanentElement of this.permanentElements) {
+            const { id } = currentPermanentElement;
+            const newPermanentElement = snapshot.getPermanentElementById(id);
+            if (newPermanentElement) {
+              permanentElementMap[id] = [currentPermanentElement, newPermanentElement];
+            }
+          }
+          return permanentElementMap;
+        }
+      };
+      FormInterceptor = class {
+        constructor(delegate, element) {
+          this.submitBubbled = (event) => {
+            const form = event.target;
+            if (!event.defaultPrevented && form instanceof HTMLFormElement && form.closest("turbo-frame, html") == this.element) {
+              const submitter = event.submitter || void 0;
+              const method = (submitter === null || submitter === void 0 ? void 0 : submitter.getAttribute("formmethod")) || form.method;
+              if (method != "dialog" && this.delegate.shouldInterceptFormSubmission(form, submitter)) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                this.delegate.formSubmissionIntercepted(form, submitter);
+              }
+            }
+          };
+          this.delegate = delegate;
+          this.element = element;
+        }
+        start() {
+          this.element.addEventListener("submit", this.submitBubbled);
+        }
+        stop() {
+          this.element.removeEventListener("submit", this.submitBubbled);
+        }
+      };
+      View = class {
+        constructor(delegate, element) {
+          this.resolveRenderPromise = (value) => {
+          };
+          this.resolveInterceptionPromise = (value) => {
+          };
+          this.delegate = delegate;
+          this.element = element;
+        }
+        scrollToAnchor(anchor) {
+          const element = this.snapshot.getElementForAnchor(anchor);
+          if (element) {
+            this.scrollToElement(element);
+            this.focusElement(element);
+          } else {
+            this.scrollToPosition({
+              x: 0,
+              y: 0
+            });
+          }
+        }
+        scrollToAnchorFromLocation(location2) {
+          this.scrollToAnchor(getAnchor(location2));
+        }
+        scrollToElement(element) {
+          element.scrollIntoView();
+        }
+        focusElement(element) {
+          if (element instanceof HTMLElement) {
+            if (element.hasAttribute("tabindex")) {
+              element.focus();
+            } else {
+              element.setAttribute("tabindex", "-1");
+              element.focus();
+              element.removeAttribute("tabindex");
+            }
+          }
+        }
+        scrollToPosition({ x, y }) {
+          this.scrollRoot.scrollTo(x, y);
+        }
+        scrollToTop() {
+          this.scrollToPosition({
+            x: 0,
+            y: 0
+          });
+        }
+        get scrollRoot() {
+          return window;
+        }
+        async render(renderer) {
+          const { isPreview, shouldRender, newSnapshot: snapshot } = renderer;
+          if (shouldRender) {
+            try {
+              this.renderPromise = new Promise((resolve) => this.resolveRenderPromise = resolve);
+              this.renderer = renderer;
+              this.prepareToRenderSnapshot(renderer);
+              const renderInterception = new Promise((resolve) => this.resolveInterceptionPromise = resolve);
+              const immediateRender = this.delegate.allowsImmediateRender(snapshot, this.resolveInterceptionPromise);
+              if (!immediateRender)
+                await renderInterception;
+              await this.renderSnapshot(renderer);
+              this.delegate.viewRenderedSnapshot(snapshot, isPreview);
+              this.finishRenderingSnapshot(renderer);
+            } finally {
+              delete this.renderer;
+              this.resolveRenderPromise(void 0);
+              delete this.renderPromise;
+            }
+          } else {
+            this.invalidate();
+          }
+        }
+        invalidate() {
+          this.delegate.viewInvalidated();
+        }
+        prepareToRenderSnapshot(renderer) {
+          this.markAsPreview(renderer.isPreview);
+          renderer.prepareToRender();
+        }
+        markAsPreview(isPreview) {
+          if (isPreview) {
+            this.element.setAttribute("data-turbo-preview", "");
+          } else {
+            this.element.removeAttribute("data-turbo-preview");
+          }
+        }
+        async renderSnapshot(renderer) {
+          await renderer.render();
+        }
+        finishRenderingSnapshot(renderer) {
+          renderer.finishRendering();
+        }
+      };
+      FrameView = class extends View {
+        invalidate() {
+          this.element.innerHTML = "";
+        }
+        get snapshot() {
+          return new Snapshot(this.element);
+        }
+      };
+      LinkInterceptor = class {
+        constructor(delegate, element) {
+          this.clickBubbled = (event) => {
+            if (this.respondsToEventTarget(event.target)) {
+              this.clickEvent = event;
+            } else {
+              delete this.clickEvent;
+            }
+          };
+          this.linkClicked = (event) => {
+            if (this.clickEvent && this.respondsToEventTarget(event.target) && event.target instanceof Element) {
+              if (this.delegate.shouldInterceptLinkClick(event.target, event.detail.url)) {
+                this.clickEvent.preventDefault();
+                event.preventDefault();
+                this.delegate.linkClickIntercepted(event.target, event.detail.url);
+              }
+            }
+            delete this.clickEvent;
+          };
+          this.willVisit = () => {
+            delete this.clickEvent;
+          };
+          this.delegate = delegate;
+          this.element = element;
+        }
+        start() {
+          this.element.addEventListener("click", this.clickBubbled);
+          document.addEventListener("turbo:click", this.linkClicked);
+          document.addEventListener("turbo:before-visit", this.willVisit);
+        }
+        stop() {
+          this.element.removeEventListener("click", this.clickBubbled);
+          document.removeEventListener("turbo:click", this.linkClicked);
+          document.removeEventListener("turbo:before-visit", this.willVisit);
+        }
+        respondsToEventTarget(target) {
+          const element = target instanceof Element ? target : target instanceof Node ? target.parentElement : null;
+          return element && element.closest("turbo-frame, html") == this.element;
+        }
+      };
+      Bardo = class {
+        constructor(permanentElementMap) {
+          this.permanentElementMap = permanentElementMap;
+        }
+        static preservingPermanentElements(permanentElementMap, callback) {
+          const bardo = new this(permanentElementMap);
+          bardo.enter();
+          callback();
+          bardo.leave();
+        }
+        enter() {
+          for (const id in this.permanentElementMap) {
+            const [, newPermanentElement] = this.permanentElementMap[id];
+            this.replaceNewPermanentElementWithPlaceholder(newPermanentElement);
+          }
+        }
+        leave() {
+          for (const id in this.permanentElementMap) {
+            const [currentPermanentElement] = this.permanentElementMap[id];
+            this.replaceCurrentPermanentElementWithClone(currentPermanentElement);
+            this.replacePlaceholderWithPermanentElement(currentPermanentElement);
+          }
+        }
+        replaceNewPermanentElementWithPlaceholder(permanentElement) {
+          const placeholder = createPlaceholderForPermanentElement(permanentElement);
+          permanentElement.replaceWith(placeholder);
+        }
+        replaceCurrentPermanentElementWithClone(permanentElement) {
+          const clone = permanentElement.cloneNode(true);
+          permanentElement.replaceWith(clone);
+        }
+        replacePlaceholderWithPermanentElement(permanentElement) {
+          const placeholder = this.getPlaceholderById(permanentElement.id);
+          placeholder === null || placeholder === void 0 ? void 0 : placeholder.replaceWith(permanentElement);
+        }
+        getPlaceholderById(id) {
+          return this.placeholders.find((element) => element.content == id);
+        }
+        get placeholders() {
+          return [...document.querySelectorAll("meta[name=turbo-permanent-placeholder][content]")];
+        }
+      };
+      Renderer = class {
+        constructor(currentSnapshot, newSnapshot, isPreview, willRender = true) {
+          this.currentSnapshot = currentSnapshot;
+          this.newSnapshot = newSnapshot;
+          this.isPreview = isPreview;
+          this.willRender = willRender;
+          this.promise = new Promise((resolve, reject) => this.resolvingFunctions = {
+            resolve,
+            reject
+          });
+        }
+        get shouldRender() {
+          return true;
+        }
+        prepareToRender() {
+          return;
+        }
+        finishRendering() {
+          if (this.resolvingFunctions) {
+            this.resolvingFunctions.resolve();
+            delete this.resolvingFunctions;
+          }
+        }
+        createScriptElement(element) {
+          if (element.getAttribute("data-turbo-eval") == "false") {
+            return element;
+          } else {
+            const createdScriptElement = document.createElement("script");
+            if (this.cspNonce) {
+              createdScriptElement.nonce = this.cspNonce;
+            }
+            createdScriptElement.textContent = element.textContent;
+            createdScriptElement.async = false;
+            copyElementAttributes(createdScriptElement, element);
+            return createdScriptElement;
+          }
+        }
+        preservingPermanentElements(callback) {
+          Bardo.preservingPermanentElements(this.permanentElementMap, callback);
+        }
+        focusFirstAutofocusableElement() {
+          const element = this.connectedSnapshot.firstAutofocusableElement;
+          if (elementIsFocusable(element)) {
+            element.focus();
+          }
+        }
+        get connectedSnapshot() {
+          return this.newSnapshot.isConnected ? this.newSnapshot : this.currentSnapshot;
+        }
+        get currentElement() {
+          return this.currentSnapshot.element;
+        }
+        get newElement() {
+          return this.newSnapshot.element;
+        }
+        get permanentElementMap() {
+          return this.currentSnapshot.getPermanentElementMapForSnapshot(this.newSnapshot);
+        }
+        get cspNonce() {
+          var _a;
+          return (_a = document.head.querySelector('meta[name="csp-nonce"]')) === null || _a === void 0 ? void 0 : _a.getAttribute("content");
+        }
+      };
+      FrameRenderer = class extends Renderer {
+        get shouldRender() {
+          return true;
+        }
+        async render() {
+          await nextAnimationFrame();
+          this.preservingPermanentElements(() => {
+            this.loadFrameElement();
+          });
+          this.scrollFrameIntoView();
+          await nextAnimationFrame();
+          this.focusFirstAutofocusableElement();
+          await nextAnimationFrame();
+          this.activateScriptElements();
+        }
+        loadFrameElement() {
+          var _a;
+          const destinationRange = document.createRange();
+          destinationRange.selectNodeContents(this.currentElement);
+          destinationRange.deleteContents();
+          const frameElement = this.newElement;
+          const sourceRange = (_a = frameElement.ownerDocument) === null || _a === void 0 ? void 0 : _a.createRange();
+          if (sourceRange) {
+            sourceRange.selectNodeContents(frameElement);
+            this.currentElement.appendChild(sourceRange.extractContents());
+          }
+        }
+        scrollFrameIntoView() {
+          if (this.currentElement.autoscroll || this.newElement.autoscroll) {
+            const element = this.currentElement.firstElementChild;
+            const block = readScrollLogicalPosition(this.currentElement.getAttribute("data-autoscroll-block"), "end");
+            if (element) {
+              element.scrollIntoView({
+                block
+              });
+              return true;
+            }
+          }
+          return false;
+        }
+        activateScriptElements() {
+          for (const inertScriptElement of this.newScriptElements) {
+            const activatedScriptElement = this.createScriptElement(inertScriptElement);
+            inertScriptElement.replaceWith(activatedScriptElement);
+          }
+        }
+        get newScriptElements() {
+          return this.currentElement.querySelectorAll("script");
+        }
+      };
+      ProgressBar = class {
+        constructor() {
+          this.hiding = false;
+          this.value = 0;
+          this.visible = false;
+          this.trickle = () => {
+            this.setValue(this.value + Math.random() / 100);
+          };
+          this.stylesheetElement = this.createStylesheetElement();
+          this.progressElement = this.createProgressElement();
+          this.installStylesheetElement();
+          this.setValue(0);
+        }
+        static get defaultCSS() {
+          return unindent`
+      .turbo-progress-bar {
+        position: fixed;
+        display: block;
+        top: 0;
+        left: 0;
+        height: 3px;
+        background: #0076ff;
+        z-index: 9999;
+        transition:
+          width ${ProgressBar.animationDuration}ms ease-out,
+          opacity ${ProgressBar.animationDuration / 2}ms ${ProgressBar.animationDuration / 2}ms ease-in;
+        transform: translate3d(0, 0, 0);
+      }
+    `;
+        }
+        show() {
+          if (!this.visible) {
+            this.visible = true;
+            this.installProgressElement();
+            this.startTrickling();
+          }
+        }
+        hide() {
+          if (this.visible && !this.hiding) {
+            this.hiding = true;
+            this.fadeProgressElement(() => {
+              this.uninstallProgressElement();
+              this.stopTrickling();
+              this.visible = false;
+              this.hiding = false;
+            });
+          }
+        }
+        setValue(value) {
+          this.value = value;
+          this.refresh();
+        }
+        installStylesheetElement() {
+          document.head.insertBefore(this.stylesheetElement, document.head.firstChild);
+        }
+        installProgressElement() {
+          this.progressElement.style.width = "0";
+          this.progressElement.style.opacity = "1";
+          document.documentElement.insertBefore(this.progressElement, document.body);
+          this.refresh();
+        }
+        fadeProgressElement(callback) {
+          this.progressElement.style.opacity = "0";
+          setTimeout(callback, ProgressBar.animationDuration * 1.5);
+        }
+        uninstallProgressElement() {
+          if (this.progressElement.parentNode) {
+            document.documentElement.removeChild(this.progressElement);
+          }
+        }
+        startTrickling() {
+          if (!this.trickleInterval) {
+            this.trickleInterval = window.setInterval(this.trickle, ProgressBar.animationDuration);
+          }
+        }
+        stopTrickling() {
+          window.clearInterval(this.trickleInterval);
+          delete this.trickleInterval;
+        }
+        refresh() {
+          requestAnimationFrame(() => {
+            this.progressElement.style.width = `${10 + this.value * 90}%`;
+          });
+        }
+        createStylesheetElement() {
+          const element = document.createElement("style");
+          element.type = "text/css";
+          element.textContent = ProgressBar.defaultCSS;
+          return element;
+        }
+        createProgressElement() {
+          const element = document.createElement("div");
+          element.className = "turbo-progress-bar";
+          return element;
+        }
+      };
+      ProgressBar.animationDuration = 300;
+      HeadSnapshot = class extends Snapshot {
+        constructor() {
+          super(...arguments);
+          this.detailsByOuterHTML = this.children.filter((element) => !elementIsNoscript(element)).map((element) => elementWithoutNonce(element)).reduce((result, element) => {
+            const { outerHTML } = element;
+            const details = outerHTML in result ? result[outerHTML] : {
+              type: elementType(element),
+              tracked: elementIsTracked(element),
+              elements: []
+            };
+            return Object.assign(Object.assign({}, result), {
+              [outerHTML]: Object.assign(Object.assign({}, details), {
+                elements: [...details.elements, element]
+              })
+            });
+          }, {});
+        }
+        get trackedElementSignature() {
+          return Object.keys(this.detailsByOuterHTML).filter((outerHTML) => this.detailsByOuterHTML[outerHTML].tracked).join("");
+        }
+        getScriptElementsNotInSnapshot(snapshot) {
+          return this.getElementsMatchingTypeNotInSnapshot("script", snapshot);
+        }
+        getStylesheetElementsNotInSnapshot(snapshot) {
+          return this.getElementsMatchingTypeNotInSnapshot("stylesheet", snapshot);
+        }
+        getElementsMatchingTypeNotInSnapshot(matchedType, snapshot) {
+          return Object.keys(this.detailsByOuterHTML).filter((outerHTML) => !(outerHTML in snapshot.detailsByOuterHTML)).map((outerHTML) => this.detailsByOuterHTML[outerHTML]).filter(({ type }) => type == matchedType).map(({ elements: [element] }) => element);
+        }
+        get provisionalElements() {
+          return Object.keys(this.detailsByOuterHTML).reduce((result, outerHTML) => {
+            const { type, tracked, elements } = this.detailsByOuterHTML[outerHTML];
+            if (type == null && !tracked) {
+              return [...result, ...elements];
+            } else if (elements.length > 1) {
+              return [...result, ...elements.slice(1)];
+            } else {
+              return result;
+            }
+          }, []);
+        }
+        getMetaValue(name) {
+          const element = this.findMetaElementByName(name);
+          return element ? element.getAttribute("content") : null;
+        }
+        findMetaElementByName(name) {
+          return Object.keys(this.detailsByOuterHTML).reduce((result, outerHTML) => {
+            const { elements: [element] } = this.detailsByOuterHTML[outerHTML];
+            return elementIsMetaElementWithName(element, name) ? element : result;
+          }, void 0);
+        }
+      };
+      PageSnapshot = class extends Snapshot {
+        constructor(element, headSnapshot) {
+          super(element);
+          this.headSnapshot = headSnapshot;
+        }
+        static fromHTMLString(html = "") {
+          return this.fromDocument(parseHTMLDocument(html));
+        }
+        static fromElement(element) {
+          return this.fromDocument(element.ownerDocument);
+        }
+        static fromDocument({ head, body }) {
+          return new this(body, new HeadSnapshot(head));
+        }
+        clone() {
+          return new PageSnapshot(this.element.cloneNode(true), this.headSnapshot);
+        }
+        get headElement() {
+          return this.headSnapshot.element;
+        }
+        get rootLocation() {
+          var _a;
+          const root = (_a = this.getSetting("root")) !== null && _a !== void 0 ? _a : "/";
+          return expandURL(root);
+        }
+        get cacheControlValue() {
+          return this.getSetting("cache-control");
+        }
+        get isPreviewable() {
+          return this.cacheControlValue != "no-preview";
+        }
+        get isCacheable() {
+          return this.cacheControlValue != "no-cache";
+        }
+        get isVisitable() {
+          return this.getSetting("visit-control") != "reload";
+        }
+        getSetting(name) {
+          return this.headSnapshot.getMetaValue(`turbo-${name}`);
+        }
+      };
+      (function(TimingMetric2) {
+        TimingMetric2["visitStart"] = "visitStart";
+        TimingMetric2["requestStart"] = "requestStart";
+        TimingMetric2["requestEnd"] = "requestEnd";
+        TimingMetric2["visitEnd"] = "visitEnd";
+      })(TimingMetric || (TimingMetric = {}));
+      (function(VisitState2) {
+        VisitState2["initialized"] = "initialized";
+        VisitState2["started"] = "started";
+        VisitState2["canceled"] = "canceled";
+        VisitState2["failed"] = "failed";
+        VisitState2["completed"] = "completed";
+      })(VisitState || (VisitState = {}));
+      defaultOptions = {
+        action: "advance",
+        historyChanged: false,
+        visitCachedSnapshot: () => {
+        },
+        willRender: true
+      };
+      (function(SystemStatusCode2) {
+        SystemStatusCode2[SystemStatusCode2["networkFailure"] = 0] = "networkFailure";
+        SystemStatusCode2[SystemStatusCode2["timeoutFailure"] = -1] = "timeoutFailure";
+        SystemStatusCode2[SystemStatusCode2["contentTypeMismatch"] = -2] = "contentTypeMismatch";
+      })(SystemStatusCode || (SystemStatusCode = {}));
+      Visit = class {
+        constructor(delegate, location2, restorationIdentifier, options = {}) {
+          this.identifier = uuid();
+          this.timingMetrics = {};
+          this.followedRedirect = false;
+          this.historyChanged = false;
+          this.scrolled = false;
+          this.snapshotCached = false;
+          this.state = VisitState.initialized;
+          this.delegate = delegate;
+          this.location = location2;
+          this.restorationIdentifier = restorationIdentifier || uuid();
+          const { action, historyChanged, referrer, snapshotHTML, response, visitCachedSnapshot, willRender } = Object.assign(Object.assign({}, defaultOptions), options);
+          this.action = action;
+          this.historyChanged = historyChanged;
+          this.referrer = referrer;
+          this.snapshotHTML = snapshotHTML;
+          this.response = response;
+          this.isSamePage = this.delegate.locationWithActionIsSamePage(this.location, this.action);
+          this.visitCachedSnapshot = visitCachedSnapshot;
+          this.willRender = willRender;
+          this.scrolled = !willRender;
+        }
+        get adapter() {
+          return this.delegate.adapter;
+        }
+        get view() {
+          return this.delegate.view;
+        }
+        get history() {
+          return this.delegate.history;
+        }
+        get restorationData() {
+          return this.history.getRestorationDataForIdentifier(this.restorationIdentifier);
+        }
+        get silent() {
+          return this.isSamePage;
+        }
+        start() {
+          if (this.state == VisitState.initialized) {
+            this.recordTimingMetric(TimingMetric.visitStart);
+            this.state = VisitState.started;
+            this.adapter.visitStarted(this);
+            this.delegate.visitStarted(this);
+          }
+        }
+        cancel() {
+          if (this.state == VisitState.started) {
+            if (this.request) {
+              this.request.cancel();
+            }
+            this.cancelRender();
+            this.state = VisitState.canceled;
+          }
+        }
+        complete() {
+          if (this.state == VisitState.started) {
+            this.recordTimingMetric(TimingMetric.visitEnd);
+            this.state = VisitState.completed;
+            this.adapter.visitCompleted(this);
+            this.delegate.visitCompleted(this);
+            this.followRedirect();
+          }
+        }
+        fail() {
+          if (this.state == VisitState.started) {
+            this.state = VisitState.failed;
+            this.adapter.visitFailed(this);
+          }
+        }
+        changeHistory() {
+          var _a;
+          if (!this.historyChanged) {
+            const actionForHistory = this.location.href === ((_a = this.referrer) === null || _a === void 0 ? void 0 : _a.href) ? "replace" : this.action;
+            const method = this.getHistoryMethodForAction(actionForHistory);
+            this.history.update(method, this.location, this.restorationIdentifier);
+            this.historyChanged = true;
+          }
+        }
+        issueRequest() {
+          if (this.hasPreloadedResponse()) {
+            this.simulateRequest();
+          } else if (this.shouldIssueRequest() && !this.request) {
+            this.request = new FetchRequest(this, FetchMethod.get, this.location);
+            this.request.perform();
+          }
+        }
+        simulateRequest() {
+          if (this.response) {
+            this.startRequest();
+            this.recordResponse();
+            this.finishRequest();
+          }
+        }
+        startRequest() {
+          this.recordTimingMetric(TimingMetric.requestStart);
+          this.adapter.visitRequestStarted(this);
+        }
+        recordResponse(response = this.response) {
+          this.response = response;
+          if (response) {
+            const { statusCode } = response;
+            if (isSuccessful(statusCode)) {
+              this.adapter.visitRequestCompleted(this);
+            } else {
+              this.adapter.visitRequestFailedWithStatusCode(this, statusCode);
+            }
+          }
+        }
+        finishRequest() {
+          this.recordTimingMetric(TimingMetric.requestEnd);
+          this.adapter.visitRequestFinished(this);
+        }
+        loadResponse() {
+          if (this.response) {
+            const { statusCode, responseHTML } = this.response;
+            this.render(async () => {
+              this.cacheSnapshot();
+              if (this.view.renderPromise)
+                await this.view.renderPromise;
+              if (isSuccessful(statusCode) && responseHTML != null) {
+                await this.view.renderPage(PageSnapshot.fromHTMLString(responseHTML), false, this.willRender);
+                this.adapter.visitRendered(this);
+                this.complete();
+              } else {
+                await this.view.renderError(PageSnapshot.fromHTMLString(responseHTML));
+                this.adapter.visitRendered(this);
+                this.fail();
+              }
+            });
+          }
+        }
+        getCachedSnapshot() {
+          const snapshot = this.view.getCachedSnapshotForLocation(this.location) || this.getPreloadedSnapshot();
+          if (snapshot && (!getAnchor(this.location) || snapshot.hasAnchor(getAnchor(this.location)))) {
+            if (this.action == "restore" || snapshot.isPreviewable) {
+              return snapshot;
+            }
+          }
+        }
+        getPreloadedSnapshot() {
+          if (this.snapshotHTML) {
+            return PageSnapshot.fromHTMLString(this.snapshotHTML);
+          }
+        }
+        hasCachedSnapshot() {
+          return this.getCachedSnapshot() != null;
+        }
+        loadCachedSnapshot() {
+          const snapshot = this.getCachedSnapshot();
+          if (snapshot) {
+            const isPreview = this.shouldIssueRequest();
+            this.render(async () => {
+              this.cacheSnapshot();
+              if (this.isSamePage) {
+                this.adapter.visitRendered(this);
+              } else {
+                if (this.view.renderPromise)
+                  await this.view.renderPromise;
+                await this.view.renderPage(snapshot, isPreview, this.willRender);
+                this.adapter.visitRendered(this);
+                if (!isPreview) {
+                  this.complete();
+                }
+              }
+            });
+          }
+        }
+        followRedirect() {
+          var _a;
+          if (this.redirectedToLocation && !this.followedRedirect && ((_a = this.response) === null || _a === void 0 ? void 0 : _a.redirected)) {
+            this.adapter.visitProposedToLocation(this.redirectedToLocation, {
+              action: "replace",
+              response: this.response
+            });
+            this.followedRedirect = true;
+          }
+        }
+        goToSamePageAnchor() {
+          if (this.isSamePage) {
+            this.render(async () => {
+              this.cacheSnapshot();
+              this.adapter.visitRendered(this);
+            });
+          }
+        }
+        requestStarted() {
+          this.startRequest();
+        }
+        requestPreventedHandlingResponse(request, response) {
+        }
+        async requestSucceededWithResponse(request, response) {
+          const responseHTML = await response.responseHTML;
+          const { redirected, statusCode } = response;
+          if (responseHTML == void 0) {
+            this.recordResponse({
+              statusCode: SystemStatusCode.contentTypeMismatch,
+              redirected
+            });
+          } else {
+            this.redirectedToLocation = response.redirected ? response.location : void 0;
+            this.recordResponse({
+              statusCode,
+              responseHTML,
+              redirected
+            });
+          }
+        }
+        async requestFailedWithResponse(request, response) {
+          const responseHTML = await response.responseHTML;
+          const { redirected, statusCode } = response;
+          if (responseHTML == void 0) {
+            this.recordResponse({
+              statusCode: SystemStatusCode.contentTypeMismatch,
+              redirected
+            });
+          } else {
+            this.recordResponse({
+              statusCode,
+              responseHTML,
+              redirected
+            });
+          }
+        }
+        requestErrored(request, error2) {
+          this.recordResponse({
+            statusCode: SystemStatusCode.networkFailure,
+            redirected: false
+          });
+        }
+        requestFinished() {
+          this.finishRequest();
+        }
+        performScroll() {
+          if (!this.scrolled) {
+            if (this.action == "restore") {
+              this.scrollToRestoredPosition() || this.scrollToAnchor() || this.view.scrollToTop();
+            } else {
+              this.scrollToAnchor() || this.view.scrollToTop();
+            }
+            if (this.isSamePage) {
+              this.delegate.visitScrolledToSamePageLocation(this.view.lastRenderedLocation, this.location);
+            }
+            this.scrolled = true;
+          }
+        }
+        scrollToRestoredPosition() {
+          const { scrollPosition } = this.restorationData;
+          if (scrollPosition) {
+            this.view.scrollToPosition(scrollPosition);
+            return true;
+          }
+        }
+        scrollToAnchor() {
+          const anchor = getAnchor(this.location);
+          if (anchor != null) {
+            this.view.scrollToAnchor(anchor);
+            return true;
+          }
+        }
+        recordTimingMetric(metric) {
+          this.timingMetrics[metric] = new Date().getTime();
+        }
+        getTimingMetrics() {
+          return Object.assign({}, this.timingMetrics);
+        }
+        getHistoryMethodForAction(action) {
+          switch (action) {
+            case "replace":
+              return history.replaceState;
+            case "advance":
+            case "restore":
+              return history.pushState;
+          }
+        }
+        hasPreloadedResponse() {
+          return typeof this.response == "object";
+        }
+        shouldIssueRequest() {
+          if (this.isSamePage) {
+            return false;
+          } else if (this.action == "restore") {
+            return !this.hasCachedSnapshot();
+          } else {
+            return this.willRender;
+          }
+        }
+        cacheSnapshot() {
+          if (!this.snapshotCached) {
+            this.view.cacheSnapshot().then((snapshot) => snapshot && this.visitCachedSnapshot(snapshot));
+            this.snapshotCached = true;
+          }
+        }
+        async render(callback) {
+          this.cancelRender();
+          await new Promise((resolve) => {
+            this.frame = requestAnimationFrame(() => resolve());
+          });
+          await callback();
+          delete this.frame;
+          this.performScroll();
+        }
+        cancelRender() {
+          if (this.frame) {
+            cancelAnimationFrame(this.frame);
+            delete this.frame;
+          }
+        }
+      };
+      BrowserAdapter = class {
+        constructor(session2) {
+          this.progressBar = new ProgressBar();
+          this.showProgressBar = () => {
+            this.progressBar.show();
+          };
+          this.session = session2;
+        }
+        visitProposedToLocation(location2, options) {
+          this.navigator.startVisit(location2, uuid(), options);
+        }
+        visitStarted(visit2) {
+          visit2.loadCachedSnapshot();
+          visit2.issueRequest();
+          visit2.changeHistory();
+          visit2.goToSamePageAnchor();
+        }
+        visitRequestStarted(visit2) {
+          this.progressBar.setValue(0);
+          if (visit2.hasCachedSnapshot() || visit2.action != "restore") {
+            this.showVisitProgressBarAfterDelay();
+          } else {
+            this.showProgressBar();
+          }
+        }
+        visitRequestCompleted(visit2) {
+          visit2.loadResponse();
+        }
+        visitRequestFailedWithStatusCode(visit2, statusCode) {
+          switch (statusCode) {
+            case SystemStatusCode.networkFailure:
+            case SystemStatusCode.timeoutFailure:
+            case SystemStatusCode.contentTypeMismatch:
+              return this.reload();
+            default:
+              return visit2.loadResponse();
+          }
+        }
+        visitRequestFinished(visit2) {
+          this.progressBar.setValue(1);
+          this.hideVisitProgressBar();
+        }
+        visitCompleted(visit2) {
+        }
+        pageInvalidated() {
+          this.reload();
+        }
+        visitFailed(visit2) {
+        }
+        visitRendered(visit2) {
+        }
+        formSubmissionStarted(formSubmission) {
+          this.progressBar.setValue(0);
+          this.showFormProgressBarAfterDelay();
+        }
+        formSubmissionFinished(formSubmission) {
+          this.progressBar.setValue(1);
+          this.hideFormProgressBar();
+        }
+        showVisitProgressBarAfterDelay() {
+          this.visitProgressBarTimeout = window.setTimeout(this.showProgressBar, this.session.progressBarDelay);
+        }
+        hideVisitProgressBar() {
+          this.progressBar.hide();
+          if (this.visitProgressBarTimeout != null) {
+            window.clearTimeout(this.visitProgressBarTimeout);
+            delete this.visitProgressBarTimeout;
+          }
+        }
+        showFormProgressBarAfterDelay() {
+          if (this.formProgressBarTimeout == null) {
+            this.formProgressBarTimeout = window.setTimeout(this.showProgressBar, this.session.progressBarDelay);
+          }
+        }
+        hideFormProgressBar() {
+          this.progressBar.hide();
+          if (this.formProgressBarTimeout != null) {
+            window.clearTimeout(this.formProgressBarTimeout);
+            delete this.formProgressBarTimeout;
+          }
+        }
+        reload() {
+          window.location.reload();
+        }
+        get navigator() {
+          return this.session.navigator;
+        }
+      };
+      CacheObserver = class {
+        constructor() {
+          this.started = false;
+        }
+        start() {
+          if (!this.started) {
+            this.started = true;
+            addEventListener("turbo:before-cache", this.removeStaleElements, false);
+          }
+        }
+        stop() {
+          if (this.started) {
+            this.started = false;
+            removeEventListener("turbo:before-cache", this.removeStaleElements, false);
+          }
+        }
+        removeStaleElements() {
+          const staleElements = [...document.querySelectorAll('[data-turbo-cache="false"]')];
+          for (const element of staleElements) {
+            element.remove();
+          }
+        }
+      };
+      FormSubmitObserver = class {
+        constructor(delegate) {
+          this.started = false;
+          this.submitCaptured = () => {
+            removeEventListener("submit", this.submitBubbled, false);
+            addEventListener("submit", this.submitBubbled, false);
+          };
+          this.submitBubbled = (event) => {
+            if (!event.defaultPrevented) {
+              const form = event.target instanceof HTMLFormElement ? event.target : void 0;
+              const submitter = event.submitter || void 0;
+              if (form) {
+                const method = (submitter === null || submitter === void 0 ? void 0 : submitter.getAttribute("formmethod")) || form.getAttribute("method");
+                if (method != "dialog" && this.delegate.willSubmitForm(form, submitter)) {
+                  event.preventDefault();
+                  this.delegate.formSubmitted(form, submitter);
+                }
+              }
+            }
+          };
+          this.delegate = delegate;
+        }
+        start() {
+          if (!this.started) {
+            addEventListener("submit", this.submitCaptured, true);
+            this.started = true;
+          }
+        }
+        stop() {
+          if (this.started) {
+            removeEventListener("submit", this.submitCaptured, true);
+            this.started = false;
+          }
+        }
+      };
+      FrameRedirector = class {
+        constructor(element) {
+          this.element = element;
+          this.linkInterceptor = new LinkInterceptor(this, element);
+          this.formInterceptor = new FormInterceptor(this, element);
+        }
+        start() {
+          this.linkInterceptor.start();
+          this.formInterceptor.start();
+        }
+        stop() {
+          this.linkInterceptor.stop();
+          this.formInterceptor.stop();
+        }
+        shouldInterceptLinkClick(element, url) {
+          return this.shouldRedirect(element);
+        }
+        linkClickIntercepted(element, url) {
+          const frame = this.findFrameElement(element);
+          if (frame) {
+            frame.delegate.linkClickIntercepted(element, url);
+          }
+        }
+        shouldInterceptFormSubmission(element, submitter) {
+          return this.shouldSubmit(element, submitter);
+        }
+        formSubmissionIntercepted(element, submitter) {
+          const frame = this.findFrameElement(element, submitter);
+          if (frame) {
+            frame.removeAttribute("reloadable");
+            frame.delegate.formSubmissionIntercepted(element, submitter);
+          }
+        }
+        shouldSubmit(form, submitter) {
+          var _a;
+          const action = getAction(form, submitter);
+          const meta = this.element.ownerDocument.querySelector(`meta[name="turbo-root"]`);
+          const rootLocation = expandURL((_a = meta === null || meta === void 0 ? void 0 : meta.content) !== null && _a !== void 0 ? _a : "/");
+          return this.shouldRedirect(form, submitter) && locationIsVisitable(action, rootLocation);
+        }
+        shouldRedirect(element, submitter) {
+          const frame = this.findFrameElement(element, submitter);
+          return frame ? frame != element.closest("turbo-frame") : false;
+        }
+        findFrameElement(element, submitter) {
+          const id = (submitter === null || submitter === void 0 ? void 0 : submitter.getAttribute("data-turbo-frame")) || element.getAttribute("data-turbo-frame");
+          if (id && id != "_top") {
+            const frame = this.element.querySelector(`#${id}:not([disabled])`);
+            if (frame instanceof FrameElement) {
+              return frame;
+            }
+          }
+        }
+      };
+      History = class {
+        constructor(delegate) {
+          this.restorationIdentifier = uuid();
+          this.restorationData = {};
+          this.started = false;
+          this.pageLoaded = false;
+          this.onPopState = (event) => {
+            if (this.shouldHandlePopState()) {
+              const { turbo } = event.state || {};
+              if (turbo) {
+                this.location = new URL(window.location.href);
+                const { restorationIdentifier } = turbo;
+                this.restorationIdentifier = restorationIdentifier;
+                this.delegate.historyPoppedToLocationWithRestorationIdentifier(this.location, restorationIdentifier);
+              }
+            }
+          };
+          this.onPageLoad = async (event) => {
+            await nextMicrotask();
+            this.pageLoaded = true;
+          };
+          this.delegate = delegate;
+        }
+        start() {
+          if (!this.started) {
+            addEventListener("popstate", this.onPopState, false);
+            addEventListener("load", this.onPageLoad, false);
+            this.started = true;
+            this.replace(new URL(window.location.href));
+          }
+        }
+        stop() {
+          if (this.started) {
+            removeEventListener("popstate", this.onPopState, false);
+            removeEventListener("load", this.onPageLoad, false);
+            this.started = false;
+          }
+        }
+        push(location2, restorationIdentifier) {
+          this.update(history.pushState, location2, restorationIdentifier);
+        }
+        replace(location2, restorationIdentifier) {
+          this.update(history.replaceState, location2, restorationIdentifier);
+        }
+        update(method, location2, restorationIdentifier = uuid()) {
+          const state = {
+            turbo: {
+              restorationIdentifier
+            }
+          };
+          method.call(history, state, "", location2.href);
+          this.location = location2;
+          this.restorationIdentifier = restorationIdentifier;
+        }
+        getRestorationDataForIdentifier(restorationIdentifier) {
+          return this.restorationData[restorationIdentifier] || {};
+        }
+        updateRestorationData(additionalData) {
+          const { restorationIdentifier } = this;
+          const restorationData = this.restorationData[restorationIdentifier];
+          this.restorationData[restorationIdentifier] = Object.assign(Object.assign({}, restorationData), additionalData);
+        }
+        assumeControlOfScrollRestoration() {
+          var _a;
+          if (!this.previousScrollRestoration) {
+            this.previousScrollRestoration = (_a = history.scrollRestoration) !== null && _a !== void 0 ? _a : "auto";
+            history.scrollRestoration = "manual";
+          }
+        }
+        relinquishControlOfScrollRestoration() {
+          if (this.previousScrollRestoration) {
+            history.scrollRestoration = this.previousScrollRestoration;
+            delete this.previousScrollRestoration;
+          }
+        }
+        shouldHandlePopState() {
+          return this.pageIsLoaded();
+        }
+        pageIsLoaded() {
+          return this.pageLoaded || document.readyState == "complete";
+        }
+      };
+      LinkClickObserver = class {
+        constructor(delegate) {
+          this.started = false;
+          this.clickCaptured = () => {
+            removeEventListener("click", this.clickBubbled, false);
+            addEventListener("click", this.clickBubbled, false);
+          };
+          this.clickBubbled = (event) => {
+            if (this.clickEventIsSignificant(event)) {
+              const target = event.composedPath && event.composedPath()[0] || event.target;
+              const link = this.findLinkFromClickTarget(target);
+              if (link) {
+                const location2 = this.getLocationForLink(link);
+                if (this.delegate.willFollowLinkToLocation(link, location2)) {
+                  event.preventDefault();
+                  this.delegate.followedLinkToLocation(link, location2);
+                }
+              }
+            }
+          };
+          this.delegate = delegate;
+        }
+        start() {
+          if (!this.started) {
+            addEventListener("click", this.clickCaptured, true);
+            this.started = true;
+          }
+        }
+        stop() {
+          if (this.started) {
+            removeEventListener("click", this.clickCaptured, true);
+            this.started = false;
+          }
+        }
+        clickEventIsSignificant(event) {
+          return !(event.target && event.target.isContentEditable || event.defaultPrevented || event.which > 1 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey);
+        }
+        findLinkFromClickTarget(target) {
+          if (target instanceof Element) {
+            return target.closest("a[href]:not([target^=_]):not([download])");
+          }
+        }
+        getLocationForLink(link) {
+          return expandURL(link.getAttribute("href") || "");
+        }
+      };
+      Navigator = class {
+        constructor(delegate) {
+          this.delegate = delegate;
+        }
+        proposeVisit(location2, options = {}) {
+          if (this.delegate.allowsVisitingLocationWithAction(location2, options.action)) {
+            if (locationIsVisitable(location2, this.view.snapshot.rootLocation)) {
+              this.delegate.visitProposedToLocation(location2, options);
+            } else {
+              window.location.href = location2.toString();
+            }
+          }
+        }
+        startVisit(locatable, restorationIdentifier, options = {}) {
+          this.stop();
+          this.currentVisit = new Visit(this, expandURL(locatable), restorationIdentifier, Object.assign({
+            referrer: this.location
+          }, options));
+          this.currentVisit.start();
+        }
+        submitForm(form, submitter) {
+          this.stop();
+          this.formSubmission = new FormSubmission(this, form, submitter, true);
+          this.formSubmission.start();
+        }
+        stop() {
+          if (this.formSubmission) {
+            this.formSubmission.stop();
+            delete this.formSubmission;
+          }
+          if (this.currentVisit) {
+            this.currentVisit.cancel();
+            delete this.currentVisit;
+          }
+        }
+        get adapter() {
+          return this.delegate.adapter;
+        }
+        get view() {
+          return this.delegate.view;
+        }
+        get history() {
+          return this.delegate.history;
+        }
+        formSubmissionStarted(formSubmission) {
+          if (typeof this.adapter.formSubmissionStarted === "function") {
+            this.adapter.formSubmissionStarted(formSubmission);
+          }
+        }
+        async formSubmissionSucceededWithResponse(formSubmission, fetchResponse) {
+          if (formSubmission == this.formSubmission) {
+            const responseHTML = await fetchResponse.responseHTML;
+            if (responseHTML) {
+              if (formSubmission.method != FetchMethod.get) {
+                this.view.clearSnapshotCache();
+              }
+              const { statusCode, redirected } = fetchResponse;
+              const action = this.getActionForFormSubmission(formSubmission);
+              const visitOptions = {
+                action,
+                response: {
+                  statusCode,
+                  responseHTML,
+                  redirected
+                }
+              };
+              this.proposeVisit(fetchResponse.location, visitOptions);
+            }
+          }
+        }
+        async formSubmissionFailedWithResponse(formSubmission, fetchResponse) {
+          const responseHTML = await fetchResponse.responseHTML;
+          if (responseHTML) {
+            const snapshot = PageSnapshot.fromHTMLString(responseHTML);
+            if (fetchResponse.serverError) {
+              await this.view.renderError(snapshot);
+            } else {
+              await this.view.renderPage(snapshot);
+            }
+            this.view.scrollToTop();
+            this.view.clearSnapshotCache();
+          }
+        }
+        formSubmissionErrored(formSubmission, error2) {
+          console.error(error2);
+        }
+        formSubmissionFinished(formSubmission) {
+          if (typeof this.adapter.formSubmissionFinished === "function") {
+            this.adapter.formSubmissionFinished(formSubmission);
+          }
+        }
+        visitStarted(visit2) {
+          this.delegate.visitStarted(visit2);
+        }
+        visitCompleted(visit2) {
+          this.delegate.visitCompleted(visit2);
+        }
+        locationWithActionIsSamePage(location2, action) {
+          const anchor = getAnchor(location2);
+          const currentAnchor = getAnchor(this.view.lastRenderedLocation);
+          const isRestorationToTop = action === "restore" && typeof anchor === "undefined";
+          return action !== "replace" && getRequestURL(location2) === getRequestURL(this.view.lastRenderedLocation) && (isRestorationToTop || anchor != null && anchor !== currentAnchor);
+        }
+        visitScrolledToSamePageLocation(oldURL, newURL) {
+          this.delegate.visitScrolledToSamePageLocation(oldURL, newURL);
+        }
+        get location() {
+          return this.history.location;
+        }
+        get restorationIdentifier() {
+          return this.history.restorationIdentifier;
+        }
+        getActionForFormSubmission(formSubmission) {
+          const { formElement, submitter } = formSubmission;
+          const action = getAttribute("data-turbo-action", submitter, formElement);
+          return isAction(action) ? action : "advance";
+        }
+      };
+      (function(PageStage2) {
+        PageStage2[PageStage2["initial"] = 0] = "initial";
+        PageStage2[PageStage2["loading"] = 1] = "loading";
+        PageStage2[PageStage2["interactive"] = 2] = "interactive";
+        PageStage2[PageStage2["complete"] = 3] = "complete";
+      })(PageStage || (PageStage = {}));
+      PageObserver = class {
+        constructor(delegate) {
+          this.stage = PageStage.initial;
+          this.started = false;
+          this.interpretReadyState = () => {
+            const { readyState } = this;
+            if (readyState == "interactive") {
+              this.pageIsInteractive();
+            } else if (readyState == "complete") {
+              this.pageIsComplete();
+            }
+          };
+          this.pageWillUnload = () => {
+            this.delegate.pageWillUnload();
+          };
+          this.delegate = delegate;
+        }
+        start() {
+          if (!this.started) {
+            if (this.stage == PageStage.initial) {
+              this.stage = PageStage.loading;
+            }
+            document.addEventListener("readystatechange", this.interpretReadyState, false);
+            addEventListener("pagehide", this.pageWillUnload, false);
+            this.started = true;
+          }
+        }
+        stop() {
+          if (this.started) {
+            document.removeEventListener("readystatechange", this.interpretReadyState, false);
+            removeEventListener("pagehide", this.pageWillUnload, false);
+            this.started = false;
+          }
+        }
+        pageIsInteractive() {
+          if (this.stage == PageStage.loading) {
+            this.stage = PageStage.interactive;
+            this.delegate.pageBecameInteractive();
+          }
+        }
+        pageIsComplete() {
+          this.pageIsInteractive();
+          if (this.stage == PageStage.interactive) {
+            this.stage = PageStage.complete;
+            this.delegate.pageLoaded();
+          }
+        }
+        get readyState() {
+          return document.readyState;
+        }
+      };
+      ScrollObserver = class {
+        constructor(delegate) {
+          this.started = false;
+          this.onScroll = () => {
+            this.updatePosition({
+              x: window.pageXOffset,
+              y: window.pageYOffset
+            });
+          };
+          this.delegate = delegate;
+        }
+        start() {
+          if (!this.started) {
+            addEventListener("scroll", this.onScroll, false);
+            this.onScroll();
+            this.started = true;
+          }
+        }
+        stop() {
+          if (this.started) {
+            removeEventListener("scroll", this.onScroll, false);
+            this.started = false;
+          }
+        }
+        updatePosition(position) {
+          this.delegate.scrollPositionChanged(position);
+        }
+      };
+      StreamObserver = class {
+        constructor(delegate) {
+          this.sources = /* @__PURE__ */ new Set();
+          this.started = false;
+          this.inspectFetchResponse = (event) => {
+            const response = fetchResponseFromEvent(event);
+            if (response && fetchResponseIsStream(response)) {
+              event.preventDefault();
+              this.receiveMessageResponse(response);
+            }
+          };
+          this.receiveMessageEvent = (event) => {
+            if (this.started && typeof event.data == "string") {
+              this.receiveMessageHTML(event.data);
+            }
+          };
+          this.delegate = delegate;
+        }
+        start() {
+          if (!this.started) {
+            this.started = true;
+            addEventListener("turbo:before-fetch-response", this.inspectFetchResponse, false);
+          }
+        }
+        stop() {
+          if (this.started) {
+            this.started = false;
+            removeEventListener("turbo:before-fetch-response", this.inspectFetchResponse, false);
+          }
+        }
+        connectStreamSource(source) {
+          if (!this.streamSourceIsConnected(source)) {
+            this.sources.add(source);
+            source.addEventListener("message", this.receiveMessageEvent, false);
+          }
+        }
+        disconnectStreamSource(source) {
+          if (this.streamSourceIsConnected(source)) {
+            this.sources.delete(source);
+            source.removeEventListener("message", this.receiveMessageEvent, false);
+          }
+        }
+        streamSourceIsConnected(source) {
+          return this.sources.has(source);
+        }
+        async receiveMessageResponse(response) {
+          const html = await response.responseHTML;
+          if (html) {
+            this.receiveMessageHTML(html);
+          }
+        }
+        receiveMessageHTML(html) {
+          this.delegate.receivedMessageFromStream(new StreamMessage(html));
+        }
+      };
+      ErrorRenderer = class extends Renderer {
+        async render() {
+          this.replaceHeadAndBody();
+          this.activateScriptElements();
+        }
+        replaceHeadAndBody() {
+          const { documentElement, head, body } = document;
+          documentElement.replaceChild(this.newHead, head);
+          documentElement.replaceChild(this.newElement, body);
+        }
+        activateScriptElements() {
+          for (const replaceableElement of this.scriptElements) {
+            const parentNode = replaceableElement.parentNode;
+            if (parentNode) {
+              const element = this.createScriptElement(replaceableElement);
+              parentNode.replaceChild(element, replaceableElement);
+            }
+          }
+        }
+        get newHead() {
+          return this.newSnapshot.headSnapshot.element;
+        }
+        get scriptElements() {
+          return [...document.documentElement.querySelectorAll("script")];
+        }
+      };
+      PageRenderer = class extends Renderer {
+        get shouldRender() {
+          return this.newSnapshot.isVisitable && this.trackedElementsAreIdentical;
+        }
+        prepareToRender() {
+          this.mergeHead();
+        }
+        async render() {
+          if (this.willRender) {
+            this.replaceBody();
+          }
+        }
+        finishRendering() {
+          super.finishRendering();
+          if (!this.isPreview) {
+            this.focusFirstAutofocusableElement();
+          }
+        }
+        get currentHeadSnapshot() {
+          return this.currentSnapshot.headSnapshot;
+        }
+        get newHeadSnapshot() {
+          return this.newSnapshot.headSnapshot;
+        }
+        get newElement() {
+          return this.newSnapshot.element;
+        }
+        mergeHead() {
+          this.copyNewHeadStylesheetElements();
+          this.copyNewHeadScriptElements();
+          this.removeCurrentHeadProvisionalElements();
+          this.copyNewHeadProvisionalElements();
+        }
+        replaceBody() {
+          this.preservingPermanentElements(() => {
+            this.activateNewBody();
+            this.assignNewBody();
+          });
+        }
+        get trackedElementsAreIdentical() {
+          return this.currentHeadSnapshot.trackedElementSignature == this.newHeadSnapshot.trackedElementSignature;
+        }
+        copyNewHeadStylesheetElements() {
+          for (const element of this.newHeadStylesheetElements) {
+            document.head.appendChild(element);
+          }
+        }
+        copyNewHeadScriptElements() {
+          for (const element of this.newHeadScriptElements) {
+            document.head.appendChild(this.createScriptElement(element));
+          }
+        }
+        removeCurrentHeadProvisionalElements() {
+          for (const element of this.currentHeadProvisionalElements) {
+            document.head.removeChild(element);
+          }
+        }
+        copyNewHeadProvisionalElements() {
+          for (const element of this.newHeadProvisionalElements) {
+            document.head.appendChild(element);
+          }
+        }
+        activateNewBody() {
+          document.adoptNode(this.newElement);
+          this.activateNewBodyScriptElements();
+        }
+        activateNewBodyScriptElements() {
+          for (const inertScriptElement of this.newBodyScriptElements) {
+            const activatedScriptElement = this.createScriptElement(inertScriptElement);
+            inertScriptElement.replaceWith(activatedScriptElement);
+          }
+        }
+        assignNewBody() {
+          if (document.body && this.newElement instanceof HTMLBodyElement) {
+            document.body.replaceWith(this.newElement);
+          } else {
+            document.documentElement.appendChild(this.newElement);
+          }
+        }
+        get newHeadStylesheetElements() {
+          return this.newHeadSnapshot.getStylesheetElementsNotInSnapshot(this.currentHeadSnapshot);
+        }
+        get newHeadScriptElements() {
+          return this.newHeadSnapshot.getScriptElementsNotInSnapshot(this.currentHeadSnapshot);
+        }
+        get currentHeadProvisionalElements() {
+          return this.currentHeadSnapshot.provisionalElements;
+        }
+        get newHeadProvisionalElements() {
+          return this.newHeadSnapshot.provisionalElements;
+        }
+        get newBodyScriptElements() {
+          return this.newElement.querySelectorAll("script");
+        }
+      };
+      SnapshotCache = class {
+        constructor(size2) {
+          this.keys = [];
+          this.snapshots = {};
+          this.size = size2;
+        }
+        has(location2) {
+          return toCacheKey(location2) in this.snapshots;
+        }
+        get(location2) {
+          if (this.has(location2)) {
+            const snapshot = this.read(location2);
+            this.touch(location2);
+            return snapshot;
+          }
+        }
+        put(location2, snapshot) {
+          this.write(location2, snapshot);
+          this.touch(location2);
+          return snapshot;
+        }
+        clear() {
+          this.snapshots = {};
+        }
+        read(location2) {
+          return this.snapshots[toCacheKey(location2)];
+        }
+        write(location2, snapshot) {
+          this.snapshots[toCacheKey(location2)] = snapshot;
+        }
+        touch(location2) {
+          const key = toCacheKey(location2);
+          const index2 = this.keys.indexOf(key);
+          if (index2 > -1)
+            this.keys.splice(index2, 1);
+          this.keys.unshift(key);
+          this.trim();
+        }
+        trim() {
+          for (const key of this.keys.splice(this.size)) {
+            delete this.snapshots[key];
+          }
+        }
+      };
+      PageView = class extends View {
+        constructor() {
+          super(...arguments);
+          this.snapshotCache = new SnapshotCache(10);
+          this.lastRenderedLocation = new URL(location.href);
+        }
+        renderPage(snapshot, isPreview = false, willRender = true) {
+          const renderer = new PageRenderer(this.snapshot, snapshot, isPreview, willRender);
+          return this.render(renderer);
+        }
+        renderError(snapshot) {
+          const renderer = new ErrorRenderer(this.snapshot, snapshot, false);
+          return this.render(renderer);
+        }
+        clearSnapshotCache() {
+          this.snapshotCache.clear();
+        }
+        async cacheSnapshot() {
+          if (this.shouldCacheSnapshot) {
+            this.delegate.viewWillCacheSnapshot();
+            const { snapshot, lastRenderedLocation: location2 } = this;
+            await nextEventLoopTick();
+            const cachedSnapshot = snapshot.clone();
+            this.snapshotCache.put(location2, cachedSnapshot);
+            return cachedSnapshot;
+          }
+        }
+        getCachedSnapshotForLocation(location2) {
+          return this.snapshotCache.get(location2);
+        }
+        get snapshot() {
+          return PageSnapshot.fromElement(this.element);
+        }
+        get shouldCacheSnapshot() {
+          return this.snapshot.isCacheable;
+        }
+      };
+      Session = class {
+        constructor() {
+          this.navigator = new Navigator(this);
+          this.history = new History(this);
+          this.view = new PageView(this, document.documentElement);
+          this.adapter = new BrowserAdapter(this);
+          this.pageObserver = new PageObserver(this);
+          this.cacheObserver = new CacheObserver();
+          this.linkClickObserver = new LinkClickObserver(this);
+          this.formSubmitObserver = new FormSubmitObserver(this);
+          this.scrollObserver = new ScrollObserver(this);
+          this.streamObserver = new StreamObserver(this);
+          this.frameRedirector = new FrameRedirector(document.documentElement);
+          this.drive = true;
+          this.enabled = true;
+          this.progressBarDelay = 500;
+          this.started = false;
+        }
+        start() {
+          if (!this.started) {
+            this.pageObserver.start();
+            this.cacheObserver.start();
+            this.linkClickObserver.start();
+            this.formSubmitObserver.start();
+            this.scrollObserver.start();
+            this.streamObserver.start();
+            this.frameRedirector.start();
+            this.history.start();
+            this.started = true;
+            this.enabled = true;
+          }
+        }
+        disable() {
+          this.enabled = false;
+        }
+        stop() {
+          if (this.started) {
+            this.pageObserver.stop();
+            this.cacheObserver.stop();
+            this.linkClickObserver.stop();
+            this.formSubmitObserver.stop();
+            this.scrollObserver.stop();
+            this.streamObserver.stop();
+            this.frameRedirector.stop();
+            this.history.stop();
+            this.started = false;
+          }
+        }
+        registerAdapter(adapter) {
+          this.adapter = adapter;
+        }
+        visit(location2, options = {}) {
+          this.navigator.proposeVisit(expandURL(location2), options);
+        }
+        connectStreamSource(source) {
+          this.streamObserver.connectStreamSource(source);
+        }
+        disconnectStreamSource(source) {
+          this.streamObserver.disconnectStreamSource(source);
+        }
+        renderStreamMessage(message) {
+          document.documentElement.appendChild(StreamMessage.wrap(message).fragment);
+        }
+        clearCache() {
+          this.view.clearSnapshotCache();
+        }
+        setProgressBarDelay(delay) {
+          this.progressBarDelay = delay;
+        }
+        get location() {
+          return this.history.location;
+        }
+        get restorationIdentifier() {
+          return this.history.restorationIdentifier;
+        }
+        historyPoppedToLocationWithRestorationIdentifier(location2, restorationIdentifier) {
+          if (this.enabled) {
+            this.navigator.startVisit(location2, restorationIdentifier, {
+              action: "restore",
+              historyChanged: true
+            });
+          } else {
+            this.adapter.pageInvalidated();
+          }
+        }
+        scrollPositionChanged(position) {
+          this.history.updateRestorationData({
+            scrollPosition: position
+          });
+        }
+        willFollowLinkToLocation(link, location2) {
+          return this.elementDriveEnabled(link) && locationIsVisitable(location2, this.snapshot.rootLocation) && this.applicationAllowsFollowingLinkToLocation(link, location2);
+        }
+        followedLinkToLocation(link, location2) {
+          const action = this.getActionForLink(link);
+          this.convertLinkWithMethodClickToFormSubmission(link) || this.visit(location2.href, {
+            action
+          });
+        }
+        convertLinkWithMethodClickToFormSubmission(link) {
+          const linkMethod = link.getAttribute("data-turbo-method");
+          if (linkMethod) {
+            const form = document.createElement("form");
+            form.method = linkMethod;
+            form.action = link.getAttribute("href") || "undefined";
+            form.hidden = true;
+            if (link.hasAttribute("data-turbo-confirm")) {
+              form.setAttribute("data-turbo-confirm", link.getAttribute("data-turbo-confirm"));
+            }
+            const frame = this.getTargetFrameForLink(link);
+            if (frame) {
+              form.setAttribute("data-turbo-frame", frame);
+              form.addEventListener("turbo:submit-start", () => form.remove());
+            } else {
+              form.addEventListener("submit", () => form.remove());
+            }
+            document.body.appendChild(form);
+            return dispatch("submit", {
+              cancelable: true,
+              target: form
+            });
+          } else {
+            return false;
+          }
+        }
+        allowsVisitingLocationWithAction(location2, action) {
+          return this.locationWithActionIsSamePage(location2, action) || this.applicationAllowsVisitingLocation(location2);
+        }
+        visitProposedToLocation(location2, options) {
+          extendURLWithDeprecatedProperties(location2);
+          this.adapter.visitProposedToLocation(location2, options);
+        }
+        visitStarted(visit2) {
+          extendURLWithDeprecatedProperties(visit2.location);
+          if (!visit2.silent) {
+            this.notifyApplicationAfterVisitingLocation(visit2.location, visit2.action);
+          }
+        }
+        visitCompleted(visit2) {
+          this.notifyApplicationAfterPageLoad(visit2.getTimingMetrics());
+        }
+        locationWithActionIsSamePage(location2, action) {
+          return this.navigator.locationWithActionIsSamePage(location2, action);
+        }
+        visitScrolledToSamePageLocation(oldURL, newURL) {
+          this.notifyApplicationAfterVisitingSamePageLocation(oldURL, newURL);
+        }
+        willSubmitForm(form, submitter) {
+          const action = getAction(form, submitter);
+          return this.elementDriveEnabled(form) && (!submitter || this.elementDriveEnabled(submitter)) && locationIsVisitable(expandURL(action), this.snapshot.rootLocation);
+        }
+        formSubmitted(form, submitter) {
+          this.navigator.submitForm(form, submitter);
+        }
+        pageBecameInteractive() {
+          this.view.lastRenderedLocation = this.location;
+          this.notifyApplicationAfterPageLoad();
+        }
+        pageLoaded() {
+          this.history.assumeControlOfScrollRestoration();
+        }
+        pageWillUnload() {
+          this.history.relinquishControlOfScrollRestoration();
+        }
+        receivedMessageFromStream(message) {
+          this.renderStreamMessage(message);
+        }
+        viewWillCacheSnapshot() {
+          var _a;
+          if (!((_a = this.navigator.currentVisit) === null || _a === void 0 ? void 0 : _a.silent)) {
+            this.notifyApplicationBeforeCachingSnapshot();
+          }
+        }
+        allowsImmediateRender({ element }, resume) {
+          const event = this.notifyApplicationBeforeRender(element, resume);
+          return !event.defaultPrevented;
+        }
+        viewRenderedSnapshot(snapshot, isPreview) {
+          this.view.lastRenderedLocation = this.history.location;
+          this.notifyApplicationAfterRender();
+        }
+        viewInvalidated() {
+          this.adapter.pageInvalidated();
+        }
+        frameLoaded(frame) {
+          this.notifyApplicationAfterFrameLoad(frame);
+        }
+        frameRendered(fetchResponse, frame) {
+          this.notifyApplicationAfterFrameRender(fetchResponse, frame);
+        }
+        applicationAllowsFollowingLinkToLocation(link, location2) {
+          const event = this.notifyApplicationAfterClickingLinkToLocation(link, location2);
+          return !event.defaultPrevented;
+        }
+        applicationAllowsVisitingLocation(location2) {
+          const event = this.notifyApplicationBeforeVisitingLocation(location2);
+          return !event.defaultPrevented;
+        }
+        notifyApplicationAfterClickingLinkToLocation(link, location2) {
+          return dispatch("turbo:click", {
+            target: link,
+            detail: {
+              url: location2.href
+            },
+            cancelable: true
+          });
+        }
+        notifyApplicationBeforeVisitingLocation(location2) {
+          return dispatch("turbo:before-visit", {
+            detail: {
+              url: location2.href
+            },
+            cancelable: true
+          });
+        }
+        notifyApplicationAfterVisitingLocation(location2, action) {
+          markAsBusy(document.documentElement);
+          return dispatch("turbo:visit", {
+            detail: {
+              url: location2.href,
+              action
+            }
+          });
+        }
+        notifyApplicationBeforeCachingSnapshot() {
+          return dispatch("turbo:before-cache");
+        }
+        notifyApplicationBeforeRender(newBody, resume) {
+          return dispatch("turbo:before-render", {
+            detail: {
+              newBody,
+              resume
+            },
+            cancelable: true
+          });
+        }
+        notifyApplicationAfterRender() {
+          return dispatch("turbo:render");
+        }
+        notifyApplicationAfterPageLoad(timing = {}) {
+          clearBusyState(document.documentElement);
+          return dispatch("turbo:load", {
+            detail: {
+              url: this.location.href,
+              timing
+            }
+          });
+        }
+        notifyApplicationAfterVisitingSamePageLocation(oldURL, newURL) {
+          dispatchEvent(new HashChangeEvent("hashchange", {
+            oldURL: oldURL.toString(),
+            newURL: newURL.toString()
+          }));
+        }
+        notifyApplicationAfterFrameLoad(frame) {
+          return dispatch("turbo:frame-load", {
+            target: frame
+          });
+        }
+        notifyApplicationAfterFrameRender(fetchResponse, frame) {
+          return dispatch("turbo:frame-render", {
+            detail: {
+              fetchResponse
+            },
+            target: frame,
+            cancelable: true
+          });
+        }
+        elementDriveEnabled(element) {
+          const container = element === null || element === void 0 ? void 0 : element.closest("[data-turbo]");
+          if (this.drive) {
+            if (container) {
+              return container.getAttribute("data-turbo") != "false";
+            } else {
+              return true;
+            }
+          } else {
+            if (container) {
+              return container.getAttribute("data-turbo") == "true";
+            } else {
+              return false;
+            }
+          }
+        }
+        getActionForLink(link) {
+          const action = link.getAttribute("data-turbo-action");
+          return isAction(action) ? action : "advance";
+        }
+        getTargetFrameForLink(link) {
+          const frame = link.getAttribute("data-turbo-frame");
+          if (frame) {
+            return frame;
+          } else {
+            const container = link.closest("turbo-frame");
+            if (container) {
+              return container.id;
+            }
+          }
+        }
+        get snapshot() {
+          return this.view.snapshot;
+        }
+      };
+      deprecatedLocationPropertyDescriptors = {
+        absoluteURL: {
+          get() {
+            return this.toString();
+          }
+        }
+      };
+      session = new Session();
+      ({ navigator: navigator$1 } = session);
+      Turbo = Object.freeze({
+        __proto__: null,
+        navigator: navigator$1,
+        session,
+        PageRenderer,
+        PageSnapshot,
+        start,
+        registerAdapter,
+        visit,
+        connectStreamSource,
+        disconnectStreamSource,
+        renderStreamMessage,
+        clearCache,
+        setProgressBarDelay,
+        setConfirmMethod
+      });
+      FrameController = class {
+        constructor(element) {
+          this.fetchResponseLoaded = (fetchResponse) => {
+          };
+          this.currentFetchRequest = null;
+          this.resolveVisitPromise = () => {
+          };
+          this.connected = false;
+          this.hasBeenLoaded = false;
+          this.settingSourceURL = false;
+          this.element = element;
+          this.view = new FrameView(this, this.element);
+          this.appearanceObserver = new AppearanceObserver(this, this.element);
+          this.linkInterceptor = new LinkInterceptor(this, this.element);
+          this.formInterceptor = new FormInterceptor(this, this.element);
+        }
+        connect() {
+          if (!this.connected) {
+            this.connected = true;
+            this.reloadable = false;
+            if (this.loadingStyle == FrameLoadingStyle.lazy) {
+              this.appearanceObserver.start();
+            }
+            this.linkInterceptor.start();
+            this.formInterceptor.start();
+            this.sourceURLChanged();
+          }
+        }
+        disconnect() {
+          if (this.connected) {
+            this.connected = false;
+            this.appearanceObserver.stop();
+            this.linkInterceptor.stop();
+            this.formInterceptor.stop();
+          }
+        }
+        disabledChanged() {
+          if (this.loadingStyle == FrameLoadingStyle.eager) {
+            this.loadSourceURL();
+          }
+        }
+        sourceURLChanged() {
+          if (this.loadingStyle == FrameLoadingStyle.eager || this.hasBeenLoaded) {
+            this.loadSourceURL();
+          }
+        }
+        loadingStyleChanged() {
+          if (this.loadingStyle == FrameLoadingStyle.lazy) {
+            this.appearanceObserver.start();
+          } else {
+            this.appearanceObserver.stop();
+            this.loadSourceURL();
+          }
+        }
+        async loadSourceURL() {
+          if (!this.settingSourceURL && this.enabled && this.isActive && (this.reloadable || this.sourceURL != this.currentURL)) {
+            const previousURL = this.currentURL;
+            this.currentURL = this.sourceURL;
+            if (this.sourceURL) {
+              try {
+                this.element.loaded = this.visit(expandURL(this.sourceURL));
+                this.appearanceObserver.stop();
+                await this.element.loaded;
+                this.hasBeenLoaded = true;
+              } catch (error2) {
+                this.currentURL = previousURL;
+                throw error2;
+              }
+            }
+          }
+        }
+        async loadResponse(fetchResponse) {
+          if (fetchResponse.redirected || fetchResponse.succeeded && fetchResponse.isHTML) {
+            this.sourceURL = fetchResponse.response.url;
+          }
+          try {
+            const html = await fetchResponse.responseHTML;
+            if (html) {
+              const { body } = parseHTMLDocument(html);
+              const snapshot = new Snapshot(await this.extractForeignFrameElement(body));
+              const renderer = new FrameRenderer(this.view.snapshot, snapshot, false, false);
+              if (this.view.renderPromise)
+                await this.view.renderPromise;
+              await this.view.render(renderer);
+              session.frameRendered(fetchResponse, this.element);
+              session.frameLoaded(this.element);
+              this.fetchResponseLoaded(fetchResponse);
+            }
+          } catch (error2) {
+            console.error(error2);
+            this.view.invalidate();
+          } finally {
+            this.fetchResponseLoaded = () => {
+            };
+          }
+        }
+        elementAppearedInViewport(element) {
+          this.loadSourceURL();
+        }
+        shouldInterceptLinkClick(element, url) {
+          if (element.hasAttribute("data-turbo-method")) {
+            return false;
+          } else {
+            return this.shouldInterceptNavigation(element);
+          }
+        }
+        linkClickIntercepted(element, url) {
+          this.reloadable = true;
+          this.navigateFrame(element, url);
+        }
+        shouldInterceptFormSubmission(element, submitter) {
+          return this.shouldInterceptNavigation(element, submitter);
+        }
+        formSubmissionIntercepted(element, submitter) {
+          if (this.formSubmission) {
+            this.formSubmission.stop();
+          }
+          this.reloadable = false;
+          this.formSubmission = new FormSubmission(this, element, submitter);
+          const { fetchRequest } = this.formSubmission;
+          this.prepareHeadersForRequest(fetchRequest.headers, fetchRequest);
+          this.formSubmission.start();
+        }
+        prepareHeadersForRequest(headers, request) {
+          headers["Turbo-Frame"] = this.id;
+        }
+        requestStarted(request) {
+          markAsBusy(this.element);
+        }
+        requestPreventedHandlingResponse(request, response) {
+          this.resolveVisitPromise();
+        }
+        async requestSucceededWithResponse(request, response) {
+          await this.loadResponse(response);
+          this.resolveVisitPromise();
+        }
+        requestFailedWithResponse(request, response) {
+          console.error(response);
+          this.resolveVisitPromise();
+        }
+        requestErrored(request, error2) {
+          console.error(error2);
+          this.resolveVisitPromise();
+        }
+        requestFinished(request) {
+          clearBusyState(this.element);
+        }
+        formSubmissionStarted({ formElement }) {
+          markAsBusy(formElement, this.findFrameElement(formElement));
+        }
+        formSubmissionSucceededWithResponse(formSubmission, response) {
+          const frame = this.findFrameElement(formSubmission.formElement, formSubmission.submitter);
+          this.proposeVisitIfNavigatedWithAction(frame, formSubmission.formElement, formSubmission.submitter);
+          frame.delegate.loadResponse(response);
+        }
+        formSubmissionFailedWithResponse(formSubmission, fetchResponse) {
+          this.element.delegate.loadResponse(fetchResponse);
+        }
+        formSubmissionErrored(formSubmission, error2) {
+          console.error(error2);
+        }
+        formSubmissionFinished({ formElement }) {
+          clearBusyState(formElement, this.findFrameElement(formElement));
+        }
+        allowsImmediateRender(snapshot, resume) {
+          return true;
+        }
+        viewRenderedSnapshot(snapshot, isPreview) {
+        }
+        viewInvalidated() {
+        }
+        async visit(url) {
+          var _a;
+          const request = new FetchRequest(this, FetchMethod.get, url, new URLSearchParams(), this.element);
+          (_a = this.currentFetchRequest) === null || _a === void 0 ? void 0 : _a.cancel();
+          this.currentFetchRequest = request;
+          return new Promise((resolve) => {
+            this.resolveVisitPromise = () => {
+              this.resolveVisitPromise = () => {
+              };
+              this.currentFetchRequest = null;
+              resolve();
+            };
+            request.perform();
+          });
+        }
+        navigateFrame(element, url, submitter) {
+          const frame = this.findFrameElement(element, submitter);
+          this.proposeVisitIfNavigatedWithAction(frame, element, submitter);
+          frame.setAttribute("reloadable", "");
+          frame.src = url;
+        }
+        proposeVisitIfNavigatedWithAction(frame, element, submitter) {
+          const action = getAttribute("data-turbo-action", submitter, element, frame);
+          if (isAction(action)) {
+            const { visitCachedSnapshot } = new SnapshotSubstitution(frame);
+            frame.delegate.fetchResponseLoaded = (fetchResponse) => {
+              if (frame.src) {
+                const { statusCode, redirected } = fetchResponse;
+                const responseHTML = frame.ownerDocument.documentElement.outerHTML;
+                const response = {
+                  statusCode,
+                  redirected,
+                  responseHTML
+                };
+                session.visit(frame.src, {
+                  action,
+                  response,
+                  visitCachedSnapshot,
+                  willRender: false
+                });
+              }
+            };
+          }
+        }
+        findFrameElement(element, submitter) {
+          var _a;
+          const id = getAttribute("data-turbo-frame", submitter, element) || this.element.getAttribute("target");
+          return (_a = getFrameElementById(id)) !== null && _a !== void 0 ? _a : this.element;
+        }
+        async extractForeignFrameElement(container) {
+          let element;
+          const id = CSS.escape(this.id);
+          try {
+            if (element = activateElement(container.querySelector(`turbo-frame#${id}`), this.currentURL)) {
+              return element;
+            }
+            if (element = activateElement(container.querySelector(`turbo-frame[src][recurse~=${id}]`), this.currentURL)) {
+              await element.loaded;
+              return await this.extractForeignFrameElement(element);
+            }
+            console.error(`Response has no matching <turbo-frame id="${id}"> element`);
+          } catch (error2) {
+            console.error(error2);
+          }
+          return new FrameElement();
+        }
+        formActionIsVisitable(form, submitter) {
+          const action = getAction(form, submitter);
+          return locationIsVisitable(expandURL(action), this.rootLocation);
+        }
+        shouldInterceptNavigation(element, submitter) {
+          const id = getAttribute("data-turbo-frame", submitter, element) || this.element.getAttribute("target");
+          if (element instanceof HTMLFormElement && !this.formActionIsVisitable(element, submitter)) {
+            return false;
+          }
+          if (!this.enabled || id == "_top") {
+            return false;
+          }
+          if (id) {
+            const frameElement = getFrameElementById(id);
+            if (frameElement) {
+              return !frameElement.disabled;
+            }
+          }
+          if (!session.elementDriveEnabled(element)) {
+            return false;
+          }
+          if (submitter && !session.elementDriveEnabled(submitter)) {
+            return false;
+          }
+          return true;
+        }
+        get id() {
+          return this.element.id;
+        }
+        get enabled() {
+          return !this.element.disabled;
+        }
+        get sourceURL() {
+          if (this.element.src) {
+            return this.element.src;
+          }
+        }
+        get reloadable() {
+          const frame = this.findFrameElement(this.element);
+          return frame.hasAttribute("reloadable");
+        }
+        set reloadable(value) {
+          const frame = this.findFrameElement(this.element);
+          if (value) {
+            frame.setAttribute("reloadable", "");
+          } else {
+            frame.removeAttribute("reloadable");
+          }
+        }
+        set sourceURL(sourceURL) {
+          this.settingSourceURL = true;
+          this.element.src = sourceURL !== null && sourceURL !== void 0 ? sourceURL : null;
+          this.currentURL = this.element.src;
+          this.settingSourceURL = false;
+        }
+        get loadingStyle() {
+          return this.element.loading;
+        }
+        get isLoading() {
+          return this.formSubmission !== void 0 || this.resolveVisitPromise() !== void 0;
+        }
+        get isActive() {
+          return this.element.isActive && this.connected;
+        }
+        get rootLocation() {
+          var _a;
+          const meta = this.element.ownerDocument.querySelector(`meta[name="turbo-root"]`);
+          const root = (_a = meta === null || meta === void 0 ? void 0 : meta.content) !== null && _a !== void 0 ? _a : "/";
+          return expandURL(root);
+        }
+      };
+      SnapshotSubstitution = class {
+        constructor(element) {
+          this.visitCachedSnapshot = ({ element: element2 }) => {
+            var _a;
+            const { id, clone } = this;
+            (_a = element2.querySelector("#" + id)) === null || _a === void 0 ? void 0 : _a.replaceWith(clone);
+          };
+          this.clone = element.cloneNode(true);
+          this.id = element.id;
+        }
+      };
+      StreamActions = {
+        after() {
+          this.targetElements.forEach((e) => {
+            var _a;
+            return (_a = e.parentElement) === null || _a === void 0 ? void 0 : _a.insertBefore(this.templateContent, e.nextSibling);
+          });
+        },
+        append() {
+          this.removeDuplicateTargetChildren();
+          this.targetElements.forEach((e) => e.append(this.templateContent));
+        },
+        before() {
+          this.targetElements.forEach((e) => {
+            var _a;
+            return (_a = e.parentElement) === null || _a === void 0 ? void 0 : _a.insertBefore(this.templateContent, e);
+          });
+        },
+        prepend() {
+          this.removeDuplicateTargetChildren();
+          this.targetElements.forEach((e) => e.prepend(this.templateContent));
+        },
+        remove() {
+          this.targetElements.forEach((e) => e.remove());
+        },
+        replace() {
+          this.targetElements.forEach((e) => e.replaceWith(this.templateContent));
+        },
+        update() {
+          this.targetElements.forEach((e) => {
+            e.innerHTML = "";
+            e.append(this.templateContent);
+          });
+        }
+      };
+      StreamElement = class extends HTMLElement {
+        async connectedCallback() {
+          try {
+            await this.render();
+          } catch (error2) {
+            console.error(error2);
+          } finally {
+            this.disconnect();
+          }
+        }
+        async render() {
+          var _a;
+          return (_a = this.renderPromise) !== null && _a !== void 0 ? _a : this.renderPromise = (async () => {
+            if (this.dispatchEvent(this.beforeRenderEvent)) {
+              await nextAnimationFrame();
+              this.performAction();
+            }
+          })();
+        }
+        disconnect() {
+          try {
+            this.remove();
+          } catch (_a) {
+          }
+        }
+        removeDuplicateTargetChildren() {
+          this.duplicateChildren.forEach((c) => c.remove());
+        }
+        get duplicateChildren() {
+          var _a;
+          const existingChildren = this.targetElements.flatMap((e) => [...e.children]).filter((c) => !!c.id);
+          const newChildrenIds = [...(_a = this.templateContent) === null || _a === void 0 ? void 0 : _a.children].filter((c) => !!c.id).map((c) => c.id);
+          return existingChildren.filter((c) => newChildrenIds.includes(c.id));
+        }
+        get performAction() {
+          if (this.action) {
+            const actionFunction = StreamActions[this.action];
+            if (actionFunction) {
+              return actionFunction;
+            }
+            this.raise("unknown action");
+          }
+          this.raise("action attribute is missing");
+        }
+        get targetElements() {
+          if (this.target) {
+            return this.targetElementsById;
+          } else if (this.targets) {
+            return this.targetElementsByQuery;
+          } else {
+            this.raise("target or targets attribute is missing");
+          }
+        }
+        get templateContent() {
+          return this.templateElement.content.cloneNode(true);
+        }
+        get templateElement() {
+          if (this.firstElementChild instanceof HTMLTemplateElement) {
+            return this.firstElementChild;
+          }
+          this.raise("first child element must be a <template> element");
+        }
+        get action() {
+          return this.getAttribute("action");
+        }
+        get target() {
+          return this.getAttribute("target");
+        }
+        get targets() {
+          return this.getAttribute("targets");
+        }
+        raise(message) {
+          throw new Error(`${this.description}: ${message}`);
+        }
+        get description() {
+          var _a, _b;
+          return (_b = ((_a = this.outerHTML.match(/<[^>]+>/)) !== null && _a !== void 0 ? _a : [])[0]) !== null && _b !== void 0 ? _b : "<turbo-stream>";
+        }
+        get beforeRenderEvent() {
+          return new CustomEvent("turbo:before-stream-render", {
+            bubbles: true,
+            cancelable: true
+          });
+        }
+        get targetElementsById() {
+          var _a;
+          const element = (_a = this.ownerDocument) === null || _a === void 0 ? void 0 : _a.getElementById(this.target);
+          if (element !== null) {
+            return [element];
+          } else {
+            return [];
+          }
+        }
+        get targetElementsByQuery() {
+          var _a;
+          const elements = (_a = this.ownerDocument) === null || _a === void 0 ? void 0 : _a.querySelectorAll(this.targets);
+          if (elements.length !== 0) {
+            return Array.prototype.slice.call(elements);
+          } else {
+            return [];
+          }
+        }
+      };
+      FrameElement.delegateConstructor = FrameController;
+      customElements.define("turbo-frame", FrameElement);
+      customElements.define("turbo-stream", StreamElement);
+      (() => {
+        let element = document.currentScript;
+        if (!element)
+          return;
+        if (element.hasAttribute("data-turbo-suppress-warning"))
+          return;
+        while (element = element.parentElement) {
+          if (element == document.body) {
+            return console.warn(unindent`
+        You are loading Turbo from a <script> element inside the <body> element. This is probably not what you meant to do!
+
+        Load your application’s JavaScript bundle inside the <head> element instead. <script> elements in <body> are evaluated with each page change.
+
+        For more information, see: https://turbo.hotwired.dev/handbook/building#working-with-script-elements
+
+        ——
+        Suppress this warning by adding a "data-turbo-suppress-warning" attribute to: %s
+      `, element.outerHTML);
+          }
+        }
+      })();
+      window.Turbo = Turbo;
+      start();
+      turbo_es2017Esm = Object.freeze({
+        __proto__: null,
+        PageRenderer,
+        PageSnapshot,
+        clearCache,
+        connectStreamSource,
+        disconnectStreamSource,
+        navigator: navigator$1,
+        registerAdapter,
+        renderStreamMessage,
+        session,
+        setConfirmMethod,
+        setProgressBarDelay,
+        start,
+        visit
+      });
+      cable = Object.freeze({
+        __proto__: null,
+        getConsumer,
+        setConsumer,
+        createConsumer,
+        subscribeTo
+      });
+      TurboCableStreamSourceElement = class extends HTMLElement {
+        async connectedCallback() {
+          connectStreamSource(this);
+          this.subscription = await subscribeTo(this.channel, {
+            received: this.dispatchMessageEvent.bind(this)
+          });
+        }
+        disconnectedCallback() {
+          disconnectStreamSource(this);
+          if (this.subscription)
+            this.subscription.unsubscribe();
+        }
+        dispatchMessageEvent(data) {
+          const event = new MessageEvent("message", {
+            data
+          });
+          return this.dispatchEvent(event);
+        }
+        get channel() {
+          const channel = this.getAttribute("channel");
+          const signed_stream_name = this.getAttribute("signed-stream-name");
+          return {
+            channel,
+            signed_stream_name
+          };
+        }
+      };
+      customElements.define("turbo-cable-stream-source", TurboCableStreamSourceElement);
+      adapters = {
+        logger: self.console,
+        WebSocket: self.WebSocket
+      };
+      logger = {
+        log(...messages) {
+          if (this.enabled) {
+            messages.push(Date.now());
+            adapters.logger.log("[ActionCable]", ...messages);
+          }
+        }
+      };
+      now = () => new Date().getTime();
+      secondsSince = (time2) => (now() - time2) / 1e3;
+      ConnectionMonitor = class {
+        constructor(connection) {
+          this.visibilityDidChange = this.visibilityDidChange.bind(this);
+          this.connection = connection;
+          this.reconnectAttempts = 0;
+        }
+        start() {
+          if (!this.isRunning()) {
+            this.startedAt = now();
+            delete this.stoppedAt;
+            this.startPolling();
+            addEventListener("visibilitychange", this.visibilityDidChange);
+            logger.log(`ConnectionMonitor started. stale threshold = ${this.constructor.staleThreshold} s`);
+          }
+        }
+        stop() {
+          if (this.isRunning()) {
+            this.stoppedAt = now();
+            this.stopPolling();
+            removeEventListener("visibilitychange", this.visibilityDidChange);
+            logger.log("ConnectionMonitor stopped");
+          }
+        }
+        isRunning() {
+          return this.startedAt && !this.stoppedAt;
+        }
+        recordPing() {
+          this.pingedAt = now();
+        }
+        recordConnect() {
+          this.reconnectAttempts = 0;
+          this.recordPing();
+          delete this.disconnectedAt;
+          logger.log("ConnectionMonitor recorded connect");
+        }
+        recordDisconnect() {
+          this.disconnectedAt = now();
+          logger.log("ConnectionMonitor recorded disconnect");
+        }
+        startPolling() {
+          this.stopPolling();
+          this.poll();
+        }
+        stopPolling() {
+          clearTimeout(this.pollTimeout);
+        }
+        poll() {
+          this.pollTimeout = setTimeout(() => {
+            this.reconnectIfStale();
+            this.poll();
+          }, this.getPollInterval());
+        }
+        getPollInterval() {
+          const { staleThreshold, reconnectionBackoffRate } = this.constructor;
+          const backoff = Math.pow(1 + reconnectionBackoffRate, Math.min(this.reconnectAttempts, 10));
+          const jitterMax = this.reconnectAttempts === 0 ? 1 : reconnectionBackoffRate;
+          const jitter = jitterMax * Math.random();
+          return staleThreshold * 1e3 * backoff * (1 + jitter);
+        }
+        reconnectIfStale() {
+          if (this.connectionIsStale()) {
+            logger.log(`ConnectionMonitor detected stale connection. reconnectAttempts = ${this.reconnectAttempts}, time stale = ${secondsSince(this.refreshedAt)} s, stale threshold = ${this.constructor.staleThreshold} s`);
+            this.reconnectAttempts++;
+            if (this.disconnectedRecently()) {
+              logger.log(`ConnectionMonitor skipping reopening recent disconnect. time disconnected = ${secondsSince(this.disconnectedAt)} s`);
+            } else {
+              logger.log("ConnectionMonitor reopening");
+              this.connection.reopen();
+            }
+          }
+        }
+        get refreshedAt() {
+          return this.pingedAt ? this.pingedAt : this.startedAt;
+        }
+        connectionIsStale() {
+          return secondsSince(this.refreshedAt) > this.constructor.staleThreshold;
+        }
+        disconnectedRecently() {
+          return this.disconnectedAt && secondsSince(this.disconnectedAt) < this.constructor.staleThreshold;
+        }
+        visibilityDidChange() {
+          if (document.visibilityState === "visible") {
+            setTimeout(() => {
+              if (this.connectionIsStale() || !this.connection.isOpen()) {
+                logger.log(`ConnectionMonitor reopening stale connection on visibilitychange. visibilityState = ${document.visibilityState}`);
+                this.connection.reopen();
+              }
+            }, 200);
+          }
+        }
+      };
+      ConnectionMonitor.staleThreshold = 6;
+      ConnectionMonitor.reconnectionBackoffRate = 0.15;
+      INTERNAL = {
+        message_types: {
+          welcome: "welcome",
+          disconnect: "disconnect",
+          ping: "ping",
+          confirmation: "confirm_subscription",
+          rejection: "reject_subscription"
+        },
+        disconnect_reasons: {
+          unauthorized: "unauthorized",
+          invalid_request: "invalid_request",
+          server_restart: "server_restart"
+        },
+        default_mount_path: "/cable",
+        protocols: ["actioncable-v1-json", "actioncable-unsupported"]
+      };
+      ({ message_types, protocols } = INTERNAL);
+      supportedProtocols = protocols.slice(0, protocols.length - 1);
+      indexOf = [].indexOf;
+      Connection = class {
+        constructor(consumer2) {
+          this.open = this.open.bind(this);
+          this.consumer = consumer2;
+          this.subscriptions = this.consumer.subscriptions;
+          this.monitor = new ConnectionMonitor(this);
+          this.disconnected = true;
+        }
+        send(data) {
+          if (this.isOpen()) {
+            this.webSocket.send(JSON.stringify(data));
+            return true;
+          } else {
+            return false;
+          }
+        }
+        open() {
+          if (this.isActive()) {
+            logger.log(`Attempted to open WebSocket, but existing socket is ${this.getState()}`);
+            return false;
+          } else {
+            logger.log(`Opening WebSocket, current state is ${this.getState()}, subprotocols: ${protocols}`);
+            if (this.webSocket) {
+              this.uninstallEventHandlers();
+            }
+            this.webSocket = new adapters.WebSocket(this.consumer.url, protocols);
+            this.installEventHandlers();
+            this.monitor.start();
+            return true;
+          }
+        }
+        close({ allowReconnect } = {
+          allowReconnect: true
+        }) {
+          if (!allowReconnect) {
+            this.monitor.stop();
+          }
+          if (this.isActive()) {
+            return this.webSocket.close();
+          }
+        }
+        reopen() {
+          logger.log(`Reopening WebSocket, current state is ${this.getState()}`);
+          if (this.isActive()) {
+            try {
+              return this.close();
+            } catch (error2) {
+              logger.log("Failed to reopen WebSocket", error2);
+            } finally {
+              logger.log(`Reopening WebSocket in ${this.constructor.reopenDelay}ms`);
+              setTimeout(this.open, this.constructor.reopenDelay);
+            }
+          } else {
+            return this.open();
+          }
+        }
+        getProtocol() {
+          if (this.webSocket) {
+            return this.webSocket.protocol;
+          }
+        }
+        isOpen() {
+          return this.isState("open");
+        }
+        isActive() {
+          return this.isState("open", "connecting");
+        }
+        isProtocolSupported() {
+          return indexOf.call(supportedProtocols, this.getProtocol()) >= 0;
+        }
+        isState(...states) {
+          return indexOf.call(states, this.getState()) >= 0;
+        }
+        getState() {
+          if (this.webSocket) {
+            for (let state in adapters.WebSocket) {
+              if (adapters.WebSocket[state] === this.webSocket.readyState) {
+                return state.toLowerCase();
+              }
+            }
+          }
+          return null;
+        }
+        installEventHandlers() {
+          for (let eventName in this.events) {
+            const handler = this.events[eventName].bind(this);
+            this.webSocket[`on${eventName}`] = handler;
+          }
+        }
+        uninstallEventHandlers() {
+          for (let eventName in this.events) {
+            this.webSocket[`on${eventName}`] = function() {
+            };
+          }
+        }
+      };
+      Connection.reopenDelay = 500;
+      Connection.prototype.events = {
+        message(event) {
+          if (!this.isProtocolSupported()) {
+            return;
+          }
+          const { identifier, message, reason, reconnect, type } = JSON.parse(event.data);
+          switch (type) {
+            case message_types.welcome:
+              this.monitor.recordConnect();
+              return this.subscriptions.reload();
+            case message_types.disconnect:
+              logger.log(`Disconnecting. Reason: ${reason}`);
+              return this.close({
+                allowReconnect: reconnect
+              });
+            case message_types.ping:
+              return this.monitor.recordPing();
+            case message_types.confirmation:
+              this.subscriptions.confirmSubscription(identifier);
+              return this.subscriptions.notify(identifier, "connected");
+            case message_types.rejection:
+              return this.subscriptions.reject(identifier);
+            default:
+              return this.subscriptions.notify(identifier, "received", message);
+          }
+        },
+        open() {
+          logger.log(`WebSocket onopen event, using '${this.getProtocol()}' subprotocol`);
+          this.disconnected = false;
+          if (!this.isProtocolSupported()) {
+            logger.log("Protocol is unsupported. Stopping monitor and disconnecting.");
+            return this.close({
+              allowReconnect: false
+            });
+          }
+        },
+        close(event) {
+          logger.log("WebSocket onclose event");
+          if (this.disconnected) {
+            return;
+          }
+          this.disconnected = true;
+          this.monitor.recordDisconnect();
+          return this.subscriptions.notifyAll("disconnected", {
+            willAttemptReconnect: this.monitor.isRunning()
+          });
+        },
+        error() {
+          logger.log("WebSocket onerror event");
+        }
+      };
+      extend = function(object, properties) {
+        if (properties != null) {
+          for (let key in properties) {
+            const value = properties[key];
+            object[key] = value;
+          }
+        }
+        return object;
+      };
+      Subscription = class {
+        constructor(consumer2, params = {}, mixin) {
+          this.consumer = consumer2;
+          this.identifier = JSON.stringify(params);
+          extend(this, mixin);
+        }
+        perform(action, data = {}) {
+          data.action = action;
+          return this.send(data);
+        }
+        send(data) {
+          return this.consumer.send({
+            command: "message",
+            identifier: this.identifier,
+            data: JSON.stringify(data)
+          });
+        }
+        unsubscribe() {
+          return this.consumer.subscriptions.remove(this);
+        }
+      };
+      SubscriptionGuarantor = class {
+        constructor(subscriptions) {
+          this.subscriptions = subscriptions;
+          this.pendingSubscriptions = [];
+        }
+        guarantee(subscription) {
+          if (this.pendingSubscriptions.indexOf(subscription) == -1) {
+            logger.log(`SubscriptionGuarantor guaranteeing ${subscription.identifier}`);
+            this.pendingSubscriptions.push(subscription);
+          } else {
+            logger.log(`SubscriptionGuarantor already guaranteeing ${subscription.identifier}`);
+          }
+          this.startGuaranteeing();
+        }
+        forget(subscription) {
+          logger.log(`SubscriptionGuarantor forgetting ${subscription.identifier}`);
+          this.pendingSubscriptions = this.pendingSubscriptions.filter((s) => s !== subscription);
+        }
+        startGuaranteeing() {
+          this.stopGuaranteeing();
+          this.retrySubscribing();
+        }
+        stopGuaranteeing() {
+          clearTimeout(this.retryTimeout);
+        }
+        retrySubscribing() {
+          this.retryTimeout = setTimeout(() => {
+            if (this.subscriptions && typeof this.subscriptions.subscribe === "function") {
+              this.pendingSubscriptions.map((subscription) => {
+                logger.log(`SubscriptionGuarantor resubscribing ${subscription.identifier}`);
+                this.subscriptions.subscribe(subscription);
+              });
+            }
+          }, 500);
+        }
+      };
+      Subscriptions = class {
+        constructor(consumer2) {
+          this.consumer = consumer2;
+          this.guarantor = new SubscriptionGuarantor(this);
+          this.subscriptions = [];
+        }
+        create(channelName, mixin) {
+          const channel = channelName;
+          const params = typeof channel === "object" ? channel : {
+            channel
+          };
+          const subscription = new Subscription(this.consumer, params, mixin);
+          return this.add(subscription);
+        }
+        add(subscription) {
+          this.subscriptions.push(subscription);
+          this.consumer.ensureActiveConnection();
+          this.notify(subscription, "initialized");
+          this.subscribe(subscription);
+          return subscription;
+        }
+        remove(subscription) {
+          this.forget(subscription);
+          if (!this.findAll(subscription.identifier).length) {
+            this.sendCommand(subscription, "unsubscribe");
+          }
+          return subscription;
+        }
+        reject(identifier) {
+          return this.findAll(identifier).map((subscription) => {
+            this.forget(subscription);
+            this.notify(subscription, "rejected");
+            return subscription;
+          });
+        }
+        forget(subscription) {
+          this.guarantor.forget(subscription);
+          this.subscriptions = this.subscriptions.filter((s) => s !== subscription);
+          return subscription;
+        }
+        findAll(identifier) {
+          return this.subscriptions.filter((s) => s.identifier === identifier);
+        }
+        reload() {
+          return this.subscriptions.map((subscription) => this.subscribe(subscription));
+        }
+        notifyAll(callbackName, ...args) {
+          return this.subscriptions.map((subscription) => this.notify(subscription, callbackName, ...args));
+        }
+        notify(subscription, callbackName, ...args) {
+          let subscriptions;
+          if (typeof subscription === "string") {
+            subscriptions = this.findAll(subscription);
+          } else {
+            subscriptions = [subscription];
+          }
+          return subscriptions.map((subscription2) => typeof subscription2[callbackName] === "function" ? subscription2[callbackName](...args) : void 0);
+        }
+        subscribe(subscription) {
+          if (this.sendCommand(subscription, "subscribe")) {
+            this.guarantor.guarantee(subscription);
+          }
+        }
+        confirmSubscription(identifier) {
+          logger.log(`Subscription confirmed ${identifier}`);
+          this.findAll(identifier).map((subscription) => this.guarantor.forget(subscription));
+        }
+        sendCommand(subscription, command) {
+          const { identifier } = subscription;
+          return this.consumer.send({
+            command,
+            identifier
+          });
+        }
+      };
+      Consumer = class {
+        constructor(url) {
+          this._url = url;
+          this.subscriptions = new Subscriptions(this);
+          this.connection = new Connection(this);
+        }
+        get url() {
+          return createWebSocketURL(this._url);
+        }
+        send(data) {
+          return this.connection.send(data);
+        }
+        connect() {
+          return this.connection.open();
+        }
+        disconnect() {
+          return this.connection.close({
+            allowReconnect: false
+          });
+        }
+        ensureActiveConnection() {
+          if (!this.connection.isActive()) {
+            return this.connection.open();
+          }
+        }
+      };
+      index = Object.freeze({
+        __proto__: null,
+        Connection,
+        ConnectionMonitor,
+        Consumer,
+        INTERNAL,
+        Subscription,
+        Subscriptions,
+        SubscriptionGuarantor,
+        adapters,
+        createWebSocketURL,
+        logger,
+        createConsumer: createConsumer$1,
+        getConfig
+      });
+    }
+  });
+
+  // node_modules/@hotwired/stimulus/dist/stimulus.js
+  function extendEvent(event) {
+    if ("immediatePropagationStopped" in event) {
+      return event;
+    } else {
+      const { stopImmediatePropagation } = event;
+      return Object.assign(event, {
+        immediatePropagationStopped: false,
+        stopImmediatePropagation() {
+          this.immediatePropagationStopped = true;
+          stopImmediatePropagation.call(this);
+        }
+      });
+    }
+  }
+  function parseActionDescriptorString(descriptorString) {
+    const source = descriptorString.trim();
+    const matches = source.match(descriptorPattern) || [];
+    return {
+      eventTarget: parseEventTarget(matches[4]),
+      eventName: matches[2],
+      eventOptions: matches[9] ? parseEventOptions(matches[9]) : {},
+      identifier: matches[5],
+      methodName: matches[7]
+    };
+  }
+  function parseEventTarget(eventTargetName) {
+    if (eventTargetName == "window") {
+      return window;
+    } else if (eventTargetName == "document") {
+      return document;
+    }
+  }
+  function parseEventOptions(eventOptions) {
+    return eventOptions.split(":").reduce((options, token) => Object.assign(options, { [token.replace(/^!/, "")]: !/^!/.test(token) }), {});
+  }
+  function stringifyEventTarget(eventTarget) {
+    if (eventTarget == window) {
+      return "window";
+    } else if (eventTarget == document) {
+      return "document";
+    }
+  }
+  function camelize(value) {
+    return value.replace(/(?:[_-])([a-z0-9])/g, (_, char) => char.toUpperCase());
+  }
+  function capitalize(value) {
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  }
+  function dasherize(value) {
+    return value.replace(/([A-Z])/g, (_, char) => `-${char.toLowerCase()}`);
+  }
+  function tokenize(value) {
+    return value.match(/[^\s]+/g) || [];
+  }
+  function getDefaultEventNameForElement(element) {
+    const tagName = element.tagName.toLowerCase();
+    if (tagName in defaultEventNames) {
+      return defaultEventNames[tagName](element);
+    }
+  }
+  function error(message) {
+    throw new Error(message);
+  }
+  function typecast(value) {
+    try {
+      return JSON.parse(value);
+    } catch (o_O) {
+      return value;
+    }
+  }
+  function add(map, key, value) {
+    fetch2(map, key).add(value);
+  }
+  function del(map, key, value) {
+    fetch2(map, key).delete(value);
+    prune(map, key);
+  }
+  function fetch2(map, key) {
+    let values = map.get(key);
+    if (!values) {
+      values = /* @__PURE__ */ new Set();
+      map.set(key, values);
+    }
+    return values;
+  }
+  function prune(map, key) {
+    const values = map.get(key);
+    if (values != null && values.size == 0) {
+      map.delete(key);
+    }
+  }
+  function parseTokenString(tokenString, element, attributeName) {
+    return tokenString.trim().split(/\s+/).filter((content) => content.length).map((content, index2) => ({ element, attributeName, content, index: index2 }));
+  }
+  function zip(left, right) {
+    const length = Math.max(left.length, right.length);
+    return Array.from({ length }, (_, index2) => [left[index2], right[index2]]);
+  }
+  function tokensAreEqual(left, right) {
+    return left && right && left.index == right.index && left.content == right.content;
+  }
+  function readInheritableStaticArrayValues(constructor, propertyName) {
+    const ancestors = getAncestorsForConstructor(constructor);
+    return Array.from(ancestors.reduce((values, constructor2) => {
+      getOwnStaticArrayValues(constructor2, propertyName).forEach((name) => values.add(name));
+      return values;
+    }, /* @__PURE__ */ new Set()));
+  }
+  function readInheritableStaticObjectPairs(constructor, propertyName) {
+    const ancestors = getAncestorsForConstructor(constructor);
+    return ancestors.reduce((pairs, constructor2) => {
+      pairs.push(...getOwnStaticObjectPairs(constructor2, propertyName));
+      return pairs;
+    }, []);
+  }
+  function getAncestorsForConstructor(constructor) {
+    const ancestors = [];
+    while (constructor) {
+      ancestors.push(constructor);
+      constructor = Object.getPrototypeOf(constructor);
+    }
+    return ancestors.reverse();
+  }
+  function getOwnStaticArrayValues(constructor, propertyName) {
+    const definition = constructor[propertyName];
+    return Array.isArray(definition) ? definition : [];
+  }
+  function getOwnStaticObjectPairs(constructor, propertyName) {
+    const definition = constructor[propertyName];
+    return definition ? Object.keys(definition).map((key) => [key, definition[key]]) : [];
+  }
+  function bless(constructor) {
+    return shadow(constructor, getBlessedProperties(constructor));
+  }
+  function shadow(constructor, properties) {
+    const shadowConstructor = extend2(constructor);
+    const shadowProperties = getShadowProperties(constructor.prototype, properties);
+    Object.defineProperties(shadowConstructor.prototype, shadowProperties);
+    return shadowConstructor;
+  }
+  function getBlessedProperties(constructor) {
+    const blessings = readInheritableStaticArrayValues(constructor, "blessings");
+    return blessings.reduce((blessedProperties, blessing) => {
+      const properties = blessing(constructor);
+      for (const key in properties) {
+        const descriptor = blessedProperties[key] || {};
+        blessedProperties[key] = Object.assign(descriptor, properties[key]);
+      }
+      return blessedProperties;
+    }, {});
+  }
+  function getShadowProperties(prototype, properties) {
+    return getOwnKeys(properties).reduce((shadowProperties, key) => {
+      const descriptor = getShadowedDescriptor(prototype, properties, key);
+      if (descriptor) {
+        Object.assign(shadowProperties, { [key]: descriptor });
+      }
+      return shadowProperties;
+    }, {});
+  }
+  function getShadowedDescriptor(prototype, properties, key) {
+    const shadowingDescriptor = Object.getOwnPropertyDescriptor(prototype, key);
+    const shadowedByValue = shadowingDescriptor && "value" in shadowingDescriptor;
+    if (!shadowedByValue) {
+      const descriptor = Object.getOwnPropertyDescriptor(properties, key).value;
+      if (shadowingDescriptor) {
+        descriptor.get = shadowingDescriptor.get || descriptor.get;
+        descriptor.set = shadowingDescriptor.set || descriptor.set;
+      }
+      return descriptor;
+    }
+  }
+  function blessDefinition(definition) {
+    return {
+      identifier: definition.identifier,
+      controllerConstructor: bless(definition.controllerConstructor)
+    };
+  }
+  function attributeValueContainsToken(attributeName, token) {
+    return `[${attributeName}~="${token}"]`;
+  }
+  function domReady() {
+    return new Promise((resolve) => {
+      if (document.readyState == "loading") {
+        document.addEventListener("DOMContentLoaded", () => resolve());
+      } else {
+        resolve();
+      }
+    });
+  }
+  function ClassPropertiesBlessing(constructor) {
+    const classes = readInheritableStaticArrayValues(constructor, "classes");
+    return classes.reduce((properties, classDefinition) => {
+      return Object.assign(properties, propertiesForClassDefinition(classDefinition));
+    }, {});
+  }
+  function propertiesForClassDefinition(key) {
+    return {
+      [`${key}Class`]: {
+        get() {
+          const { classes } = this;
+          if (classes.has(key)) {
+            return classes.get(key);
+          } else {
+            const attribute = classes.getAttributeName(key);
+            throw new Error(`Missing attribute "${attribute}"`);
+          }
+        }
+      },
+      [`${key}Classes`]: {
+        get() {
+          return this.classes.getAll(key);
+        }
+      },
+      [`has${capitalize(key)}Class`]: {
+        get() {
+          return this.classes.has(key);
+        }
+      }
+    };
+  }
+  function TargetPropertiesBlessing(constructor) {
+    const targets = readInheritableStaticArrayValues(constructor, "targets");
+    return targets.reduce((properties, targetDefinition) => {
+      return Object.assign(properties, propertiesForTargetDefinition(targetDefinition));
+    }, {});
+  }
+  function propertiesForTargetDefinition(name) {
+    return {
+      [`${name}Target`]: {
+        get() {
+          const target = this.targets.find(name);
+          if (target) {
+            return target;
+          } else {
+            throw new Error(`Missing target element "${name}" for "${this.identifier}" controller`);
+          }
+        }
+      },
+      [`${name}Targets`]: {
+        get() {
+          return this.targets.findAll(name);
+        }
+      },
+      [`has${capitalize(name)}Target`]: {
+        get() {
+          return this.targets.has(name);
+        }
+      }
+    };
+  }
+  function ValuePropertiesBlessing(constructor) {
+    const valueDefinitionPairs = readInheritableStaticObjectPairs(constructor, "values");
+    const propertyDescriptorMap = {
+      valueDescriptorMap: {
+        get() {
+          return valueDefinitionPairs.reduce((result, valueDefinitionPair) => {
+            const valueDescriptor = parseValueDefinitionPair(valueDefinitionPair);
+            const attributeName = this.data.getAttributeNameForKey(valueDescriptor.key);
+            return Object.assign(result, { [attributeName]: valueDescriptor });
+          }, {});
+        }
+      }
+    };
+    return valueDefinitionPairs.reduce((properties, valueDefinitionPair) => {
+      return Object.assign(properties, propertiesForValueDefinitionPair(valueDefinitionPair));
+    }, propertyDescriptorMap);
+  }
+  function propertiesForValueDefinitionPair(valueDefinitionPair) {
+    const definition = parseValueDefinitionPair(valueDefinitionPair);
+    const { key, name, reader: read, writer: write } = definition;
+    return {
+      [name]: {
+        get() {
+          const value = this.data.get(key);
+          if (value !== null) {
+            return read(value);
+          } else {
+            return definition.defaultValue;
+          }
+        },
+        set(value) {
+          if (value === void 0) {
+            this.data.delete(key);
+          } else {
+            this.data.set(key, write(value));
+          }
+        }
+      },
+      [`has${capitalize(name)}`]: {
+        get() {
+          return this.data.has(key) || definition.hasCustomDefaultValue;
+        }
+      }
+    };
+  }
+  function parseValueDefinitionPair([token, typeDefinition]) {
+    return valueDescriptorForTokenAndTypeDefinition(token, typeDefinition);
+  }
+  function parseValueTypeConstant(constant) {
+    switch (constant) {
+      case Array:
+        return "array";
+      case Boolean:
+        return "boolean";
+      case Number:
+        return "number";
+      case Object:
+        return "object";
+      case String:
+        return "string";
+    }
+  }
+  function parseValueTypeDefault(defaultValue) {
+    switch (typeof defaultValue) {
+      case "boolean":
+        return "boolean";
+      case "number":
+        return "number";
+      case "string":
+        return "string";
+    }
+    if (Array.isArray(defaultValue))
+      return "array";
+    if (Object.prototype.toString.call(defaultValue) === "[object Object]")
+      return "object";
+  }
+  function parseValueTypeObject(typeObject) {
+    const typeFromObject = parseValueTypeConstant(typeObject.type);
+    if (typeFromObject) {
+      const defaultValueType = parseValueTypeDefault(typeObject.default);
+      if (typeFromObject !== defaultValueType) {
+        throw new Error(`Type "${typeFromObject}" must match the type of the default value. Given default value: "${typeObject.default}" as "${defaultValueType}"`);
+      }
+      return typeFromObject;
+    }
+  }
+  function parseValueTypeDefinition(typeDefinition) {
+    const typeFromObject = parseValueTypeObject(typeDefinition);
+    const typeFromDefaultValue = parseValueTypeDefault(typeDefinition);
+    const typeFromConstant = parseValueTypeConstant(typeDefinition);
+    const type = typeFromObject || typeFromDefaultValue || typeFromConstant;
+    if (type)
+      return type;
+    throw new Error(`Unknown value type "${typeDefinition}"`);
+  }
+  function defaultValueForDefinition(typeDefinition) {
+    const constant = parseValueTypeConstant(typeDefinition);
+    if (constant)
+      return defaultValuesByType[constant];
+    const defaultValue = typeDefinition.default;
+    if (defaultValue !== void 0)
+      return defaultValue;
+    return typeDefinition;
+  }
+  function valueDescriptorForTokenAndTypeDefinition(token, typeDefinition) {
+    const key = `${dasherize(token)}-value`;
+    const type = parseValueTypeDefinition(typeDefinition);
+    return {
+      type,
+      key,
+      name: camelize(key),
+      get defaultValue() {
+        return defaultValueForDefinition(typeDefinition);
+      },
+      get hasCustomDefaultValue() {
+        return parseValueTypeDefault(typeDefinition) !== void 0;
+      },
+      reader: readers[type],
+      writer: writers[type] || writers.default
+    };
+  }
+  function writeJSON(value) {
+    return JSON.stringify(value);
+  }
+  function writeString(value) {
+    return `${value}`;
+  }
+  var EventListener, Dispatcher, descriptorPattern, Action, defaultEventNames, Binding, ElementObserver, AttributeObserver, StringMapObserver, Multimap, TokenListObserver, ValueListObserver, BindingObserver, ValueObserver, TargetObserver, Context, getOwnKeys, extend2, Module, ClassMap, DataMap, Guide, TargetSet, Scope, ScopeObserver, Router, defaultSchema, Application, defaultValuesByType, readers, writers, Controller;
+  var init_stimulus = __esm({
+    "node_modules/@hotwired/stimulus/dist/stimulus.js"() {
+      EventListener = class {
+        constructor(eventTarget, eventName, eventOptions) {
+          this.eventTarget = eventTarget;
+          this.eventName = eventName;
+          this.eventOptions = eventOptions;
+          this.unorderedBindings = /* @__PURE__ */ new Set();
+        }
+        connect() {
+          this.eventTarget.addEventListener(this.eventName, this, this.eventOptions);
+        }
+        disconnect() {
+          this.eventTarget.removeEventListener(this.eventName, this, this.eventOptions);
+        }
+        bindingConnected(binding) {
+          this.unorderedBindings.add(binding);
+        }
+        bindingDisconnected(binding) {
+          this.unorderedBindings.delete(binding);
+        }
+        handleEvent(event) {
+          const extendedEvent = extendEvent(event);
+          for (const binding of this.bindings) {
+            if (extendedEvent.immediatePropagationStopped) {
+              break;
+            } else {
+              binding.handleEvent(extendedEvent);
+            }
+          }
+        }
+        get bindings() {
+          return Array.from(this.unorderedBindings).sort((left, right) => {
+            const leftIndex = left.index, rightIndex = right.index;
+            return leftIndex < rightIndex ? -1 : leftIndex > rightIndex ? 1 : 0;
+          });
+        }
+      };
+      Dispatcher = class {
+        constructor(application2) {
+          this.application = application2;
+          this.eventListenerMaps = /* @__PURE__ */ new Map();
+          this.started = false;
+        }
+        start() {
+          if (!this.started) {
+            this.started = true;
+            this.eventListeners.forEach((eventListener) => eventListener.connect());
+          }
+        }
+        stop() {
+          if (this.started) {
+            this.started = false;
+            this.eventListeners.forEach((eventListener) => eventListener.disconnect());
+          }
+        }
+        get eventListeners() {
+          return Array.from(this.eventListenerMaps.values()).reduce((listeners, map) => listeners.concat(Array.from(map.values())), []);
+        }
+        bindingConnected(binding) {
+          this.fetchEventListenerForBinding(binding).bindingConnected(binding);
+        }
+        bindingDisconnected(binding) {
+          this.fetchEventListenerForBinding(binding).bindingDisconnected(binding);
+        }
+        handleError(error2, message, detail = {}) {
+          this.application.handleError(error2, `Error ${message}`, detail);
+        }
+        fetchEventListenerForBinding(binding) {
+          const { eventTarget, eventName, eventOptions } = binding;
+          return this.fetchEventListener(eventTarget, eventName, eventOptions);
+        }
+        fetchEventListener(eventTarget, eventName, eventOptions) {
+          const eventListenerMap = this.fetchEventListenerMapForEventTarget(eventTarget);
+          const cacheKey = this.cacheKey(eventName, eventOptions);
+          let eventListener = eventListenerMap.get(cacheKey);
+          if (!eventListener) {
+            eventListener = this.createEventListener(eventTarget, eventName, eventOptions);
+            eventListenerMap.set(cacheKey, eventListener);
+          }
+          return eventListener;
+        }
+        createEventListener(eventTarget, eventName, eventOptions) {
+          const eventListener = new EventListener(eventTarget, eventName, eventOptions);
+          if (this.started) {
+            eventListener.connect();
+          }
+          return eventListener;
+        }
+        fetchEventListenerMapForEventTarget(eventTarget) {
+          let eventListenerMap = this.eventListenerMaps.get(eventTarget);
+          if (!eventListenerMap) {
+            eventListenerMap = /* @__PURE__ */ new Map();
+            this.eventListenerMaps.set(eventTarget, eventListenerMap);
+          }
+          return eventListenerMap;
+        }
+        cacheKey(eventName, eventOptions) {
+          const parts = [eventName];
+          Object.keys(eventOptions).sort().forEach((key) => {
+            parts.push(`${eventOptions[key] ? "" : "!"}${key}`);
+          });
+          return parts.join(":");
+        }
+      };
+      descriptorPattern = /^((.+?)(@(window|document))?->)?(.+?)(#([^:]+?))(:(.+))?$/;
+      Action = class {
+        constructor(element, index2, descriptor) {
+          this.element = element;
+          this.index = index2;
+          this.eventTarget = descriptor.eventTarget || element;
+          this.eventName = descriptor.eventName || getDefaultEventNameForElement(element) || error("missing event name");
+          this.eventOptions = descriptor.eventOptions || {};
+          this.identifier = descriptor.identifier || error("missing identifier");
+          this.methodName = descriptor.methodName || error("missing method name");
+        }
+        static forToken(token) {
+          return new this(token.element, token.index, parseActionDescriptorString(token.content));
+        }
+        toString() {
+          const eventNameSuffix = this.eventTargetName ? `@${this.eventTargetName}` : "";
+          return `${this.eventName}${eventNameSuffix}->${this.identifier}#${this.methodName}`;
+        }
+        get params() {
+          if (this.eventTarget instanceof Element) {
+            return this.getParamsFromEventTargetAttributes(this.eventTarget);
+          } else {
+            return {};
+          }
+        }
+        getParamsFromEventTargetAttributes(eventTarget) {
+          const params = {};
+          const pattern = new RegExp(`^data-${this.identifier}-(.+)-param$`);
+          const attributes = Array.from(eventTarget.attributes);
+          attributes.forEach(({ name, value }) => {
+            const match = name.match(pattern);
+            const key = match && match[1];
+            if (key) {
+              Object.assign(params, { [camelize(key)]: typecast(value) });
+            }
+          });
+          return params;
+        }
+        get eventTargetName() {
+          return stringifyEventTarget(this.eventTarget);
+        }
+      };
+      defaultEventNames = {
+        "a": (e) => "click",
+        "button": (e) => "click",
+        "form": (e) => "submit",
+        "details": (e) => "toggle",
+        "input": (e) => e.getAttribute("type") == "submit" ? "click" : "input",
+        "select": (e) => "change",
+        "textarea": (e) => "input"
+      };
+      Binding = class {
+        constructor(context, action) {
+          this.context = context;
+          this.action = action;
+        }
+        get index() {
+          return this.action.index;
+        }
+        get eventTarget() {
+          return this.action.eventTarget;
+        }
+        get eventOptions() {
+          return this.action.eventOptions;
+        }
+        get identifier() {
+          return this.context.identifier;
+        }
+        handleEvent(event) {
+          if (this.willBeInvokedByEvent(event)) {
+            this.invokeWithEvent(event);
+          }
+        }
+        get eventName() {
+          return this.action.eventName;
+        }
+        get method() {
+          const method = this.controller[this.methodName];
+          if (typeof method == "function") {
+            return method;
+          }
+          throw new Error(`Action "${this.action}" references undefined method "${this.methodName}"`);
+        }
+        invokeWithEvent(event) {
+          const { target, currentTarget } = event;
+          try {
+            const { params } = this.action;
+            const actionEvent = Object.assign(event, { params });
+            this.method.call(this.controller, actionEvent);
+            this.context.logDebugActivity(this.methodName, { event, target, currentTarget, action: this.methodName });
+          } catch (error2) {
+            const { identifier, controller, element, index: index2 } = this;
+            const detail = { identifier, controller, element, index: index2, event };
+            this.context.handleError(error2, `invoking action "${this.action}"`, detail);
+          }
+        }
+        willBeInvokedByEvent(event) {
+          const eventTarget = event.target;
+          if (this.element === eventTarget) {
+            return true;
+          } else if (eventTarget instanceof Element && this.element.contains(eventTarget)) {
+            return this.scope.containsElement(eventTarget);
+          } else {
+            return this.scope.containsElement(this.action.element);
+          }
+        }
+        get controller() {
+          return this.context.controller;
+        }
+        get methodName() {
+          return this.action.methodName;
+        }
+        get element() {
+          return this.scope.element;
+        }
+        get scope() {
+          return this.context.scope;
+        }
+      };
+      ElementObserver = class {
+        constructor(element, delegate) {
+          this.mutationObserverInit = { attributes: true, childList: true, subtree: true };
+          this.element = element;
+          this.started = false;
+          this.delegate = delegate;
+          this.elements = /* @__PURE__ */ new Set();
+          this.mutationObserver = new MutationObserver((mutations) => this.processMutations(mutations));
+        }
+        start() {
+          if (!this.started) {
+            this.started = true;
+            this.mutationObserver.observe(this.element, this.mutationObserverInit);
+            this.refresh();
+          }
+        }
+        pause(callback) {
+          if (this.started) {
+            this.mutationObserver.disconnect();
+            this.started = false;
+          }
+          callback();
+          if (!this.started) {
+            this.mutationObserver.observe(this.element, this.mutationObserverInit);
+            this.started = true;
+          }
+        }
+        stop() {
+          if (this.started) {
+            this.mutationObserver.takeRecords();
+            this.mutationObserver.disconnect();
+            this.started = false;
+          }
+        }
+        refresh() {
+          if (this.started) {
+            const matches = new Set(this.matchElementsInTree());
+            for (const element of Array.from(this.elements)) {
+              if (!matches.has(element)) {
+                this.removeElement(element);
+              }
+            }
+            for (const element of Array.from(matches)) {
+              this.addElement(element);
+            }
+          }
+        }
+        processMutations(mutations) {
+          if (this.started) {
+            for (const mutation of mutations) {
+              this.processMutation(mutation);
+            }
+          }
+        }
+        processMutation(mutation) {
+          if (mutation.type == "attributes") {
+            this.processAttributeChange(mutation.target, mutation.attributeName);
+          } else if (mutation.type == "childList") {
+            this.processRemovedNodes(mutation.removedNodes);
+            this.processAddedNodes(mutation.addedNodes);
+          }
+        }
+        processAttributeChange(node, attributeName) {
+          const element = node;
+          if (this.elements.has(element)) {
+            if (this.delegate.elementAttributeChanged && this.matchElement(element)) {
+              this.delegate.elementAttributeChanged(element, attributeName);
+            } else {
+              this.removeElement(element);
+            }
+          } else if (this.matchElement(element)) {
+            this.addElement(element);
+          }
+        }
+        processRemovedNodes(nodes) {
+          for (const node of Array.from(nodes)) {
+            const element = this.elementFromNode(node);
+            if (element) {
+              this.processTree(element, this.removeElement);
+            }
+          }
+        }
+        processAddedNodes(nodes) {
+          for (const node of Array.from(nodes)) {
+            const element = this.elementFromNode(node);
+            if (element && this.elementIsActive(element)) {
+              this.processTree(element, this.addElement);
+            }
+          }
+        }
+        matchElement(element) {
+          return this.delegate.matchElement(element);
+        }
+        matchElementsInTree(tree = this.element) {
+          return this.delegate.matchElementsInTree(tree);
+        }
+        processTree(tree, processor) {
+          for (const element of this.matchElementsInTree(tree)) {
+            processor.call(this, element);
+          }
+        }
+        elementFromNode(node) {
+          if (node.nodeType == Node.ELEMENT_NODE) {
+            return node;
+          }
+        }
+        elementIsActive(element) {
+          if (element.isConnected != this.element.isConnected) {
+            return false;
+          } else {
+            return this.element.contains(element);
+          }
+        }
+        addElement(element) {
+          if (!this.elements.has(element)) {
+            if (this.elementIsActive(element)) {
+              this.elements.add(element);
+              if (this.delegate.elementMatched) {
+                this.delegate.elementMatched(element);
+              }
+            }
+          }
+        }
+        removeElement(element) {
+          if (this.elements.has(element)) {
+            this.elements.delete(element);
+            if (this.delegate.elementUnmatched) {
+              this.delegate.elementUnmatched(element);
+            }
+          }
+        }
+      };
+      AttributeObserver = class {
+        constructor(element, attributeName, delegate) {
+          this.attributeName = attributeName;
+          this.delegate = delegate;
+          this.elementObserver = new ElementObserver(element, this);
+        }
+        get element() {
+          return this.elementObserver.element;
+        }
+        get selector() {
+          return `[${this.attributeName}]`;
+        }
+        start() {
+          this.elementObserver.start();
+        }
+        pause(callback) {
+          this.elementObserver.pause(callback);
+        }
+        stop() {
+          this.elementObserver.stop();
+        }
+        refresh() {
+          this.elementObserver.refresh();
+        }
+        get started() {
+          return this.elementObserver.started;
+        }
+        matchElement(element) {
+          return element.hasAttribute(this.attributeName);
+        }
+        matchElementsInTree(tree) {
+          const match = this.matchElement(tree) ? [tree] : [];
+          const matches = Array.from(tree.querySelectorAll(this.selector));
+          return match.concat(matches);
+        }
+        elementMatched(element) {
+          if (this.delegate.elementMatchedAttribute) {
+            this.delegate.elementMatchedAttribute(element, this.attributeName);
+          }
+        }
+        elementUnmatched(element) {
+          if (this.delegate.elementUnmatchedAttribute) {
+            this.delegate.elementUnmatchedAttribute(element, this.attributeName);
+          }
+        }
+        elementAttributeChanged(element, attributeName) {
+          if (this.delegate.elementAttributeValueChanged && this.attributeName == attributeName) {
+            this.delegate.elementAttributeValueChanged(element, attributeName);
+          }
+        }
+      };
+      StringMapObserver = class {
+        constructor(element, delegate) {
+          this.element = element;
+          this.delegate = delegate;
+          this.started = false;
+          this.stringMap = /* @__PURE__ */ new Map();
+          this.mutationObserver = new MutationObserver((mutations) => this.processMutations(mutations));
+        }
+        start() {
+          if (!this.started) {
+            this.started = true;
+            this.mutationObserver.observe(this.element, { attributes: true, attributeOldValue: true });
+            this.refresh();
+          }
+        }
+        stop() {
+          if (this.started) {
+            this.mutationObserver.takeRecords();
+            this.mutationObserver.disconnect();
+            this.started = false;
+          }
+        }
+        refresh() {
+          if (this.started) {
+            for (const attributeName of this.knownAttributeNames) {
+              this.refreshAttribute(attributeName, null);
+            }
+          }
+        }
+        processMutations(mutations) {
+          if (this.started) {
+            for (const mutation of mutations) {
+              this.processMutation(mutation);
+            }
+          }
+        }
+        processMutation(mutation) {
+          const attributeName = mutation.attributeName;
+          if (attributeName) {
+            this.refreshAttribute(attributeName, mutation.oldValue);
+          }
+        }
+        refreshAttribute(attributeName, oldValue) {
+          const key = this.delegate.getStringMapKeyForAttribute(attributeName);
+          if (key != null) {
+            if (!this.stringMap.has(attributeName)) {
+              this.stringMapKeyAdded(key, attributeName);
+            }
+            const value = this.element.getAttribute(attributeName);
+            if (this.stringMap.get(attributeName) != value) {
+              this.stringMapValueChanged(value, key, oldValue);
+            }
+            if (value == null) {
+              const oldValue2 = this.stringMap.get(attributeName);
+              this.stringMap.delete(attributeName);
+              if (oldValue2)
+                this.stringMapKeyRemoved(key, attributeName, oldValue2);
+            } else {
+              this.stringMap.set(attributeName, value);
+            }
+          }
+        }
+        stringMapKeyAdded(key, attributeName) {
+          if (this.delegate.stringMapKeyAdded) {
+            this.delegate.stringMapKeyAdded(key, attributeName);
+          }
+        }
+        stringMapValueChanged(value, key, oldValue) {
+          if (this.delegate.stringMapValueChanged) {
+            this.delegate.stringMapValueChanged(value, key, oldValue);
+          }
+        }
+        stringMapKeyRemoved(key, attributeName, oldValue) {
+          if (this.delegate.stringMapKeyRemoved) {
+            this.delegate.stringMapKeyRemoved(key, attributeName, oldValue);
+          }
+        }
+        get knownAttributeNames() {
+          return Array.from(new Set(this.currentAttributeNames.concat(this.recordedAttributeNames)));
+        }
+        get currentAttributeNames() {
+          return Array.from(this.element.attributes).map((attribute) => attribute.name);
+        }
+        get recordedAttributeNames() {
+          return Array.from(this.stringMap.keys());
+        }
+      };
+      Multimap = class {
+        constructor() {
+          this.valuesByKey = /* @__PURE__ */ new Map();
+        }
+        get keys() {
+          return Array.from(this.valuesByKey.keys());
+        }
+        get values() {
+          const sets = Array.from(this.valuesByKey.values());
+          return sets.reduce((values, set) => values.concat(Array.from(set)), []);
+        }
+        get size() {
+          const sets = Array.from(this.valuesByKey.values());
+          return sets.reduce((size2, set) => size2 + set.size, 0);
+        }
+        add(key, value) {
+          add(this.valuesByKey, key, value);
+        }
+        delete(key, value) {
+          del(this.valuesByKey, key, value);
+        }
+        has(key, value) {
+          const values = this.valuesByKey.get(key);
+          return values != null && values.has(value);
+        }
+        hasKey(key) {
+          return this.valuesByKey.has(key);
+        }
+        hasValue(value) {
+          const sets = Array.from(this.valuesByKey.values());
+          return sets.some((set) => set.has(value));
+        }
+        getValuesForKey(key) {
+          const values = this.valuesByKey.get(key);
+          return values ? Array.from(values) : [];
+        }
+        getKeysForValue(value) {
+          return Array.from(this.valuesByKey).filter(([key, values]) => values.has(value)).map(([key, values]) => key);
+        }
+      };
+      TokenListObserver = class {
+        constructor(element, attributeName, delegate) {
+          this.attributeObserver = new AttributeObserver(element, attributeName, this);
+          this.delegate = delegate;
+          this.tokensByElement = new Multimap();
+        }
+        get started() {
+          return this.attributeObserver.started;
+        }
+        start() {
+          this.attributeObserver.start();
+        }
+        pause(callback) {
+          this.attributeObserver.pause(callback);
+        }
+        stop() {
+          this.attributeObserver.stop();
+        }
+        refresh() {
+          this.attributeObserver.refresh();
+        }
+        get element() {
+          return this.attributeObserver.element;
+        }
+        get attributeName() {
+          return this.attributeObserver.attributeName;
+        }
+        elementMatchedAttribute(element) {
+          this.tokensMatched(this.readTokensForElement(element));
+        }
+        elementAttributeValueChanged(element) {
+          const [unmatchedTokens, matchedTokens] = this.refreshTokensForElement(element);
+          this.tokensUnmatched(unmatchedTokens);
+          this.tokensMatched(matchedTokens);
+        }
+        elementUnmatchedAttribute(element) {
+          this.tokensUnmatched(this.tokensByElement.getValuesForKey(element));
+        }
+        tokensMatched(tokens) {
+          tokens.forEach((token) => this.tokenMatched(token));
+        }
+        tokensUnmatched(tokens) {
+          tokens.forEach((token) => this.tokenUnmatched(token));
+        }
+        tokenMatched(token) {
+          this.delegate.tokenMatched(token);
+          this.tokensByElement.add(token.element, token);
+        }
+        tokenUnmatched(token) {
+          this.delegate.tokenUnmatched(token);
+          this.tokensByElement.delete(token.element, token);
+        }
+        refreshTokensForElement(element) {
+          const previousTokens = this.tokensByElement.getValuesForKey(element);
+          const currentTokens = this.readTokensForElement(element);
+          const firstDifferingIndex = zip(previousTokens, currentTokens).findIndex(([previousToken, currentToken]) => !tokensAreEqual(previousToken, currentToken));
+          if (firstDifferingIndex == -1) {
+            return [[], []];
+          } else {
+            return [previousTokens.slice(firstDifferingIndex), currentTokens.slice(firstDifferingIndex)];
+          }
+        }
+        readTokensForElement(element) {
+          const attributeName = this.attributeName;
+          const tokenString = element.getAttribute(attributeName) || "";
+          return parseTokenString(tokenString, element, attributeName);
+        }
+      };
+      ValueListObserver = class {
+        constructor(element, attributeName, delegate) {
+          this.tokenListObserver = new TokenListObserver(element, attributeName, this);
+          this.delegate = delegate;
+          this.parseResultsByToken = /* @__PURE__ */ new WeakMap();
+          this.valuesByTokenByElement = /* @__PURE__ */ new WeakMap();
+        }
+        get started() {
+          return this.tokenListObserver.started;
+        }
+        start() {
+          this.tokenListObserver.start();
+        }
+        stop() {
+          this.tokenListObserver.stop();
+        }
+        refresh() {
+          this.tokenListObserver.refresh();
+        }
+        get element() {
+          return this.tokenListObserver.element;
+        }
+        get attributeName() {
+          return this.tokenListObserver.attributeName;
+        }
+        tokenMatched(token) {
+          const { element } = token;
+          const { value } = this.fetchParseResultForToken(token);
+          if (value) {
+            this.fetchValuesByTokenForElement(element).set(token, value);
+            this.delegate.elementMatchedValue(element, value);
+          }
+        }
+        tokenUnmatched(token) {
+          const { element } = token;
+          const { value } = this.fetchParseResultForToken(token);
+          if (value) {
+            this.fetchValuesByTokenForElement(element).delete(token);
+            this.delegate.elementUnmatchedValue(element, value);
+          }
+        }
+        fetchParseResultForToken(token) {
+          let parseResult = this.parseResultsByToken.get(token);
+          if (!parseResult) {
+            parseResult = this.parseToken(token);
+            this.parseResultsByToken.set(token, parseResult);
+          }
+          return parseResult;
+        }
+        fetchValuesByTokenForElement(element) {
+          let valuesByToken = this.valuesByTokenByElement.get(element);
+          if (!valuesByToken) {
+            valuesByToken = /* @__PURE__ */ new Map();
+            this.valuesByTokenByElement.set(element, valuesByToken);
+          }
+          return valuesByToken;
+        }
+        parseToken(token) {
+          try {
+            const value = this.delegate.parseValueForToken(token);
+            return { value };
+          } catch (error2) {
+            return { error: error2 };
+          }
+        }
+      };
+      BindingObserver = class {
+        constructor(context, delegate) {
+          this.context = context;
+          this.delegate = delegate;
+          this.bindingsByAction = /* @__PURE__ */ new Map();
+        }
+        start() {
+          if (!this.valueListObserver) {
+            this.valueListObserver = new ValueListObserver(this.element, this.actionAttribute, this);
+            this.valueListObserver.start();
+          }
+        }
+        stop() {
+          if (this.valueListObserver) {
+            this.valueListObserver.stop();
+            delete this.valueListObserver;
+            this.disconnectAllActions();
+          }
+        }
+        get element() {
+          return this.context.element;
+        }
+        get identifier() {
+          return this.context.identifier;
+        }
+        get actionAttribute() {
+          return this.schema.actionAttribute;
+        }
+        get schema() {
+          return this.context.schema;
+        }
+        get bindings() {
+          return Array.from(this.bindingsByAction.values());
+        }
+        connectAction(action) {
+          const binding = new Binding(this.context, action);
+          this.bindingsByAction.set(action, binding);
+          this.delegate.bindingConnected(binding);
+        }
+        disconnectAction(action) {
+          const binding = this.bindingsByAction.get(action);
+          if (binding) {
+            this.bindingsByAction.delete(action);
+            this.delegate.bindingDisconnected(binding);
+          }
+        }
+        disconnectAllActions() {
+          this.bindings.forEach((binding) => this.delegate.bindingDisconnected(binding));
+          this.bindingsByAction.clear();
+        }
+        parseValueForToken(token) {
+          const action = Action.forToken(token);
+          if (action.identifier == this.identifier) {
+            return action;
+          }
+        }
+        elementMatchedValue(element, action) {
+          this.connectAction(action);
+        }
+        elementUnmatchedValue(element, action) {
+          this.disconnectAction(action);
+        }
+      };
+      ValueObserver = class {
+        constructor(context, receiver) {
+          this.context = context;
+          this.receiver = receiver;
+          this.stringMapObserver = new StringMapObserver(this.element, this);
+          this.valueDescriptorMap = this.controller.valueDescriptorMap;
+          this.invokeChangedCallbacksForDefaultValues();
+        }
+        start() {
+          this.stringMapObserver.start();
+        }
+        stop() {
+          this.stringMapObserver.stop();
+        }
+        get element() {
+          return this.context.element;
+        }
+        get controller() {
+          return this.context.controller;
+        }
+        getStringMapKeyForAttribute(attributeName) {
+          if (attributeName in this.valueDescriptorMap) {
+            return this.valueDescriptorMap[attributeName].name;
+          }
+        }
+        stringMapKeyAdded(key, attributeName) {
+          const descriptor = this.valueDescriptorMap[attributeName];
+          if (!this.hasValue(key)) {
+            this.invokeChangedCallback(key, descriptor.writer(this.receiver[key]), descriptor.writer(descriptor.defaultValue));
+          }
+        }
+        stringMapValueChanged(value, name, oldValue) {
+          const descriptor = this.valueDescriptorNameMap[name];
+          if (value === null)
+            return;
+          if (oldValue === null) {
+            oldValue = descriptor.writer(descriptor.defaultValue);
+          }
+          this.invokeChangedCallback(name, value, oldValue);
+        }
+        stringMapKeyRemoved(key, attributeName, oldValue) {
+          const descriptor = this.valueDescriptorNameMap[key];
+          if (this.hasValue(key)) {
+            this.invokeChangedCallback(key, descriptor.writer(this.receiver[key]), oldValue);
+          } else {
+            this.invokeChangedCallback(key, descriptor.writer(descriptor.defaultValue), oldValue);
+          }
+        }
+        invokeChangedCallbacksForDefaultValues() {
+          for (const { key, name, defaultValue, writer } of this.valueDescriptors) {
+            if (defaultValue != void 0 && !this.controller.data.has(key)) {
+              this.invokeChangedCallback(name, writer(defaultValue), void 0);
+            }
+          }
+        }
+        invokeChangedCallback(name, rawValue, rawOldValue) {
+          const changedMethodName = `${name}Changed`;
+          const changedMethod = this.receiver[changedMethodName];
+          if (typeof changedMethod == "function") {
+            const descriptor = this.valueDescriptorNameMap[name];
+            const value = descriptor.reader(rawValue);
+            let oldValue = rawOldValue;
+            if (rawOldValue) {
+              oldValue = descriptor.reader(rawOldValue);
+            }
+            changedMethod.call(this.receiver, value, oldValue);
+          }
+        }
+        get valueDescriptors() {
+          const { valueDescriptorMap } = this;
+          return Object.keys(valueDescriptorMap).map((key) => valueDescriptorMap[key]);
+        }
+        get valueDescriptorNameMap() {
+          const descriptors = {};
+          Object.keys(this.valueDescriptorMap).forEach((key) => {
+            const descriptor = this.valueDescriptorMap[key];
+            descriptors[descriptor.name] = descriptor;
+          });
+          return descriptors;
+        }
+        hasValue(attributeName) {
+          const descriptor = this.valueDescriptorNameMap[attributeName];
+          const hasMethodName = `has${capitalize(descriptor.name)}`;
+          return this.receiver[hasMethodName];
+        }
+      };
+      TargetObserver = class {
+        constructor(context, delegate) {
+          this.context = context;
+          this.delegate = delegate;
+          this.targetsByName = new Multimap();
+        }
+        start() {
+          if (!this.tokenListObserver) {
+            this.tokenListObserver = new TokenListObserver(this.element, this.attributeName, this);
+            this.tokenListObserver.start();
+          }
+        }
+        stop() {
+          if (this.tokenListObserver) {
+            this.disconnectAllTargets();
+            this.tokenListObserver.stop();
+            delete this.tokenListObserver;
+          }
+        }
+        tokenMatched({ element, content: name }) {
+          if (this.scope.containsElement(element)) {
+            this.connectTarget(element, name);
+          }
+        }
+        tokenUnmatched({ element, content: name }) {
+          this.disconnectTarget(element, name);
+        }
+        connectTarget(element, name) {
+          var _a;
+          if (!this.targetsByName.has(name, element)) {
+            this.targetsByName.add(name, element);
+            (_a = this.tokenListObserver) === null || _a === void 0 ? void 0 : _a.pause(() => this.delegate.targetConnected(element, name));
+          }
+        }
+        disconnectTarget(element, name) {
+          var _a;
+          if (this.targetsByName.has(name, element)) {
+            this.targetsByName.delete(name, element);
+            (_a = this.tokenListObserver) === null || _a === void 0 ? void 0 : _a.pause(() => this.delegate.targetDisconnected(element, name));
+          }
+        }
+        disconnectAllTargets() {
+          for (const name of this.targetsByName.keys) {
+            for (const element of this.targetsByName.getValuesForKey(name)) {
+              this.disconnectTarget(element, name);
+            }
+          }
+        }
+        get attributeName() {
+          return `data-${this.context.identifier}-target`;
+        }
+        get element() {
+          return this.context.element;
+        }
+        get scope() {
+          return this.context.scope;
+        }
+      };
+      Context = class {
+        constructor(module, scope) {
+          this.logDebugActivity = (functionName, detail = {}) => {
+            const { identifier, controller, element } = this;
+            detail = Object.assign({ identifier, controller, element }, detail);
+            this.application.logDebugActivity(this.identifier, functionName, detail);
+          };
+          this.module = module;
+          this.scope = scope;
+          this.controller = new module.controllerConstructor(this);
+          this.bindingObserver = new BindingObserver(this, this.dispatcher);
+          this.valueObserver = new ValueObserver(this, this.controller);
+          this.targetObserver = new TargetObserver(this, this);
+          try {
+            this.controller.initialize();
+            this.logDebugActivity("initialize");
+          } catch (error2) {
+            this.handleError(error2, "initializing controller");
+          }
+        }
+        connect() {
+          this.bindingObserver.start();
+          this.valueObserver.start();
+          this.targetObserver.start();
+          try {
+            this.controller.connect();
+            this.logDebugActivity("connect");
+          } catch (error2) {
+            this.handleError(error2, "connecting controller");
+          }
+        }
+        disconnect() {
+          try {
+            this.controller.disconnect();
+            this.logDebugActivity("disconnect");
+          } catch (error2) {
+            this.handleError(error2, "disconnecting controller");
+          }
+          this.targetObserver.stop();
+          this.valueObserver.stop();
+          this.bindingObserver.stop();
+        }
+        get application() {
+          return this.module.application;
+        }
+        get identifier() {
+          return this.module.identifier;
+        }
+        get schema() {
+          return this.application.schema;
+        }
+        get dispatcher() {
+          return this.application.dispatcher;
+        }
+        get element() {
+          return this.scope.element;
+        }
+        get parentElement() {
+          return this.element.parentElement;
+        }
+        handleError(error2, message, detail = {}) {
+          const { identifier, controller, element } = this;
+          detail = Object.assign({ identifier, controller, element }, detail);
+          this.application.handleError(error2, `Error ${message}`, detail);
+        }
+        targetConnected(element, name) {
+          this.invokeControllerMethod(`${name}TargetConnected`, element);
+        }
+        targetDisconnected(element, name) {
+          this.invokeControllerMethod(`${name}TargetDisconnected`, element);
+        }
+        invokeControllerMethod(methodName, ...args) {
+          const controller = this.controller;
+          if (typeof controller[methodName] == "function") {
+            controller[methodName](...args);
+          }
+        }
+      };
+      getOwnKeys = (() => {
+        if (typeof Object.getOwnPropertySymbols == "function") {
+          return (object) => [
+            ...Object.getOwnPropertyNames(object),
+            ...Object.getOwnPropertySymbols(object)
+          ];
+        } else {
+          return Object.getOwnPropertyNames;
+        }
+      })();
+      extend2 = (() => {
+        function extendWithReflect(constructor) {
+          function extended() {
+            return Reflect.construct(constructor, arguments, new.target);
+          }
+          extended.prototype = Object.create(constructor.prototype, {
+            constructor: { value: extended }
+          });
+          Reflect.setPrototypeOf(extended, constructor);
+          return extended;
+        }
+        function testReflectExtension() {
+          const a = function() {
+            this.a.call(this);
+          };
+          const b = extendWithReflect(a);
+          b.prototype.a = function() {
+          };
+          return new b();
+        }
+        try {
+          testReflectExtension();
+          return extendWithReflect;
+        } catch (error2) {
+          return (constructor) => class extended extends constructor {
+          };
+        }
+      })();
+      Module = class {
+        constructor(application2, definition) {
+          this.application = application2;
+          this.definition = blessDefinition(definition);
+          this.contextsByScope = /* @__PURE__ */ new WeakMap();
+          this.connectedContexts = /* @__PURE__ */ new Set();
+        }
+        get identifier() {
+          return this.definition.identifier;
+        }
+        get controllerConstructor() {
+          return this.definition.controllerConstructor;
+        }
+        get contexts() {
+          return Array.from(this.connectedContexts);
+        }
+        connectContextForScope(scope) {
+          const context = this.fetchContextForScope(scope);
+          this.connectedContexts.add(context);
+          context.connect();
+        }
+        disconnectContextForScope(scope) {
+          const context = this.contextsByScope.get(scope);
+          if (context) {
+            this.connectedContexts.delete(context);
+            context.disconnect();
+          }
+        }
+        fetchContextForScope(scope) {
+          let context = this.contextsByScope.get(scope);
+          if (!context) {
+            context = new Context(this, scope);
+            this.contextsByScope.set(scope, context);
+          }
+          return context;
+        }
+      };
+      ClassMap = class {
+        constructor(scope) {
+          this.scope = scope;
+        }
+        has(name) {
+          return this.data.has(this.getDataKey(name));
+        }
+        get(name) {
+          return this.getAll(name)[0];
+        }
+        getAll(name) {
+          const tokenString = this.data.get(this.getDataKey(name)) || "";
+          return tokenize(tokenString);
+        }
+        getAttributeName(name) {
+          return this.data.getAttributeNameForKey(this.getDataKey(name));
+        }
+        getDataKey(name) {
+          return `${name}-class`;
+        }
+        get data() {
+          return this.scope.data;
+        }
+      };
+      DataMap = class {
+        constructor(scope) {
+          this.scope = scope;
+        }
+        get element() {
+          return this.scope.element;
+        }
+        get identifier() {
+          return this.scope.identifier;
+        }
+        get(key) {
+          const name = this.getAttributeNameForKey(key);
+          return this.element.getAttribute(name);
+        }
+        set(key, value) {
+          const name = this.getAttributeNameForKey(key);
+          this.element.setAttribute(name, value);
+          return this.get(key);
+        }
+        has(key) {
+          const name = this.getAttributeNameForKey(key);
+          return this.element.hasAttribute(name);
+        }
+        delete(key) {
+          if (this.has(key)) {
+            const name = this.getAttributeNameForKey(key);
+            this.element.removeAttribute(name);
+            return true;
+          } else {
+            return false;
+          }
+        }
+        getAttributeNameForKey(key) {
+          return `data-${this.identifier}-${dasherize(key)}`;
+        }
+      };
+      Guide = class {
+        constructor(logger2) {
+          this.warnedKeysByObject = /* @__PURE__ */ new WeakMap();
+          this.logger = logger2;
+        }
+        warn(object, key, message) {
+          let warnedKeys = this.warnedKeysByObject.get(object);
+          if (!warnedKeys) {
+            warnedKeys = /* @__PURE__ */ new Set();
+            this.warnedKeysByObject.set(object, warnedKeys);
+          }
+          if (!warnedKeys.has(key)) {
+            warnedKeys.add(key);
+            this.logger.warn(message, object);
+          }
+        }
+      };
+      TargetSet = class {
+        constructor(scope) {
+          this.scope = scope;
+        }
+        get element() {
+          return this.scope.element;
+        }
+        get identifier() {
+          return this.scope.identifier;
+        }
+        get schema() {
+          return this.scope.schema;
+        }
+        has(targetName) {
+          return this.find(targetName) != null;
+        }
+        find(...targetNames) {
+          return targetNames.reduce((target, targetName) => target || this.findTarget(targetName) || this.findLegacyTarget(targetName), void 0);
+        }
+        findAll(...targetNames) {
+          return targetNames.reduce((targets, targetName) => [
+            ...targets,
+            ...this.findAllTargets(targetName),
+            ...this.findAllLegacyTargets(targetName)
+          ], []);
+        }
+        findTarget(targetName) {
+          const selector = this.getSelectorForTargetName(targetName);
+          return this.scope.findElement(selector);
+        }
+        findAllTargets(targetName) {
+          const selector = this.getSelectorForTargetName(targetName);
+          return this.scope.findAllElements(selector);
+        }
+        getSelectorForTargetName(targetName) {
+          const attributeName = this.schema.targetAttributeForScope(this.identifier);
+          return attributeValueContainsToken(attributeName, targetName);
+        }
+        findLegacyTarget(targetName) {
+          const selector = this.getLegacySelectorForTargetName(targetName);
+          return this.deprecate(this.scope.findElement(selector), targetName);
+        }
+        findAllLegacyTargets(targetName) {
+          const selector = this.getLegacySelectorForTargetName(targetName);
+          return this.scope.findAllElements(selector).map((element) => this.deprecate(element, targetName));
+        }
+        getLegacySelectorForTargetName(targetName) {
+          const targetDescriptor = `${this.identifier}.${targetName}`;
+          return attributeValueContainsToken(this.schema.targetAttribute, targetDescriptor);
+        }
+        deprecate(element, targetName) {
+          if (element) {
+            const { identifier } = this;
+            const attributeName = this.schema.targetAttribute;
+            const revisedAttributeName = this.schema.targetAttributeForScope(identifier);
+            this.guide.warn(element, `target:${targetName}`, `Please replace ${attributeName}="${identifier}.${targetName}" with ${revisedAttributeName}="${targetName}". The ${attributeName} attribute is deprecated and will be removed in a future version of Stimulus.`);
+          }
+          return element;
+        }
+        get guide() {
+          return this.scope.guide;
+        }
+      };
+      Scope = class {
+        constructor(schema, element, identifier, logger2) {
+          this.targets = new TargetSet(this);
+          this.classes = new ClassMap(this);
+          this.data = new DataMap(this);
+          this.containsElement = (element2) => {
+            return element2.closest(this.controllerSelector) === this.element;
+          };
+          this.schema = schema;
+          this.element = element;
+          this.identifier = identifier;
+          this.guide = new Guide(logger2);
+        }
+        findElement(selector) {
+          return this.element.matches(selector) ? this.element : this.queryElements(selector).find(this.containsElement);
+        }
+        findAllElements(selector) {
+          return [
+            ...this.element.matches(selector) ? [this.element] : [],
+            ...this.queryElements(selector).filter(this.containsElement)
+          ];
+        }
+        queryElements(selector) {
+          return Array.from(this.element.querySelectorAll(selector));
+        }
+        get controllerSelector() {
+          return attributeValueContainsToken(this.schema.controllerAttribute, this.identifier);
+        }
+      };
+      ScopeObserver = class {
+        constructor(element, schema, delegate) {
+          this.element = element;
+          this.schema = schema;
+          this.delegate = delegate;
+          this.valueListObserver = new ValueListObserver(this.element, this.controllerAttribute, this);
+          this.scopesByIdentifierByElement = /* @__PURE__ */ new WeakMap();
+          this.scopeReferenceCounts = /* @__PURE__ */ new WeakMap();
+        }
+        start() {
+          this.valueListObserver.start();
+        }
+        stop() {
+          this.valueListObserver.stop();
+        }
+        get controllerAttribute() {
+          return this.schema.controllerAttribute;
+        }
+        parseValueForToken(token) {
+          const { element, content: identifier } = token;
+          const scopesByIdentifier = this.fetchScopesByIdentifierForElement(element);
+          let scope = scopesByIdentifier.get(identifier);
+          if (!scope) {
+            scope = this.delegate.createScopeForElementAndIdentifier(element, identifier);
+            scopesByIdentifier.set(identifier, scope);
+          }
+          return scope;
+        }
+        elementMatchedValue(element, value) {
+          const referenceCount = (this.scopeReferenceCounts.get(value) || 0) + 1;
+          this.scopeReferenceCounts.set(value, referenceCount);
+          if (referenceCount == 1) {
+            this.delegate.scopeConnected(value);
+          }
+        }
+        elementUnmatchedValue(element, value) {
+          const referenceCount = this.scopeReferenceCounts.get(value);
+          if (referenceCount) {
+            this.scopeReferenceCounts.set(value, referenceCount - 1);
+            if (referenceCount == 1) {
+              this.delegate.scopeDisconnected(value);
+            }
+          }
+        }
+        fetchScopesByIdentifierForElement(element) {
+          let scopesByIdentifier = this.scopesByIdentifierByElement.get(element);
+          if (!scopesByIdentifier) {
+            scopesByIdentifier = /* @__PURE__ */ new Map();
+            this.scopesByIdentifierByElement.set(element, scopesByIdentifier);
+          }
+          return scopesByIdentifier;
+        }
+      };
+      Router = class {
+        constructor(application2) {
+          this.application = application2;
+          this.scopeObserver = new ScopeObserver(this.element, this.schema, this);
+          this.scopesByIdentifier = new Multimap();
+          this.modulesByIdentifier = /* @__PURE__ */ new Map();
+        }
+        get element() {
+          return this.application.element;
+        }
+        get schema() {
+          return this.application.schema;
+        }
+        get logger() {
+          return this.application.logger;
+        }
+        get controllerAttribute() {
+          return this.schema.controllerAttribute;
+        }
+        get modules() {
+          return Array.from(this.modulesByIdentifier.values());
+        }
+        get contexts() {
+          return this.modules.reduce((contexts, module) => contexts.concat(module.contexts), []);
+        }
+        start() {
+          this.scopeObserver.start();
+        }
+        stop() {
+          this.scopeObserver.stop();
+        }
+        loadDefinition(definition) {
+          this.unloadIdentifier(definition.identifier);
+          const module = new Module(this.application, definition);
+          this.connectModule(module);
+        }
+        unloadIdentifier(identifier) {
+          const module = this.modulesByIdentifier.get(identifier);
+          if (module) {
+            this.disconnectModule(module);
+          }
+        }
+        getContextForElementAndIdentifier(element, identifier) {
+          const module = this.modulesByIdentifier.get(identifier);
+          if (module) {
+            return module.contexts.find((context) => context.element == element);
+          }
+        }
+        handleError(error2, message, detail) {
+          this.application.handleError(error2, message, detail);
+        }
+        createScopeForElementAndIdentifier(element, identifier) {
+          return new Scope(this.schema, element, identifier, this.logger);
+        }
+        scopeConnected(scope) {
+          this.scopesByIdentifier.add(scope.identifier, scope);
+          const module = this.modulesByIdentifier.get(scope.identifier);
+          if (module) {
+            module.connectContextForScope(scope);
+          }
+        }
+        scopeDisconnected(scope) {
+          this.scopesByIdentifier.delete(scope.identifier, scope);
+          const module = this.modulesByIdentifier.get(scope.identifier);
+          if (module) {
+            module.disconnectContextForScope(scope);
+          }
+        }
+        connectModule(module) {
+          this.modulesByIdentifier.set(module.identifier, module);
+          const scopes = this.scopesByIdentifier.getValuesForKey(module.identifier);
+          scopes.forEach((scope) => module.connectContextForScope(scope));
+        }
+        disconnectModule(module) {
+          this.modulesByIdentifier.delete(module.identifier);
+          const scopes = this.scopesByIdentifier.getValuesForKey(module.identifier);
+          scopes.forEach((scope) => module.disconnectContextForScope(scope));
+        }
+      };
+      defaultSchema = {
+        controllerAttribute: "data-controller",
+        actionAttribute: "data-action",
+        targetAttribute: "data-target",
+        targetAttributeForScope: (identifier) => `data-${identifier}-target`
+      };
+      Application = class {
+        constructor(element = document.documentElement, schema = defaultSchema) {
+          this.logger = console;
+          this.debug = false;
+          this.logDebugActivity = (identifier, functionName, detail = {}) => {
+            if (this.debug) {
+              this.logFormattedMessage(identifier, functionName, detail);
+            }
+          };
+          this.element = element;
+          this.schema = schema;
+          this.dispatcher = new Dispatcher(this);
+          this.router = new Router(this);
+        }
+        static start(element, schema) {
+          const application2 = new Application(element, schema);
+          application2.start();
+          return application2;
+        }
+        async start() {
+          await domReady();
+          this.logDebugActivity("application", "starting");
+          this.dispatcher.start();
+          this.router.start();
+          this.logDebugActivity("application", "start");
+        }
+        stop() {
+          this.logDebugActivity("application", "stopping");
+          this.dispatcher.stop();
+          this.router.stop();
+          this.logDebugActivity("application", "stop");
+        }
+        register(identifier, controllerConstructor) {
+          if (controllerConstructor.shouldLoad) {
+            this.load({ identifier, controllerConstructor });
+          }
+        }
+        load(head, ...rest) {
+          const definitions = Array.isArray(head) ? head : [head, ...rest];
+          definitions.forEach((definition) => this.router.loadDefinition(definition));
+        }
+        unload(head, ...rest) {
+          const identifiers = Array.isArray(head) ? head : [head, ...rest];
+          identifiers.forEach((identifier) => this.router.unloadIdentifier(identifier));
+        }
+        get controllers() {
+          return this.router.contexts.map((context) => context.controller);
+        }
+        getControllerForElementAndIdentifier(element, identifier) {
+          const context = this.router.getContextForElementAndIdentifier(element, identifier);
+          return context ? context.controller : null;
+        }
+        handleError(error2, message, detail) {
+          var _a;
+          this.logger.error(`%s
+
+%o
+
+%o`, message, error2, detail);
+          (_a = window.onerror) === null || _a === void 0 ? void 0 : _a.call(window, message, "", 0, 0, error2);
+        }
+        logFormattedMessage(identifier, functionName, detail = {}) {
+          detail = Object.assign({ application: this }, detail);
+          this.logger.groupCollapsed(`${identifier} #${functionName}`);
+          this.logger.log("details:", Object.assign({}, detail));
+          this.logger.groupEnd();
+        }
+      };
+      defaultValuesByType = {
+        get array() {
+          return [];
+        },
+        boolean: false,
+        number: 0,
+        get object() {
+          return {};
+        },
+        string: ""
+      };
+      readers = {
+        array(value) {
+          const array = JSON.parse(value);
+          if (!Array.isArray(array)) {
+            throw new TypeError("Expected array");
+          }
+          return array;
+        },
+        boolean(value) {
+          return !(value == "0" || value == "false");
+        },
+        number(value) {
+          return Number(value);
+        },
+        object(value) {
+          const object = JSON.parse(value);
+          if (object === null || typeof object != "object" || Array.isArray(object)) {
+            throw new TypeError("Expected object");
+          }
+          return object;
+        },
+        string(value) {
+          return value;
+        }
+      };
+      writers = {
+        default: writeString,
+        array: writeJSON,
+        object: writeJSON
+      };
+      Controller = class {
+        constructor(context) {
+          this.context = context;
+        }
+        static get shouldLoad() {
+          return true;
+        }
+        get application() {
+          return this.context.application;
+        }
+        get scope() {
+          return this.context.scope;
+        }
+        get element() {
+          return this.scope.element;
+        }
+        get identifier() {
+          return this.scope.identifier;
+        }
+        get targets() {
+          return this.scope.targets;
+        }
+        get classes() {
+          return this.scope.classes;
+        }
+        get data() {
+          return this.scope.data;
+        }
+        initialize() {
+        }
+        connect() {
+        }
+        disconnect() {
+        }
+        dispatch(eventName, { target = this.element, detail = {}, prefix = this.identifier, bubbles = true, cancelable = true } = {}) {
+          const type = prefix ? `${prefix}:${eventName}` : eventName;
+          const event = new CustomEvent(type, { detail, bubbles, cancelable });
+          target.dispatchEvent(event);
+          return event;
+        }
+      };
+      Controller.blessings = [ClassPropertiesBlessing, TargetPropertiesBlessing, ValuePropertiesBlessing];
+      Controller.targets = [];
+      Controller.values = {};
+    }
+  });
+
+  // app/javascript/controllers/application.js
+  var application;
+  var init_application = __esm({
+    "app/javascript/controllers/application.js"() {
+      init_stimulus();
+      application = Application.start();
+      application.debug = false;
+      window.Stimulus = application;
+    }
+  });
+
+  // app/javascript/controllers/hello_controller.js
+  var hello_controller_default;
+  var init_hello_controller = __esm({
+    "app/javascript/controllers/hello_controller.js"() {
+      init_stimulus();
+      hello_controller_default = class extends Controller {
+        connect() {
+          this.element.textContent = "Hello World!";
+        }
+      };
+    }
+  });
+
+  // app/javascript/controllers/index.js
+  var controllers_exports = {};
+  var init_controllers = __esm({
+    "app/javascript/controllers/index.js"() {
+      init_application();
+      init_hello_controller();
+      application.register("hello", hello_controller_default);
+    }
+  });
+
   // node_modules/datatables.net-buttons/js/dataTables.buttons.js
   var require_dataTables_buttons = __commonJS({
     "node_modules/datatables.net-buttons/js/dataTables.buttons.js"(exports, module) {
@@ -14313,121 +19659,6 @@
     }
   });
 
-  // node_modules/datatables.net-bs5/js/dataTables.bootstrap5.js
-  var require_dataTables_bootstrap5 = __commonJS({
-    "node_modules/datatables.net-bs5/js/dataTables.bootstrap5.js"(exports, module) {
-      (function(factory) {
-        if (typeof define === "function" && define.amd) {
-          define(["jquery", "datatables.net"], function($6) {
-            return factory($6, window, document);
-          });
-        } else if (typeof exports === "object") {
-          module.exports = function(root, $6) {
-            if (!root) {
-              root = window;
-            }
-            if (!$6 || !$6.fn.dataTable) {
-              $6 = require_jquery_dataTables()(root, $6).$;
-            }
-            return factory($6, root, root.document);
-          };
-        } else {
-          factory(jQuery, window, document);
-        }
-      })(function($6, window2, document2, undefined2) {
-        "use strict";
-        var DataTable2 = $6.fn.dataTable;
-        $6.extend(true, DataTable2.defaults, {
-          dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>><'row'<'col-sm-12'tr>><'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
-          renderer: "bootstrap"
-        });
-        $6.extend(DataTable2.ext.classes, {
-          sWrapper: "dataTables_wrapper dt-bootstrap5",
-          sFilterInput: "form-control form-control-sm",
-          sLengthSelect: "form-select form-select-sm",
-          sProcessing: "dataTables_processing card",
-          sPageButton: "paginate_button page-item"
-        });
-        DataTable2.ext.renderer.pageButton.bootstrap = function(settings, host, idx, buttons, page, pages) {
-          var api = new DataTable2.Api(settings);
-          var classes = settings.oClasses;
-          var lang = settings.oLanguage.oPaginate;
-          var aria = settings.oLanguage.oAria.paginate || {};
-          var btnDisplay, btnClass, counter = 0;
-          var attach = function(container, buttons2) {
-            var i, ien, node, button;
-            var clickHandler = function(e) {
-              e.preventDefault();
-              if (!$6(e.currentTarget).hasClass("disabled") && api.page() != e.data.action) {
-                api.page(e.data.action).draw("page");
-              }
-            };
-            for (i = 0, ien = buttons2.length; i < ien; i++) {
-              button = buttons2[i];
-              if (Array.isArray(button)) {
-                attach(container, button);
-              } else {
-                btnDisplay = "";
-                btnClass = "";
-                switch (button) {
-                  case "ellipsis":
-                    btnDisplay = "&#x2026;";
-                    btnClass = "disabled";
-                    break;
-                  case "first":
-                    btnDisplay = lang.sFirst;
-                    btnClass = button + (page > 0 ? "" : " disabled");
-                    break;
-                  case "previous":
-                    btnDisplay = lang.sPrevious;
-                    btnClass = button + (page > 0 ? "" : " disabled");
-                    break;
-                  case "next":
-                    btnDisplay = lang.sNext;
-                    btnClass = button + (page < pages - 1 ? "" : " disabled");
-                    break;
-                  case "last":
-                    btnDisplay = lang.sLast;
-                    btnClass = button + (page < pages - 1 ? "" : " disabled");
-                    break;
-                  default:
-                    btnDisplay = button + 1;
-                    btnClass = page === button ? "active" : "";
-                    break;
-                }
-                if (btnDisplay) {
-                  node = $6("<li>", {
-                    "class": classes.sPageButton + " " + btnClass,
-                    "id": idx === 0 && typeof button === "string" ? settings.sTableId + "_" + button : null
-                  }).append($6("<a>", {
-                    "href": "#",
-                    "aria-controls": settings.sTableId,
-                    "aria-label": aria[button],
-                    "data-dt-idx": counter,
-                    "tabindex": settings.iTabIndex,
-                    "class": "page-link"
-                  }).html(btnDisplay)).appendTo(container);
-                  settings.oApi._fnBindAction(node, { action: button }, clickHandler);
-                  counter++;
-                }
-              }
-            }
-          };
-          var activeEl;
-          try {
-            activeEl = $6(host).find(document2.activeElement).data("dt-idx");
-          } catch (e) {
-          }
-          attach($6(host).empty().html('<ul class="pagination"/>').children("ul"), buttons);
-          if (activeEl !== undefined2) {
-            $6(host).find("[data-dt-idx=" + activeEl + "]").trigger("focus");
-          }
-        };
-        return DataTable2;
-      });
-    }
-  });
-
   // node_modules/datatables.net-buttons-bs5/js/buttons.bootstrap5.js
   var require_buttons_bootstrap5 = __commonJS({
     "node_modules/datatables.net-buttons-bs5/js/buttons.bootstrap5.js"(exports, module) {
@@ -15549,9 +20780,9 @@
           var api = new DataTable2.Api(ctx);
           ctx._select_init = true;
           ctx.aoRowCreatedCallback.push({
-            fn: function(row, data, index) {
+            fn: function(row, data, index2) {
               var i, ien;
-              var d = ctx.aoData[index];
+              var d = ctx.aoData[index2];
               if (d._select_selected) {
                 $6(row).addClass(ctx._select.className);
               }
@@ -16893,8 +22124,8 @@
       var VALID_PROPERTIES = ["name", "enabled", "phase", "fn", "effect", "requires", "options"];
       function validateModifiers(modifiers) {
         modifiers.forEach(function(modifier) {
-          [].concat(Object.keys(modifier), VALID_PROPERTIES).filter(function(value, index, self2) {
-            return self2.indexOf(value) === index;
+          [].concat(Object.keys(modifier), VALID_PROPERTIES).filter(function(value, index2, self2) {
+            return self2.indexOf(value) === index2;
           }).forEach(function(key) {
             switch (key) {
               case "name":
@@ -17294,7 +22525,7 @@
                 return state.modifiersData[modifier.name] = Object.assign({}, modifier.data);
               });
               var __debug_loops__ = 0;
-              for (var index = 0; index < state.orderedModifiers.length; index++) {
+              for (var index2 = 0; index2 < state.orderedModifiers.length; index2++) {
                 if (true) {
                   __debug_loops__ += 1;
                   if (__debug_loops__ > 100) {
@@ -17304,10 +22535,10 @@
                 }
                 if (state.reset === true) {
                   state.reset = false;
-                  index = -1;
+                  index2 = -1;
                   continue;
                 }
-                var _state$orderedModifie = state.orderedModifiers[index], fn = _state$orderedModifie.fn, _state$orderedModifie2 = _state$orderedModifie.options, _options = _state$orderedModifie2 === void 0 ? {} : _state$orderedModifie2, name = _state$orderedModifie.name;
+                var _state$orderedModifie = state.orderedModifiers[index2], fn = _state$orderedModifie.fn, _state$orderedModifie2 = _state$orderedModifie.options, _options = _state$orderedModifie2 === void 0 ? {} : _state$orderedModifie2, name = _state$orderedModifie.name;
                 if (typeof fn === "function") {
                   state = fn({
                     state,
@@ -18265,16 +23496,16 @@
           }, emulatedDuration);
         };
         const getNextActiveElement = (list, activeElement, shouldGetNext, isCycleAllowed) => {
-          let index = list.indexOf(activeElement);
-          if (index === -1) {
+          let index2 = list.indexOf(activeElement);
+          if (index2 === -1) {
             return list[!shouldGetNext && isCycleAllowed ? list.length - 1 : 0];
           }
           const listLength = list.length;
-          index += shouldGetNext ? 1 : -1;
+          index2 += shouldGetNext ? 1 : -1;
           if (isCycleAllowed) {
-            index = (index + listLength) % listLength;
+            index2 = (index2 + listLength) % listLength;
           }
-          return list[Math.max(0, Math.min(index, listLength - 1))];
+          return list[Math.max(0, Math.min(index2, listLength - 1))];
         };
         const namespaceRegex = /[^.]*(?=\..*)\.|.*/;
         const stripNameRegex = /\..*/;
@@ -18867,23 +24098,23 @@
               this._interval = setInterval((document.visibilityState ? this.nextWhenVisible : this.next).bind(this), this._config.interval);
             }
           }
-          to(index) {
+          to(index2) {
             this._activeElement = SelectorEngine.findOne(SELECTOR_ACTIVE_ITEM, this._element);
             const activeIndex = this._getItemIndex(this._activeElement);
-            if (index > this._items.length - 1 || index < 0) {
+            if (index2 > this._items.length - 1 || index2 < 0) {
               return;
             }
             if (this._isSliding) {
-              EventHandler.one(this._element, EVENT_SLID, () => this.to(index));
+              EventHandler.one(this._element, EVENT_SLID, () => this.to(index2));
               return;
             }
-            if (activeIndex === index) {
+            if (activeIndex === index2) {
               this.pause();
               this.cycle();
               return;
             }
-            const order = index > activeIndex ? ORDER_NEXT : ORDER_PREV;
-            this._slide(order, this._items[index]);
+            const order = index2 > activeIndex ? ORDER_NEXT : ORDER_PREV;
+            this._slide(order, this._items[index2]);
           }
           _getConfig(config) {
             config = {
@@ -21532,6 +26763,67 @@
           Tooltip
         };
         return index_umd;
+      });
+    }
+  });
+
+  // app/javascript/modules/bootstrap.js
+  var bootstrap_exports = {};
+  var bootstrap;
+  var init_bootstrap = __esm({
+    "app/javascript/modules/bootstrap.js"() {
+      bootstrap = __toESM(require_bootstrap());
+      window.bootstrap = bootstrap;
+    }
+  });
+
+  // app/javascript/modules/theme.js
+  var require_theme = __commonJS({
+    "app/javascript/modules/theme.js"() {
+      var lightTheme = {
+        "primary": "#3B82EC",
+        "primary-dark": "#1659c7",
+        "primary-light": "#84aef2",
+        "secondary": "#495057",
+        "success": "#4BBF73",
+        "info": "#1F9BCF",
+        "warning": "#f0ad4e",
+        "danger": "#d9534f",
+        "white": "#fff",
+        "gray-100": "#f4f7f9",
+        "gray-200": "#e2e8ee",
+        "gray-300": "#dee6ed",
+        "gray-400": "#ced4da",
+        "gray-500": "#adb5bd",
+        "gray-600": "#6c757d",
+        "gray-700": "#495057",
+        "gray-800": "#020202",
+        "gray-900": "#212529",
+        "black": "#000"
+      };
+      var darkTheme = {
+        ...lightTheme,
+        "primary-dark": "#84aef2",
+        "primary-light": "#1659c7",
+        "white": "#293042",
+        "gray-100": "#3e4555",
+        "gray-200": "#545968",
+        "gray-300": "#696e7b",
+        "gray-400": "#7f838e",
+        "gray-500": "#9498a1",
+        "gray-600": "#a9acb3",
+        "gray-700": "#bfc1c6",
+        "gray-800": "#d4d6d9",
+        "gray-900": "#eaeaec",
+        "black": "#fff"
+      };
+      document.querySelectorAll("link[href]").forEach((link) => {
+        const href = link.href.split("/");
+        if (href.pop() === "dark.css") {
+          window.theme = darkTheme;
+        } else {
+          window.theme = lightTheme;
+        }
       });
     }
   });
@@ -24827,18 +30119,18 @@
         proto$1.weekdaysMinRegex = weekdaysMinRegex;
         proto$1.isPM = localeIsPM;
         proto$1.meridiem = localeMeridiem;
-        function get$1(format2, index, field, setter) {
-          var locale2 = getLocale(), utc = createUTC().set(setter, index);
+        function get$1(format2, index2, field, setter) {
+          var locale2 = getLocale(), utc = createUTC().set(setter, index2);
           return locale2[field](utc, format2);
         }
-        function listMonthsImpl(format2, index, field) {
+        function listMonthsImpl(format2, index2, field) {
           if (isNumber(format2)) {
-            index = format2;
+            index2 = format2;
             format2 = void 0;
           }
           format2 = format2 || "";
-          if (index != null) {
-            return get$1(format2, index, field, "month");
+          if (index2 != null) {
+            return get$1(format2, index2, field, "month");
           }
           var i, out = [];
           for (i = 0; i < 12; i++) {
@@ -24846,46 +30138,46 @@
           }
           return out;
         }
-        function listWeekdaysImpl(localeSorted, format2, index, field) {
+        function listWeekdaysImpl(localeSorted, format2, index2, field) {
           if (typeof localeSorted === "boolean") {
             if (isNumber(format2)) {
-              index = format2;
+              index2 = format2;
               format2 = void 0;
             }
             format2 = format2 || "";
           } else {
             format2 = localeSorted;
-            index = format2;
+            index2 = format2;
             localeSorted = false;
             if (isNumber(format2)) {
-              index = format2;
+              index2 = format2;
               format2 = void 0;
             }
             format2 = format2 || "";
           }
           var locale2 = getLocale(), shift = localeSorted ? locale2._week.dow : 0, i, out = [];
-          if (index != null) {
-            return get$1(format2, (index + shift) % 7, field, "day");
+          if (index2 != null) {
+            return get$1(format2, (index2 + shift) % 7, field, "day");
           }
           for (i = 0; i < 7; i++) {
             out[i] = get$1(format2, (i + shift) % 7, field, "day");
           }
           return out;
         }
-        function listMonths(format2, index) {
-          return listMonthsImpl(format2, index, "months");
+        function listMonths(format2, index2) {
+          return listMonthsImpl(format2, index2, "months");
         }
-        function listMonthsShort(format2, index) {
-          return listMonthsImpl(format2, index, "monthsShort");
+        function listMonthsShort(format2, index2) {
+          return listMonthsImpl(format2, index2, "monthsShort");
         }
-        function listWeekdays(localeSorted, format2, index) {
-          return listWeekdaysImpl(localeSorted, format2, index, "weekdays");
+        function listWeekdays(localeSorted, format2, index2) {
+          return listWeekdaysImpl(localeSorted, format2, index2, "weekdays");
         }
-        function listWeekdaysShort(localeSorted, format2, index) {
-          return listWeekdaysImpl(localeSorted, format2, index, "weekdaysShort");
+        function listWeekdaysShort(localeSorted, format2, index2) {
+          return listWeekdaysImpl(localeSorted, format2, index2, "weekdaysShort");
         }
-        function listWeekdaysMin(localeSorted, format2, index) {
-          return listWeekdaysImpl(localeSorted, format2, index, "weekdaysMin");
+        function listWeekdaysMin(localeSorted, format2, index2) {
+          return listWeekdaysImpl(localeSorted, format2, index2, "weekdaysMin");
         }
         getSetGlobalLocale("en", {
           eras: [
@@ -25227,6 +30519,16 @@
         };
         return hooks;
       });
+    }
+  });
+
+  // app/javascript/modules/moment.js
+  var moment_exports = {};
+  var import_moment;
+  var init_moment = __esm({
+    "app/javascript/modules/moment.js"() {
+      import_moment = __toESM(require_moment());
+      window.moment = import_moment.default;
     }
   });
 
@@ -26091,8 +31393,8 @@
       var toIntegerOrInfinity2 = require_to_integer_or_infinity();
       var max2 = Math.max;
       var min2 = Math.min;
-      module.exports = function(index, length) {
-        var integer = toIntegerOrInfinity2(index);
+      module.exports = function(index2, length) {
+        var integer = toIntegerOrInfinity2(index2);
         return integer < 0 ? max2(integer + length, 0) : min2(integer, length);
       };
     }
@@ -26129,18 +31431,18 @@
         return function($this, el, fromIndex) {
           var O = toIndexedObject($this);
           var length = lengthOfArrayLike(O);
-          var index = toAbsoluteIndex(fromIndex, length);
+          var index2 = toAbsoluteIndex(fromIndex, length);
           var value;
           if (IS_INCLUDES && el != el)
-            while (length > index) {
-              value = O[index++];
+            while (length > index2) {
+              value = O[index2++];
               if (value != value)
                 return true;
             }
           else
-            for (; length > index; index++) {
-              if ((IS_INCLUDES || index in O) && O[index] === el)
-                return IS_INCLUDES || index || 0;
+            for (; length > index2; index2++) {
+              if ((IS_INCLUDES || index2 in O) && O[index2] === el)
+                return IS_INCLUDES || index2 || 0;
             }
           return !IS_INCLUDES && -1;
         };
@@ -26488,17 +31790,17 @@
           var self2 = IndexedObject(O);
           var boundFunction = bind(callbackfn, that);
           var length = lengthOfArrayLike(self2);
-          var index = 0;
+          var index2 = 0;
           var create = specificCreate || arraySpeciesCreate;
           var target = IS_MAP ? create($this, length) : IS_FILTER || IS_FILTER_REJECT ? create($this, 0) : void 0;
           var value, result;
-          for (; length > index; index++)
-            if (NO_HOLES || index in self2) {
-              value = self2[index];
-              result = boundFunction(value, index, O);
+          for (; length > index2; index2++)
+            if (NO_HOLES || index2 in self2) {
+              value = self2[index2];
+              result = boundFunction(value, index2, O);
               if (TYPE) {
                 if (IS_MAP)
-                  target[index] = result;
+                  target[index2] = result;
                 else if (result)
                   switch (TYPE) {
                     case 3:
@@ -26506,7 +31808,7 @@
                     case 5:
                       return value;
                     case 6:
-                      return index;
+                      return index2;
                     case 2:
                       push2(target, value);
                   }
@@ -26564,6 +31866,19 @@
     }
   });
 
+  // node_modules/core-js/modules/es.array.for-each.js
+  var $, forEach;
+  var init_es_array_for_each = __esm({
+    "node_modules/core-js/modules/es.array.for-each.js"() {
+      "use strict";
+      $ = require_export();
+      forEach = require_array_for_each();
+      $({ target: "Array", proto: true, forced: [].forEach != forEach }, {
+        forEach
+      });
+    }
+  });
+
   // node_modules/core-js/internals/dom-iterables.js
   var require_dom_iterables = __commonJS({
     "node_modules/core-js/internals/dom-iterables.js"(exports, module) {
@@ -26613,6 +31928,32 @@
     }
   });
 
+  // node_modules/core-js/modules/web.dom-collections.for-each.js
+  var global2, DOMIterables, DOMTokenListPrototype, forEach2, createNonEnumerableProperty, handlePrototype, COLLECTION_NAME;
+  var init_web_dom_collections_for_each = __esm({
+    "node_modules/core-js/modules/web.dom-collections.for-each.js"() {
+      global2 = require_global();
+      DOMIterables = require_dom_iterables();
+      DOMTokenListPrototype = require_dom_token_list_prototype();
+      forEach2 = require_array_for_each();
+      createNonEnumerableProperty = require_create_non_enumerable_property();
+      handlePrototype = function(CollectionPrototype) {
+        if (CollectionPrototype && CollectionPrototype.forEach !== forEach2)
+          try {
+            createNonEnumerableProperty(CollectionPrototype, "forEach", forEach2);
+          } catch (error2) {
+            CollectionPrototype.forEach = forEach2;
+          }
+      };
+      for (COLLECTION_NAME in DOMIterables) {
+        if (DOMIterables[COLLECTION_NAME]) {
+          handlePrototype(global2[COLLECTION_NAME] && global2[COLLECTION_NAME].prototype);
+        }
+      }
+      handlePrototype(DOMTokenListPrototype);
+    }
+  });
+
   // node_modules/can-use-dom/index.js
   var require_can_use_dom = __commonJS({
     "node_modules/can-use-dom/index.js"(exports, module) {
@@ -26641,6 +31982,23 @@
     }
   });
 
+  // node_modules/core-js/modules/es.array.filter.js
+  var $2, $filter, arrayMethodHasSpeciesSupport, HAS_SPECIES_SUPPORT;
+  var init_es_array_filter = __esm({
+    "node_modules/core-js/modules/es.array.filter.js"() {
+      "use strict";
+      $2 = require_export();
+      $filter = require_array_iteration().filter;
+      arrayMethodHasSpeciesSupport = require_array_method_has_species_support();
+      HAS_SPECIES_SUPPORT = arrayMethodHasSpeciesSupport("filter");
+      $2({ target: "Array", proto: true, forced: !HAS_SPECIES_SUPPORT }, {
+        filter: function filter(callbackfn) {
+          return $filter(this, callbackfn, arguments.length > 1 ? arguments[1] : void 0);
+        }
+      });
+    }
+  });
+
   // node_modules/core-js/internals/object-keys.js
   var require_object_keys = __commonJS({
     "node_modules/core-js/internals/object-keys.js"(exports, module) {
@@ -26666,10 +32024,10 @@
         var props = toIndexedObject(Properties);
         var keys = objectKeys(Properties);
         var length = keys.length;
-        var index = 0;
+        var index2 = 0;
         var key;
-        while (length > index)
-          definePropertyModule.f(O, key = keys[index++], props[key]);
+        while (length > index2)
+          definePropertyModule.f(O, key = keys[index2++], props[key]);
         return O;
       };
     }
@@ -27080,16 +32438,16 @@
         var state = getInternalState2(this);
         var target = state.target;
         var kind = state.kind;
-        var index = state.index++;
-        if (!target || index >= target.length) {
+        var index2 = state.index++;
+        if (!target || index2 >= target.length) {
           state.target = void 0;
           return { value: void 0, done: true };
         }
         if (kind == "keys")
-          return { value: index, done: false };
+          return { value: index2, done: false };
         if (kind == "values")
-          return { value: target[index], done: false };
-        return { value: [index, target[index]], done: false };
+          return { value: target[index2], done: false };
+        return { value: [index2, target[index2]], done: false };
       }, "values");
       var values = Iterators.Arguments = Iterators.Array;
       addToUnscopables("keys");
@@ -27142,11 +32500,11 @@
       }) ? function assign2(target, source) {
         var T = toObject(target);
         var argumentsLength = arguments.length;
-        var index = 1;
+        var index2 = 1;
         var getOwnPropertySymbols = getOwnPropertySymbolsModule.f;
         var propertyIsEnumerable = propertyIsEnumerableModule.f;
-        while (argumentsLength > index) {
-          var S = IndexedObject(arguments[index++]);
+        while (argumentsLength > index2) {
+          var S = IndexedObject(arguments[index2++]);
           var keys = getOwnPropertySymbols ? concat2(objectKeys(S), getOwnPropertySymbols(S)) : objectKeys(S);
           var length = keys.length;
           var j = 0;
@@ -27162,6 +32520,18 @@
     }
   });
 
+  // node_modules/core-js/modules/es.object.assign.js
+  var $3, assign;
+  var init_es_object_assign = __esm({
+    "node_modules/core-js/modules/es.object.assign.js"() {
+      $3 = require_export();
+      assign = require_object_assign();
+      $3({ target: "Object", stat: true, forced: Object.assign !== assign }, {
+        assign
+      });
+    }
+  });
+
   // node_modules/core-js/internals/object-to-string.js
   var require_object_to_string = __commonJS({
     "node_modules/core-js/internals/object-to-string.js"(exports, module) {
@@ -27171,6 +32541,19 @@
       module.exports = TO_STRING_TAG_SUPPORT2 ? {}.toString : function toString5() {
         return "[object " + classof(this) + "]";
       };
+    }
+  });
+
+  // node_modules/core-js/modules/es.object.to-string.js
+  var TO_STRING_TAG_SUPPORT, redefine, toString;
+  var init_es_object_to_string = __esm({
+    "node_modules/core-js/modules/es.object.to-string.js"() {
+      TO_STRING_TAG_SUPPORT = require_to_string_tag_support();
+      redefine = require_redefine();
+      toString = require_object_to_string();
+      if (!TO_STRING_TAG_SUPPORT) {
+        redefine(Object.prototype, "toString", toString, { unsafe: true });
+      }
     }
   });
 
@@ -27248,6 +32631,18 @@
     }
   });
 
+  // node_modules/core-js/modules/es.parse-int.js
+  var $4, $parseInt;
+  var init_es_parse_int = __esm({
+    "node_modules/core-js/modules/es.parse-int.js"() {
+      $4 = require_export();
+      $parseInt = require_number_parse_int();
+      $4({ global: true, forced: parseInt != $parseInt }, {
+        parseInt: $parseInt
+      });
+    }
+  });
+
   // node_modules/core-js/internals/string-multibyte.js
   var require_string_multibyte = __commonJS({
     "node_modules/core-js/internals/string-multibyte.js"(exports, module) {
@@ -27274,6 +32669,38 @@
         codeAt: createMethod(false),
         charAt: createMethod(true)
       };
+    }
+  });
+
+  // node_modules/core-js/modules/es.string.iterator.js
+  var charAt, toString2, InternalStateModule, defineIterator, STRING_ITERATOR, setInternalState, getInternalState;
+  var init_es_string_iterator = __esm({
+    "node_modules/core-js/modules/es.string.iterator.js"() {
+      "use strict";
+      charAt = require_string_multibyte().charAt;
+      toString2 = require_to_string();
+      InternalStateModule = require_internal_state();
+      defineIterator = require_define_iterator();
+      STRING_ITERATOR = "String Iterator";
+      setInternalState = InternalStateModule.set;
+      getInternalState = InternalStateModule.getterFor(STRING_ITERATOR);
+      defineIterator(String, "String", function(iterated) {
+        setInternalState(this, {
+          type: STRING_ITERATOR,
+          string: toString2(iterated),
+          index: 0
+        });
+      }, function next() {
+        var state = getInternalState(this);
+        var string = state.string;
+        var index2 = state.index;
+        var point;
+        if (index2 >= string.length)
+          return { value: void 0, done: true };
+        point = charAt(string, index2);
+        state.index += point.length;
+        return { value: point, done: false };
+      });
     }
   });
 
@@ -27582,7 +33009,7 @@
         var IS_ITERATOR = !!(options && options.IS_ITERATOR);
         var INTERRUPTED = !!(options && options.INTERRUPTED);
         var fn = bind(unboundFunction, that);
-        var iterator, iterFn, index, length, result, next2, step;
+        var iterator, iterFn, index2, length, result, next2, step;
         var stop = function(condition) {
           if (iterator)
             iteratorClose(iterator, "normal", condition);
@@ -27602,8 +33029,8 @@
           if (!iterFn)
             throw TypeError2(tryToString(iterable) + " is not iterable");
           if (isArrayIteratorMethod(iterFn)) {
-            for (index = 0, length = lengthOfArrayLike(iterable); length > index; index++) {
-              result = callFn(iterable[index]);
+            for (index2 = 0, length = lengthOfArrayLike(iterable); length > index2; index2++) {
+              result = callFn(iterable[index2]);
               if (result && isPrototypeOf(ResultPrototype, result))
                 return result;
             }
@@ -27761,9 +33188,9 @@
           });
           var BUGGY_ZERO = !IS_WEAK && fails2(function() {
             var $instance = new NativeConstructor();
-            var index = 5;
-            while (index--)
-              $instance[ADDER](index, index);
+            var index2 = 5;
+            while (index2--)
+              $instance[ADDER](index2, index2);
             return !$instance.has(-0);
           });
           if (!ACCEPT_ITERABLES) {
@@ -27845,12 +33272,12 @@
             this.entries.push([key, value]);
         },
         "delete": function(key) {
-          var index = findIndex(this.entries, function(it) {
+          var index2 = findIndex(this.entries, function(it) {
             return it[0] === key;
           });
-          if (~index)
-            splice(this.entries, index, 1);
-          return !!~index;
+          if (~index2)
+            splice(this.entries, index2, 1);
+          return !!~index2;
         }
       };
       module.exports = {
@@ -27917,6 +33344,121 @@
           return Constructor;
         }
       };
+    }
+  });
+
+  // node_modules/core-js/modules/es.weak-map.js
+  var global3, uncurryThis, redefineAll, InternalMetadataModule, collection, collectionWeak, isObject, isExtensible, enforceInternalState, NATIVE_WEAK_MAP, IS_IE11, InternalWeakMap, wrapper, $WeakMap, WeakMapPrototype, nativeDelete, nativeHas, nativeGet, nativeSet;
+  var init_es_weak_map = __esm({
+    "node_modules/core-js/modules/es.weak-map.js"() {
+      "use strict";
+      global3 = require_global();
+      uncurryThis = require_function_uncurry_this();
+      redefineAll = require_redefine_all();
+      InternalMetadataModule = require_internal_metadata();
+      collection = require_collection();
+      collectionWeak = require_collection_weak();
+      isObject = require_is_object();
+      isExtensible = require_object_is_extensible();
+      enforceInternalState = require_internal_state().enforce;
+      NATIVE_WEAK_MAP = require_native_weak_map();
+      IS_IE11 = !global3.ActiveXObject && "ActiveXObject" in global3;
+      wrapper = function(init) {
+        return function WeakMap2() {
+          return init(this, arguments.length ? arguments[0] : void 0);
+        };
+      };
+      $WeakMap = collection("WeakMap", wrapper, collectionWeak);
+      if (NATIVE_WEAK_MAP && IS_IE11) {
+        InternalWeakMap = collectionWeak.getConstructor(wrapper, "WeakMap", true);
+        InternalMetadataModule.enable();
+        WeakMapPrototype = $WeakMap.prototype;
+        nativeDelete = uncurryThis(WeakMapPrototype["delete"]);
+        nativeHas = uncurryThis(WeakMapPrototype.has);
+        nativeGet = uncurryThis(WeakMapPrototype.get);
+        nativeSet = uncurryThis(WeakMapPrototype.set);
+        redefineAll(WeakMapPrototype, {
+          "delete": function(key) {
+            if (isObject(key) && !isExtensible(key)) {
+              var state = enforceInternalState(this);
+              if (!state.frozen)
+                state.frozen = new InternalWeakMap();
+              return nativeDelete(this, key) || state.frozen["delete"](key);
+            }
+            return nativeDelete(this, key);
+          },
+          has: function has(key) {
+            if (isObject(key) && !isExtensible(key)) {
+              var state = enforceInternalState(this);
+              if (!state.frozen)
+                state.frozen = new InternalWeakMap();
+              return nativeHas(this, key) || state.frozen.has(key);
+            }
+            return nativeHas(this, key);
+          },
+          get: function get(key) {
+            if (isObject(key) && !isExtensible(key)) {
+              var state = enforceInternalState(this);
+              if (!state.frozen)
+                state.frozen = new InternalWeakMap();
+              return nativeHas(this, key) ? nativeGet(this, key) : state.frozen.get(key);
+            }
+            return nativeGet(this, key);
+          },
+          set: function set(key, value) {
+            if (isObject(key) && !isExtensible(key)) {
+              var state = enforceInternalState(this);
+              if (!state.frozen)
+                state.frozen = new InternalWeakMap();
+              nativeHas(this, key) ? nativeSet(this, key, value) : state.frozen.set(key, value);
+            } else
+              nativeSet(this, key, value);
+            return this;
+          }
+        });
+      }
+    }
+  });
+
+  // node_modules/core-js/modules/web.dom-collections.iterator.js
+  var global4, DOMIterables2, DOMTokenListPrototype2, ArrayIteratorMethods, createNonEnumerableProperty2, wellKnownSymbol, ITERATOR, TO_STRING_TAG, ArrayValues, handlePrototype2, COLLECTION_NAME;
+  var init_web_dom_collections_iterator = __esm({
+    "node_modules/core-js/modules/web.dom-collections.iterator.js"() {
+      global4 = require_global();
+      DOMIterables2 = require_dom_iterables();
+      DOMTokenListPrototype2 = require_dom_token_list_prototype();
+      ArrayIteratorMethods = require_es_array_iterator();
+      createNonEnumerableProperty2 = require_create_non_enumerable_property();
+      wellKnownSymbol = require_well_known_symbol();
+      ITERATOR = wellKnownSymbol("iterator");
+      TO_STRING_TAG = wellKnownSymbol("toStringTag");
+      ArrayValues = ArrayIteratorMethods.values;
+      handlePrototype2 = function(CollectionPrototype, COLLECTION_NAME) {
+        if (CollectionPrototype) {
+          if (CollectionPrototype[ITERATOR] !== ArrayValues)
+            try {
+              createNonEnumerableProperty2(CollectionPrototype, ITERATOR, ArrayValues);
+            } catch (error2) {
+              CollectionPrototype[ITERATOR] = ArrayValues;
+            }
+          if (!CollectionPrototype[TO_STRING_TAG]) {
+            createNonEnumerableProperty2(CollectionPrototype, TO_STRING_TAG, COLLECTION_NAME);
+          }
+          if (DOMIterables2[COLLECTION_NAME])
+            for (var METHOD_NAME in ArrayIteratorMethods) {
+              if (CollectionPrototype[METHOD_NAME] !== ArrayIteratorMethods[METHOD_NAME])
+                try {
+                  createNonEnumerableProperty2(CollectionPrototype, METHOD_NAME, ArrayIteratorMethods[METHOD_NAME]);
+                } catch (error2) {
+                  CollectionPrototype[METHOD_NAME] = ArrayIteratorMethods[METHOD_NAME];
+                }
+            }
+        }
+      };
+      for (COLLECTION_NAME in DOMIterables2) {
+        handlePrototype2(global4[COLLECTION_NAME] && global4[COLLECTION_NAME].prototype, COLLECTION_NAME);
+      }
+      handlePrototype2(DOMTokenListPrototype2, "DOMTokenList");
     }
   });
 
@@ -28242,10 +33784,10 @@
       var Map2 = getNative(root, "Map");
       var nativeCreate = getNative(Object, "create");
       function Hash(entries) {
-        var index = -1, length = entries ? entries.length : 0;
+        var index2 = -1, length = entries ? entries.length : 0;
         this.clear();
-        while (++index < length) {
-          var entry = entries[index];
+        while (++index2 < length) {
+          var entry = entries[index2];
           this.set(entry[0], entry[1]);
         }
       }
@@ -28278,10 +33820,10 @@
       Hash.prototype.has = hashHas;
       Hash.prototype.set = hashSet;
       function ListCache(entries) {
-        var index = -1, length = entries ? entries.length : 0;
+        var index2 = -1, length = entries ? entries.length : 0;
         this.clear();
-        while (++index < length) {
-          var entry = entries[index];
+        while (++index2 < length) {
+          var entry = entries[index2];
           this.set(entry[0], entry[1]);
         }
       }
@@ -28289,31 +33831,31 @@
         this.__data__ = [];
       }
       function listCacheDelete(key) {
-        var data = this.__data__, index = assocIndexOf(data, key);
-        if (index < 0) {
+        var data = this.__data__, index2 = assocIndexOf(data, key);
+        if (index2 < 0) {
           return false;
         }
         var lastIndex = data.length - 1;
-        if (index == lastIndex) {
+        if (index2 == lastIndex) {
           data.pop();
         } else {
-          splice.call(data, index, 1);
+          splice.call(data, index2, 1);
         }
         return true;
       }
       function listCacheGet(key) {
-        var data = this.__data__, index = assocIndexOf(data, key);
-        return index < 0 ? void 0 : data[index][1];
+        var data = this.__data__, index2 = assocIndexOf(data, key);
+        return index2 < 0 ? void 0 : data[index2][1];
       }
       function listCacheHas(key) {
         return assocIndexOf(this.__data__, key) > -1;
       }
       function listCacheSet(key, value) {
-        var data = this.__data__, index = assocIndexOf(data, key);
-        if (index < 0) {
+        var data = this.__data__, index2 = assocIndexOf(data, key);
+        if (index2 < 0) {
           data.push([key, value]);
         } else {
-          data[index][1] = value;
+          data[index2][1] = value;
         }
         return this;
       }
@@ -28323,10 +33865,10 @@
       ListCache.prototype.has = listCacheHas;
       ListCache.prototype.set = listCacheSet;
       function MapCache(entries) {
-        var index = -1, length = entries ? entries.length : 0;
+        var index2 = -1, length = entries ? entries.length : 0;
         this.clear();
-        while (++index < length) {
-          var entry = entries[index];
+        while (++index2 < length) {
+          var entry = entries[index2];
           this.set(entry[0], entry[1]);
         }
       }
@@ -28431,6 +33973,721 @@
     }
   });
 
+  // node_modules/@juggle/resize-observer/lib/utils/resizeObservers.js
+  var resizeObservers;
+  var init_resizeObservers = __esm({
+    "node_modules/@juggle/resize-observer/lib/utils/resizeObservers.js"() {
+      resizeObservers = [];
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/algorithms/hasActiveObservations.js
+  var hasActiveObservations;
+  var init_hasActiveObservations = __esm({
+    "node_modules/@juggle/resize-observer/lib/algorithms/hasActiveObservations.js"() {
+      init_resizeObservers();
+      hasActiveObservations = function() {
+        return resizeObservers.some(function(ro) {
+          return ro.activeTargets.length > 0;
+        });
+      };
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/algorithms/hasSkippedObservations.js
+  var hasSkippedObservations;
+  var init_hasSkippedObservations = __esm({
+    "node_modules/@juggle/resize-observer/lib/algorithms/hasSkippedObservations.js"() {
+      init_resizeObservers();
+      hasSkippedObservations = function() {
+        return resizeObservers.some(function(ro) {
+          return ro.skippedTargets.length > 0;
+        });
+      };
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/algorithms/deliverResizeLoopError.js
+  var msg, deliverResizeLoopError;
+  var init_deliverResizeLoopError = __esm({
+    "node_modules/@juggle/resize-observer/lib/algorithms/deliverResizeLoopError.js"() {
+      msg = "ResizeObserver loop completed with undelivered notifications.";
+      deliverResizeLoopError = function() {
+        var event;
+        if (typeof ErrorEvent === "function") {
+          event = new ErrorEvent("error", {
+            message: msg
+          });
+        } else {
+          event = document.createEvent("Event");
+          event.initEvent("error", false, false);
+          event.message = msg;
+        }
+        window.dispatchEvent(event);
+      };
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/ResizeObserverBoxOptions.js
+  var ResizeObserverBoxOptions;
+  var init_ResizeObserverBoxOptions = __esm({
+    "node_modules/@juggle/resize-observer/lib/ResizeObserverBoxOptions.js"() {
+      (function(ResizeObserverBoxOptions2) {
+        ResizeObserverBoxOptions2["BORDER_BOX"] = "border-box";
+        ResizeObserverBoxOptions2["CONTENT_BOX"] = "content-box";
+        ResizeObserverBoxOptions2["DEVICE_PIXEL_CONTENT_BOX"] = "device-pixel-content-box";
+      })(ResizeObserverBoxOptions || (ResizeObserverBoxOptions = {}));
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/utils/freeze.js
+  var freeze;
+  var init_freeze = __esm({
+    "node_modules/@juggle/resize-observer/lib/utils/freeze.js"() {
+      freeze = function(obj) {
+        return Object.freeze(obj);
+      };
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/ResizeObserverSize.js
+  var ResizeObserverSize;
+  var init_ResizeObserverSize = __esm({
+    "node_modules/@juggle/resize-observer/lib/ResizeObserverSize.js"() {
+      init_freeze();
+      ResizeObserverSize = function() {
+        function ResizeObserverSize2(inlineSize, blockSize) {
+          this.inlineSize = inlineSize;
+          this.blockSize = blockSize;
+          freeze(this);
+        }
+        return ResizeObserverSize2;
+      }();
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/DOMRectReadOnly.js
+  var DOMRectReadOnly;
+  var init_DOMRectReadOnly = __esm({
+    "node_modules/@juggle/resize-observer/lib/DOMRectReadOnly.js"() {
+      init_freeze();
+      DOMRectReadOnly = function() {
+        function DOMRectReadOnly2(x, y, width, height) {
+          this.x = x;
+          this.y = y;
+          this.width = width;
+          this.height = height;
+          this.top = this.y;
+          this.left = this.x;
+          this.bottom = this.top + this.height;
+          this.right = this.left + this.width;
+          return freeze(this);
+        }
+        DOMRectReadOnly2.prototype.toJSON = function() {
+          var _a = this, x = _a.x, y = _a.y, top = _a.top, right = _a.right, bottom = _a.bottom, left = _a.left, width = _a.width, height = _a.height;
+          return { x, y, top, right, bottom, left, width, height };
+        };
+        DOMRectReadOnly2.fromRect = function(rectangle) {
+          return new DOMRectReadOnly2(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+        };
+        return DOMRectReadOnly2;
+      }();
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/utils/element.js
+  var isSVG, isHidden, isElement, isReplacedElement;
+  var init_element = __esm({
+    "node_modules/@juggle/resize-observer/lib/utils/element.js"() {
+      isSVG = function(target) {
+        return target instanceof SVGElement && "getBBox" in target;
+      };
+      isHidden = function(target) {
+        if (isSVG(target)) {
+          var _a = target.getBBox(), width = _a.width, height = _a.height;
+          return !width && !height;
+        }
+        var _b = target, offsetWidth = _b.offsetWidth, offsetHeight = _b.offsetHeight;
+        return !(offsetWidth || offsetHeight || target.getClientRects().length);
+      };
+      isElement = function(obj) {
+        var _a, _b;
+        if (obj instanceof Element) {
+          return true;
+        }
+        var scope = (_b = (_a = obj) === null || _a === void 0 ? void 0 : _a.ownerDocument) === null || _b === void 0 ? void 0 : _b.defaultView;
+        return !!(scope && obj instanceof scope.Element);
+      };
+      isReplacedElement = function(target) {
+        switch (target.tagName) {
+          case "INPUT":
+            if (target.type !== "image") {
+              break;
+            }
+          case "VIDEO":
+          case "AUDIO":
+          case "EMBED":
+          case "OBJECT":
+          case "CANVAS":
+          case "IFRAME":
+          case "IMG":
+            return true;
+        }
+        return false;
+      };
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/utils/global.js
+  var global5;
+  var init_global = __esm({
+    "node_modules/@juggle/resize-observer/lib/utils/global.js"() {
+      global5 = typeof window !== "undefined" ? window : {};
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/algorithms/calculateBoxSize.js
+  var cache, scrollRegexp, verticalRegexp, IE, parseDimension, size, zeroBoxes, calculateBoxSizes, calculateBoxSize;
+  var init_calculateBoxSize = __esm({
+    "node_modules/@juggle/resize-observer/lib/algorithms/calculateBoxSize.js"() {
+      init_ResizeObserverBoxOptions();
+      init_ResizeObserverSize();
+      init_DOMRectReadOnly();
+      init_element();
+      init_freeze();
+      init_global();
+      cache = /* @__PURE__ */ new WeakMap();
+      scrollRegexp = /auto|scroll/;
+      verticalRegexp = /^tb|vertical/;
+      IE = /msie|trident/i.test(global5.navigator && global5.navigator.userAgent);
+      parseDimension = function(pixel) {
+        return parseFloat(pixel || "0");
+      };
+      size = function(inlineSize, blockSize, switchSizes) {
+        if (inlineSize === void 0) {
+          inlineSize = 0;
+        }
+        if (blockSize === void 0) {
+          blockSize = 0;
+        }
+        if (switchSizes === void 0) {
+          switchSizes = false;
+        }
+        return new ResizeObserverSize((switchSizes ? blockSize : inlineSize) || 0, (switchSizes ? inlineSize : blockSize) || 0);
+      };
+      zeroBoxes = freeze({
+        devicePixelContentBoxSize: size(),
+        borderBoxSize: size(),
+        contentBoxSize: size(),
+        contentRect: new DOMRectReadOnly(0, 0, 0, 0)
+      });
+      calculateBoxSizes = function(target, forceRecalculation) {
+        if (forceRecalculation === void 0) {
+          forceRecalculation = false;
+        }
+        if (cache.has(target) && !forceRecalculation) {
+          return cache.get(target);
+        }
+        if (isHidden(target)) {
+          cache.set(target, zeroBoxes);
+          return zeroBoxes;
+        }
+        var cs = getComputedStyle(target);
+        var svg = isSVG(target) && target.ownerSVGElement && target.getBBox();
+        var removePadding = !IE && cs.boxSizing === "border-box";
+        var switchSizes = verticalRegexp.test(cs.writingMode || "");
+        var canScrollVertically = !svg && scrollRegexp.test(cs.overflowY || "");
+        var canScrollHorizontally = !svg && scrollRegexp.test(cs.overflowX || "");
+        var paddingTop = svg ? 0 : parseDimension(cs.paddingTop);
+        var paddingRight = svg ? 0 : parseDimension(cs.paddingRight);
+        var paddingBottom = svg ? 0 : parseDimension(cs.paddingBottom);
+        var paddingLeft = svg ? 0 : parseDimension(cs.paddingLeft);
+        var borderTop = svg ? 0 : parseDimension(cs.borderTopWidth);
+        var borderRight = svg ? 0 : parseDimension(cs.borderRightWidth);
+        var borderBottom = svg ? 0 : parseDimension(cs.borderBottomWidth);
+        var borderLeft = svg ? 0 : parseDimension(cs.borderLeftWidth);
+        var horizontalPadding = paddingLeft + paddingRight;
+        var verticalPadding = paddingTop + paddingBottom;
+        var horizontalBorderArea = borderLeft + borderRight;
+        var verticalBorderArea = borderTop + borderBottom;
+        var horizontalScrollbarThickness = !canScrollHorizontally ? 0 : target.offsetHeight - verticalBorderArea - target.clientHeight;
+        var verticalScrollbarThickness = !canScrollVertically ? 0 : target.offsetWidth - horizontalBorderArea - target.clientWidth;
+        var widthReduction = removePadding ? horizontalPadding + horizontalBorderArea : 0;
+        var heightReduction = removePadding ? verticalPadding + verticalBorderArea : 0;
+        var contentWidth = svg ? svg.width : parseDimension(cs.width) - widthReduction - verticalScrollbarThickness;
+        var contentHeight = svg ? svg.height : parseDimension(cs.height) - heightReduction - horizontalScrollbarThickness;
+        var borderBoxWidth = contentWidth + horizontalPadding + verticalScrollbarThickness + horizontalBorderArea;
+        var borderBoxHeight = contentHeight + verticalPadding + horizontalScrollbarThickness + verticalBorderArea;
+        var boxes = freeze({
+          devicePixelContentBoxSize: size(Math.round(contentWidth * devicePixelRatio), Math.round(contentHeight * devicePixelRatio), switchSizes),
+          borderBoxSize: size(borderBoxWidth, borderBoxHeight, switchSizes),
+          contentBoxSize: size(contentWidth, contentHeight, switchSizes),
+          contentRect: new DOMRectReadOnly(paddingLeft, paddingTop, contentWidth, contentHeight)
+        });
+        cache.set(target, boxes);
+        return boxes;
+      };
+      calculateBoxSize = function(target, observedBox, forceRecalculation) {
+        var _a = calculateBoxSizes(target, forceRecalculation), borderBoxSize = _a.borderBoxSize, contentBoxSize = _a.contentBoxSize, devicePixelContentBoxSize = _a.devicePixelContentBoxSize;
+        switch (observedBox) {
+          case ResizeObserverBoxOptions.DEVICE_PIXEL_CONTENT_BOX:
+            return devicePixelContentBoxSize;
+          case ResizeObserverBoxOptions.BORDER_BOX:
+            return borderBoxSize;
+          default:
+            return contentBoxSize;
+        }
+      };
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/ResizeObserverEntry.js
+  var ResizeObserverEntry;
+  var init_ResizeObserverEntry = __esm({
+    "node_modules/@juggle/resize-observer/lib/ResizeObserverEntry.js"() {
+      init_calculateBoxSize();
+      init_freeze();
+      ResizeObserverEntry = function() {
+        function ResizeObserverEntry2(target) {
+          var boxes = calculateBoxSizes(target);
+          this.target = target;
+          this.contentRect = boxes.contentRect;
+          this.borderBoxSize = freeze([boxes.borderBoxSize]);
+          this.contentBoxSize = freeze([boxes.contentBoxSize]);
+          this.devicePixelContentBoxSize = freeze([boxes.devicePixelContentBoxSize]);
+        }
+        return ResizeObserverEntry2;
+      }();
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/algorithms/calculateDepthForNode.js
+  var calculateDepthForNode;
+  var init_calculateDepthForNode = __esm({
+    "node_modules/@juggle/resize-observer/lib/algorithms/calculateDepthForNode.js"() {
+      init_element();
+      calculateDepthForNode = function(node) {
+        if (isHidden(node)) {
+          return Infinity;
+        }
+        var depth = 0;
+        var parent = node.parentNode;
+        while (parent) {
+          depth += 1;
+          parent = parent.parentNode;
+        }
+        return depth;
+      };
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/algorithms/broadcastActiveObservations.js
+  var broadcastActiveObservations;
+  var init_broadcastActiveObservations = __esm({
+    "node_modules/@juggle/resize-observer/lib/algorithms/broadcastActiveObservations.js"() {
+      init_resizeObservers();
+      init_ResizeObserverEntry();
+      init_calculateDepthForNode();
+      init_calculateBoxSize();
+      broadcastActiveObservations = function() {
+        var shallowestDepth = Infinity;
+        var callbacks2 = [];
+        resizeObservers.forEach(function processObserver(ro) {
+          if (ro.activeTargets.length === 0) {
+            return;
+          }
+          var entries = [];
+          ro.activeTargets.forEach(function processTarget(ot) {
+            var entry = new ResizeObserverEntry(ot.target);
+            var targetDepth = calculateDepthForNode(ot.target);
+            entries.push(entry);
+            ot.lastReportedSize = calculateBoxSize(ot.target, ot.observedBox);
+            if (targetDepth < shallowestDepth) {
+              shallowestDepth = targetDepth;
+            }
+          });
+          callbacks2.push(function resizeObserverCallback() {
+            ro.callback.call(ro.observer, entries, ro.observer);
+          });
+          ro.activeTargets.splice(0, ro.activeTargets.length);
+        });
+        for (var _i = 0, callbacks_1 = callbacks2; _i < callbacks_1.length; _i++) {
+          var callback = callbacks_1[_i];
+          callback();
+        }
+        return shallowestDepth;
+      };
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/algorithms/gatherActiveObservationsAtDepth.js
+  var gatherActiveObservationsAtDepth;
+  var init_gatherActiveObservationsAtDepth = __esm({
+    "node_modules/@juggle/resize-observer/lib/algorithms/gatherActiveObservationsAtDepth.js"() {
+      init_resizeObservers();
+      init_calculateDepthForNode();
+      gatherActiveObservationsAtDepth = function(depth) {
+        resizeObservers.forEach(function processObserver(ro) {
+          ro.activeTargets.splice(0, ro.activeTargets.length);
+          ro.skippedTargets.splice(0, ro.skippedTargets.length);
+          ro.observationTargets.forEach(function processTarget(ot) {
+            if (ot.isActive()) {
+              if (calculateDepthForNode(ot.target) > depth) {
+                ro.activeTargets.push(ot);
+              } else {
+                ro.skippedTargets.push(ot);
+              }
+            }
+          });
+        });
+      };
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/utils/process.js
+  var process2;
+  var init_process = __esm({
+    "node_modules/@juggle/resize-observer/lib/utils/process.js"() {
+      init_hasActiveObservations();
+      init_hasSkippedObservations();
+      init_deliverResizeLoopError();
+      init_broadcastActiveObservations();
+      init_gatherActiveObservationsAtDepth();
+      process2 = function() {
+        var depth = 0;
+        gatherActiveObservationsAtDepth(depth);
+        while (hasActiveObservations()) {
+          depth = broadcastActiveObservations();
+          gatherActiveObservationsAtDepth(depth);
+        }
+        if (hasSkippedObservations()) {
+          deliverResizeLoopError();
+        }
+        return depth > 0;
+      };
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/utils/queueMicroTask.js
+  var trigger, callbacks, notify, queueMicroTask;
+  var init_queueMicroTask = __esm({
+    "node_modules/@juggle/resize-observer/lib/utils/queueMicroTask.js"() {
+      callbacks = [];
+      notify = function() {
+        return callbacks.splice(0).forEach(function(cb) {
+          return cb();
+        });
+      };
+      queueMicroTask = function(callback) {
+        if (!trigger) {
+          var toggle_1 = 0;
+          var el_1 = document.createTextNode("");
+          var config = { characterData: true };
+          new MutationObserver(function() {
+            return notify();
+          }).observe(el_1, config);
+          trigger = function() {
+            el_1.textContent = "" + (toggle_1 ? toggle_1-- : toggle_1++);
+          };
+        }
+        callbacks.push(callback);
+        trigger();
+      };
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/utils/queueResizeObserver.js
+  var queueResizeObserver;
+  var init_queueResizeObserver = __esm({
+    "node_modules/@juggle/resize-observer/lib/utils/queueResizeObserver.js"() {
+      init_queueMicroTask();
+      queueResizeObserver = function(cb) {
+        queueMicroTask(function ResizeObserver2() {
+          requestAnimationFrame(cb);
+        });
+      };
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/utils/scheduler.js
+  var watching, isWatching, CATCH_PERIOD, observerConfig, events, time, scheduled, Scheduler, scheduler, updateCount;
+  var init_scheduler = __esm({
+    "node_modules/@juggle/resize-observer/lib/utils/scheduler.js"() {
+      init_process();
+      init_global();
+      init_queueResizeObserver();
+      watching = 0;
+      isWatching = function() {
+        return !!watching;
+      };
+      CATCH_PERIOD = 250;
+      observerConfig = { attributes: true, characterData: true, childList: true, subtree: true };
+      events = [
+        "resize",
+        "load",
+        "transitionend",
+        "animationend",
+        "animationstart",
+        "animationiteration",
+        "keyup",
+        "keydown",
+        "mouseup",
+        "mousedown",
+        "mouseover",
+        "mouseout",
+        "blur",
+        "focus"
+      ];
+      time = function(timeout) {
+        if (timeout === void 0) {
+          timeout = 0;
+        }
+        return Date.now() + timeout;
+      };
+      scheduled = false;
+      Scheduler = function() {
+        function Scheduler2() {
+          var _this = this;
+          this.stopped = true;
+          this.listener = function() {
+            return _this.schedule();
+          };
+        }
+        Scheduler2.prototype.run = function(timeout) {
+          var _this = this;
+          if (timeout === void 0) {
+            timeout = CATCH_PERIOD;
+          }
+          if (scheduled) {
+            return;
+          }
+          scheduled = true;
+          var until = time(timeout);
+          queueResizeObserver(function() {
+            var elementsHaveResized = false;
+            try {
+              elementsHaveResized = process2();
+            } finally {
+              scheduled = false;
+              timeout = until - time();
+              if (!isWatching()) {
+                return;
+              }
+              if (elementsHaveResized) {
+                _this.run(1e3);
+              } else if (timeout > 0) {
+                _this.run(timeout);
+              } else {
+                _this.start();
+              }
+            }
+          });
+        };
+        Scheduler2.prototype.schedule = function() {
+          this.stop();
+          this.run();
+        };
+        Scheduler2.prototype.observe = function() {
+          var _this = this;
+          var cb = function() {
+            return _this.observer && _this.observer.observe(document.body, observerConfig);
+          };
+          document.body ? cb() : global5.addEventListener("DOMContentLoaded", cb);
+        };
+        Scheduler2.prototype.start = function() {
+          var _this = this;
+          if (this.stopped) {
+            this.stopped = false;
+            this.observer = new MutationObserver(this.listener);
+            this.observe();
+            events.forEach(function(name) {
+              return global5.addEventListener(name, _this.listener, true);
+            });
+          }
+        };
+        Scheduler2.prototype.stop = function() {
+          var _this = this;
+          if (!this.stopped) {
+            this.observer && this.observer.disconnect();
+            events.forEach(function(name) {
+              return global5.removeEventListener(name, _this.listener, true);
+            });
+            this.stopped = true;
+          }
+        };
+        return Scheduler2;
+      }();
+      scheduler = new Scheduler();
+      updateCount = function(n) {
+        !watching && n > 0 && scheduler.start();
+        watching += n;
+        !watching && scheduler.stop();
+      };
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/ResizeObservation.js
+  var skipNotifyOnElement, ResizeObservation;
+  var init_ResizeObservation = __esm({
+    "node_modules/@juggle/resize-observer/lib/ResizeObservation.js"() {
+      init_ResizeObserverBoxOptions();
+      init_calculateBoxSize();
+      init_element();
+      skipNotifyOnElement = function(target) {
+        return !isSVG(target) && !isReplacedElement(target) && getComputedStyle(target).display === "inline";
+      };
+      ResizeObservation = function() {
+        function ResizeObservation2(target, observedBox) {
+          this.target = target;
+          this.observedBox = observedBox || ResizeObserverBoxOptions.CONTENT_BOX;
+          this.lastReportedSize = {
+            inlineSize: 0,
+            blockSize: 0
+          };
+        }
+        ResizeObservation2.prototype.isActive = function() {
+          var size2 = calculateBoxSize(this.target, this.observedBox, true);
+          if (skipNotifyOnElement(this.target)) {
+            this.lastReportedSize = size2;
+          }
+          if (this.lastReportedSize.inlineSize !== size2.inlineSize || this.lastReportedSize.blockSize !== size2.blockSize) {
+            return true;
+          }
+          return false;
+        };
+        return ResizeObservation2;
+      }();
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/ResizeObserverDetail.js
+  var ResizeObserverDetail;
+  var init_ResizeObserverDetail = __esm({
+    "node_modules/@juggle/resize-observer/lib/ResizeObserverDetail.js"() {
+      ResizeObserverDetail = function() {
+        function ResizeObserverDetail2(resizeObserver, callback) {
+          this.activeTargets = [];
+          this.skippedTargets = [];
+          this.observationTargets = [];
+          this.observer = resizeObserver;
+          this.callback = callback;
+        }
+        return ResizeObserverDetail2;
+      }();
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/ResizeObserverController.js
+  var observerMap, getObservationIndex, ResizeObserverController;
+  var init_ResizeObserverController = __esm({
+    "node_modules/@juggle/resize-observer/lib/ResizeObserverController.js"() {
+      init_scheduler();
+      init_ResizeObservation();
+      init_ResizeObserverDetail();
+      init_resizeObservers();
+      observerMap = /* @__PURE__ */ new WeakMap();
+      getObservationIndex = function(observationTargets, target) {
+        for (var i = 0; i < observationTargets.length; i += 1) {
+          if (observationTargets[i].target === target) {
+            return i;
+          }
+        }
+        return -1;
+      };
+      ResizeObserverController = function() {
+        function ResizeObserverController2() {
+        }
+        ResizeObserverController2.connect = function(resizeObserver, callback) {
+          var detail = new ResizeObserverDetail(resizeObserver, callback);
+          observerMap.set(resizeObserver, detail);
+        };
+        ResizeObserverController2.observe = function(resizeObserver, target, options) {
+          var detail = observerMap.get(resizeObserver);
+          var firstObservation = detail.observationTargets.length === 0;
+          if (getObservationIndex(detail.observationTargets, target) < 0) {
+            firstObservation && resizeObservers.push(detail);
+            detail.observationTargets.push(new ResizeObservation(target, options && options.box));
+            updateCount(1);
+            scheduler.schedule();
+          }
+        };
+        ResizeObserverController2.unobserve = function(resizeObserver, target) {
+          var detail = observerMap.get(resizeObserver);
+          var index2 = getObservationIndex(detail.observationTargets, target);
+          var lastObservation = detail.observationTargets.length === 1;
+          if (index2 >= 0) {
+            lastObservation && resizeObservers.splice(resizeObservers.indexOf(detail), 1);
+            detail.observationTargets.splice(index2, 1);
+            updateCount(-1);
+          }
+        };
+        ResizeObserverController2.disconnect = function(resizeObserver) {
+          var _this = this;
+          var detail = observerMap.get(resizeObserver);
+          detail.observationTargets.slice().forEach(function(ot) {
+            return _this.unobserve(resizeObserver, ot.target);
+          });
+          detail.activeTargets.splice(0, detail.activeTargets.length);
+        };
+        return ResizeObserverController2;
+      }();
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/ResizeObserver.js
+  var ResizeObserver;
+  var init_ResizeObserver = __esm({
+    "node_modules/@juggle/resize-observer/lib/ResizeObserver.js"() {
+      init_ResizeObserverController();
+      init_element();
+      ResizeObserver = function() {
+        function ResizeObserver2(callback) {
+          if (arguments.length === 0) {
+            throw new TypeError("Failed to construct 'ResizeObserver': 1 argument required, but only 0 present.");
+          }
+          if (typeof callback !== "function") {
+            throw new TypeError("Failed to construct 'ResizeObserver': The callback provided as parameter 1 is not a function.");
+          }
+          ResizeObserverController.connect(this, callback);
+        }
+        ResizeObserver2.prototype.observe = function(target, options) {
+          if (arguments.length === 0) {
+            throw new TypeError("Failed to execute 'observe' on 'ResizeObserver': 1 argument required, but only 0 present.");
+          }
+          if (!isElement(target)) {
+            throw new TypeError("Failed to execute 'observe' on 'ResizeObserver': parameter 1 is not of type 'Element");
+          }
+          ResizeObserverController.observe(this, target, options);
+        };
+        ResizeObserver2.prototype.unobserve = function(target) {
+          if (arguments.length === 0) {
+            throw new TypeError("Failed to execute 'unobserve' on 'ResizeObserver': 1 argument required, but only 0 present.");
+          }
+          if (!isElement(target)) {
+            throw new TypeError("Failed to execute 'unobserve' on 'ResizeObserver': parameter 1 is not of type 'Element");
+          }
+          ResizeObserverController.unobserve(this, target);
+        };
+        ResizeObserver2.prototype.disconnect = function() {
+          ResizeObserverController.disconnect(this);
+        };
+        ResizeObserver2.toString = function() {
+          return "function ResizeObserver () { [polyfill code] }";
+        };
+        return ResizeObserver2;
+      }();
+    }
+  });
+
+  // node_modules/@juggle/resize-observer/lib/exports/resize-observer.js
+  var init_resize_observer = __esm({
+    "node_modules/@juggle/resize-observer/lib/exports/resize-observer.js"() {
+      init_ResizeObserver();
+      init_ResizeObserverEntry();
+      init_ResizeObserverSize();
+    }
+  });
+
   // node_modules/core-js/internals/array-reduce.js
   var require_array_reduce = __commonJS({
     "node_modules/core-js/internals/array-reduce.js"(exports, module) {
@@ -28446,23 +34703,23 @@
           var O = toObject(that);
           var self2 = IndexedObject(O);
           var length = lengthOfArrayLike(O);
-          var index = IS_RIGHT ? length - 1 : 0;
+          var index2 = IS_RIGHT ? length - 1 : 0;
           var i = IS_RIGHT ? -1 : 1;
           if (argumentsLength < 2)
             while (true) {
-              if (index in self2) {
-                memo = self2[index];
-                index += i;
+              if (index2 in self2) {
+                memo = self2[index2];
+                index2 += i;
                 break;
               }
-              index += i;
-              if (IS_RIGHT ? index < 0 : length <= index) {
+              index2 += i;
+              if (IS_RIGHT ? index2 < 0 : length <= index2) {
                 throw TypeError2("Reduce of empty array with no initial value");
               }
             }
-          for (; IS_RIGHT ? index >= 0 : length > index; index += i)
-            if (index in self2) {
-              memo = callbackfn(memo, self2[index], index, O);
+          for (; IS_RIGHT ? index2 >= 0 : length > index2; index2 += i)
+            if (index2 in self2) {
+              memo = callbackfn(memo, self2[index2], index2, O);
             }
           return memo;
         };
@@ -28480,6 +34737,55 @@
       var classof = require_classof_raw();
       var global6 = require_global();
       module.exports = classof(global6.process) == "process";
+    }
+  });
+
+  // node_modules/core-js/modules/es.array.reduce.js
+  var $5, $reduce, arrayMethodIsStrict, CHROME_VERSION, IS_NODE, STRICT_METHOD, CHROME_BUG;
+  var init_es_array_reduce = __esm({
+    "node_modules/core-js/modules/es.array.reduce.js"() {
+      "use strict";
+      $5 = require_export();
+      $reduce = require_array_reduce().left;
+      arrayMethodIsStrict = require_array_method_is_strict();
+      CHROME_VERSION = require_engine_v8_version();
+      IS_NODE = require_engine_is_node();
+      STRICT_METHOD = arrayMethodIsStrict("reduce");
+      CHROME_BUG = !IS_NODE && CHROME_VERSION > 79 && CHROME_VERSION < 83;
+      $5({ target: "Array", proto: true, forced: !STRICT_METHOD || CHROME_BUG }, {
+        reduce: function reduce(callbackfn) {
+          var length = arguments.length;
+          return $reduce(this, callbackfn, length, length > 1 ? arguments[1] : void 0);
+        }
+      });
+    }
+  });
+
+  // node_modules/core-js/modules/es.function.name.js
+  var DESCRIPTORS, FUNCTION_NAME_EXISTS, uncurryThis2, defineProperty, FunctionPrototype, functionToString, nameRE, regExpExec, NAME;
+  var init_es_function_name = __esm({
+    "node_modules/core-js/modules/es.function.name.js"() {
+      DESCRIPTORS = require_descriptors();
+      FUNCTION_NAME_EXISTS = require_function_name().EXISTS;
+      uncurryThis2 = require_function_uncurry_this();
+      defineProperty = require_object_define_property().f;
+      FunctionPrototype = Function.prototype;
+      functionToString = uncurryThis2(FunctionPrototype.toString);
+      nameRE = /function\b(?:\s|\/\*[\S\s]*?\*\/|\/\/[^\n\r]*[\n\r]+)*([^\s(/]*)/;
+      regExpExec = uncurryThis2(nameRE.exec);
+      NAME = "name";
+      if (DESCRIPTORS && !FUNCTION_NAME_EXISTS) {
+        defineProperty(FunctionPrototype, NAME, {
+          configurable: true,
+          get: function() {
+            try {
+              return regExpExec(nameRE, functionToString(this))[1];
+            } catch (error2) {
+              return "";
+            }
+          }
+        });
+      }
     }
   });
 
@@ -28743,8 +35049,8 @@
     "node_modules/core-js/internals/advance-string-index.js"(exports, module) {
       "use strict";
       var charAt2 = require_string_multibyte().charAt;
-      module.exports = function(S, index, unicode) {
-        return index + (unicode ? charAt2(S, index).length : 1);
+      module.exports = function(S, index2, unicode) {
+        return index2 + (unicode ? charAt2(S, index2).length : 1);
       };
     }
   });
@@ -28771,6 +35077,54 @@
           return call3(regexpExec, R, S);
         throw TypeError2("RegExp#exec called on incompatible receiver");
       };
+    }
+  });
+
+  // node_modules/core-js/modules/es.string.match.js
+  var call, fixRegExpWellKnownSymbolLogic, anObject, toLength, toString3, requireObjectCoercible, getMethod, advanceStringIndex, regExpExec2;
+  var init_es_string_match = __esm({
+    "node_modules/core-js/modules/es.string.match.js"() {
+      "use strict";
+      call = require_function_call();
+      fixRegExpWellKnownSymbolLogic = require_fix_regexp_well_known_symbol_logic();
+      anObject = require_an_object();
+      toLength = require_to_length();
+      toString3 = require_to_string();
+      requireObjectCoercible = require_require_object_coercible();
+      getMethod = require_get_method();
+      advanceStringIndex = require_advance_string_index();
+      regExpExec2 = require_regexp_exec_abstract();
+      fixRegExpWellKnownSymbolLogic("match", function(MATCH, nativeMatch, maybeCallNative) {
+        return [
+          function match(regexp) {
+            var O = requireObjectCoercible(this);
+            var matcher = regexp == void 0 ? void 0 : getMethod(regexp, MATCH);
+            return matcher ? call(matcher, regexp, O) : new RegExp(regexp)[MATCH](toString3(O));
+          },
+          function(string) {
+            var rx = anObject(this);
+            var S = toString3(string);
+            var res = maybeCallNative(nativeMatch, rx, S);
+            if (res.done)
+              return res.value;
+            if (!rx.global)
+              return regExpExec2(rx, S);
+            var fullUnicode = rx.unicode;
+            rx.lastIndex = 0;
+            var A = [];
+            var n = 0;
+            var result;
+            while ((result = regExpExec2(rx, S)) !== null) {
+              var matchStr = toString3(result[0]);
+              A[n] = matchStr;
+              if (matchStr === "")
+                rx.lastIndex = advanceStringIndex(S, toLength(rx.lastIndex), fullUnicode);
+              n++;
+            }
+            return n === 0 ? null : A;
+          }
+        ];
+      });
     }
   });
 
@@ -28840,6167 +35194,122 @@
     }
   });
 
-  // node_modules/@hotwired/turbo/dist/turbo.es2017-esm.js
-  (function() {
-    if (window.Reflect === void 0 || window.customElements === void 0 || window.customElements.polyfillWrapFlushCallback) {
-      return;
-    }
-    const BuiltInHTMLElement = HTMLElement;
-    const wrapperForTheName = {
-      "HTMLElement": function HTMLElement2() {
-        return Reflect.construct(BuiltInHTMLElement, [], this.constructor);
-      }
-    };
-    window.HTMLElement = wrapperForTheName["HTMLElement"];
-    HTMLElement.prototype = BuiltInHTMLElement.prototype;
-    HTMLElement.prototype.constructor = HTMLElement;
-    Object.setPrototypeOf(HTMLElement, BuiltInHTMLElement);
-  })();
-  (function(prototype) {
-    if (typeof prototype.requestSubmit == "function")
-      return;
-    prototype.requestSubmit = function(submitter) {
-      if (submitter) {
-        validateSubmitter(submitter, this);
-        submitter.click();
-      } else {
-        submitter = document.createElement("input");
-        submitter.type = "submit";
-        submitter.hidden = true;
-        this.appendChild(submitter);
-        submitter.click();
-        this.removeChild(submitter);
-      }
-    };
-    function validateSubmitter(submitter, form) {
-      submitter instanceof HTMLElement || raise(TypeError, "parameter 1 is not of type 'HTMLElement'");
-      submitter.type == "submit" || raise(TypeError, "The specified element is not a submit button");
-      submitter.form == form || raise(DOMException, "The specified element is not owned by this form element", "NotFoundError");
-    }
-    function raise(errorConstructor, message, name) {
-      throw new errorConstructor("Failed to execute 'requestSubmit' on 'HTMLFormElement': " + message + ".", name);
-    }
-  })(HTMLFormElement.prototype);
-  var submittersByForm = /* @__PURE__ */ new WeakMap();
-  function findSubmitterFromClickTarget(target) {
-    const element = target instanceof Element ? target : target instanceof Node ? target.parentElement : null;
-    const candidate = element ? element.closest("input, button") : null;
-    return (candidate === null || candidate === void 0 ? void 0 : candidate.type) == "submit" ? candidate : null;
-  }
-  function clickCaptured(event) {
-    const submitter = findSubmitterFromClickTarget(event.target);
-    if (submitter && submitter.form) {
-      submittersByForm.set(submitter.form, submitter);
-    }
-  }
-  (function() {
-    if ("submitter" in Event.prototype)
-      return;
-    let prototype;
-    if ("SubmitEvent" in window && /Apple Computer/.test(navigator.vendor)) {
-      prototype = window.SubmitEvent.prototype;
-    } else if ("SubmitEvent" in window) {
-      return;
-    } else {
-      prototype = window.Event.prototype;
-    }
-    addEventListener("click", clickCaptured, true);
-    Object.defineProperty(prototype, "submitter", {
-      get() {
-        if (this.type == "submit" && this.target instanceof HTMLFormElement) {
-          return submittersByForm.get(this.target);
-        }
-      }
-    });
-  })();
-  var FrameLoadingStyle;
-  (function(FrameLoadingStyle2) {
-    FrameLoadingStyle2["eager"] = "eager";
-    FrameLoadingStyle2["lazy"] = "lazy";
-  })(FrameLoadingStyle || (FrameLoadingStyle = {}));
-  var FrameElement = class extends HTMLElement {
-    constructor() {
-      super();
-      this.loaded = Promise.resolve();
-      this.delegate = new FrameElement.delegateConstructor(this);
-    }
-    static get observedAttributes() {
-      return ["disabled", "loading", "src"];
-    }
-    connectedCallback() {
-      this.delegate.connect();
-    }
-    disconnectedCallback() {
-      this.delegate.disconnect();
-    }
-    reload() {
-      const { src } = this;
-      this.src = null;
-      this.src = src;
-    }
-    attributeChangedCallback(name) {
-      if (name == "loading") {
-        this.delegate.loadingStyleChanged();
-      } else if (name == "src") {
-        this.delegate.sourceURLChanged();
-      } else {
-        this.delegate.disabledChanged();
-      }
-    }
-    get src() {
-      return this.getAttribute("src");
-    }
-    set src(value) {
-      if (value) {
-        this.setAttribute("src", value);
-      } else {
-        this.removeAttribute("src");
-      }
-    }
-    get loading() {
-      return frameLoadingStyleFromString(this.getAttribute("loading") || "");
-    }
-    set loading(value) {
-      if (value) {
-        this.setAttribute("loading", value);
-      } else {
-        this.removeAttribute("loading");
-      }
-    }
-    get disabled() {
-      return this.hasAttribute("disabled");
-    }
-    set disabled(value) {
-      if (value) {
-        this.setAttribute("disabled", "");
-      } else {
-        this.removeAttribute("disabled");
-      }
-    }
-    get autoscroll() {
-      return this.hasAttribute("autoscroll");
-    }
-    set autoscroll(value) {
-      if (value) {
-        this.setAttribute("autoscroll", "");
-      } else {
-        this.removeAttribute("autoscroll");
-      }
-    }
-    get complete() {
-      return !this.delegate.isLoading;
-    }
-    get isActive() {
-      return this.ownerDocument === document && !this.isPreview;
-    }
-    get isPreview() {
-      var _a, _b;
-      return (_b = (_a = this.ownerDocument) === null || _a === void 0 ? void 0 : _a.documentElement) === null || _b === void 0 ? void 0 : _b.hasAttribute("data-turbo-preview");
-    }
-  };
-  function frameLoadingStyleFromString(style) {
-    switch (style.toLowerCase()) {
-      case "lazy":
-        return FrameLoadingStyle.lazy;
-      default:
-        return FrameLoadingStyle.eager;
-    }
-  }
-  function expandURL(locatable) {
-    return new URL(locatable.toString(), document.baseURI);
-  }
-  function getAnchor(url) {
-    let anchorMatch;
-    if (url.hash) {
-      return url.hash.slice(1);
-    } else if (anchorMatch = url.href.match(/#(.*)$/)) {
-      return anchorMatch[1];
-    }
-  }
-  function getAction(form, submitter) {
-    const action = (submitter === null || submitter === void 0 ? void 0 : submitter.getAttribute("formaction")) || form.getAttribute("action") || form.action;
-    return expandURL(action);
-  }
-  function getExtension(url) {
-    return (getLastPathComponent(url).match(/\.[^.]*$/) || [])[0] || "";
-  }
-  function isHTML(url) {
-    return !!getExtension(url).match(/^(?:|\.(?:htm|html|xhtml))$/);
-  }
-  function isPrefixedBy(baseURL, url) {
-    const prefix = getPrefix(url);
-    return baseURL.href === expandURL(prefix).href || baseURL.href.startsWith(prefix);
-  }
-  function locationIsVisitable(location2, rootLocation) {
-    return isPrefixedBy(location2, rootLocation) && isHTML(location2);
-  }
-  function getRequestURL(url) {
-    const anchor = getAnchor(url);
-    return anchor != null ? url.href.slice(0, -(anchor.length + 1)) : url.href;
-  }
-  function toCacheKey(url) {
-    return getRequestURL(url);
-  }
-  function urlsAreEqual(left, right) {
-    return expandURL(left).href == expandURL(right).href;
-  }
-  function getPathComponents(url) {
-    return url.pathname.split("/").slice(1);
-  }
-  function getLastPathComponent(url) {
-    return getPathComponents(url).slice(-1)[0];
-  }
-  function getPrefix(url) {
-    return addTrailingSlash(url.origin + url.pathname);
-  }
-  function addTrailingSlash(value) {
-    return value.endsWith("/") ? value : value + "/";
-  }
-  var FetchResponse = class {
-    constructor(response) {
-      this.response = response;
-    }
-    get succeeded() {
-      return this.response.ok;
-    }
-    get failed() {
-      return !this.succeeded;
-    }
-    get clientError() {
-      return this.statusCode >= 400 && this.statusCode <= 499;
-    }
-    get serverError() {
-      return this.statusCode >= 500 && this.statusCode <= 599;
-    }
-    get redirected() {
-      return this.response.redirected;
-    }
-    get location() {
-      return expandURL(this.response.url);
-    }
-    get isHTML() {
-      return this.contentType && this.contentType.match(/^(?:text\/([^\s;,]+\b)?html|application\/xhtml\+xml)\b/);
-    }
-    get statusCode() {
-      return this.response.status;
-    }
-    get contentType() {
-      return this.header("Content-Type");
-    }
-    get responseText() {
-      return this.response.clone().text();
-    }
-    get responseHTML() {
-      if (this.isHTML) {
-        return this.response.clone().text();
-      } else {
-        return Promise.resolve(void 0);
-      }
-    }
-    header(name) {
-      return this.response.headers.get(name);
-    }
-  };
-  function dispatch(eventName, { target, cancelable, detail } = {}) {
-    const event = new CustomEvent(eventName, { cancelable, bubbles: true, detail });
-    if (target && target.isConnected) {
-      target.dispatchEvent(event);
-    } else {
-      document.documentElement.dispatchEvent(event);
-    }
-    return event;
-  }
-  function nextAnimationFrame() {
-    return new Promise((resolve) => requestAnimationFrame(() => resolve()));
-  }
-  function nextEventLoopTick() {
-    return new Promise((resolve) => setTimeout(() => resolve(), 0));
-  }
-  function nextMicrotask() {
-    return Promise.resolve();
-  }
-  function parseHTMLDocument(html = "") {
-    return new DOMParser().parseFromString(html, "text/html");
-  }
-  function unindent(strings, ...values) {
-    const lines = interpolate(strings, values).replace(/^\n/, "").split("\n");
-    const match = lines[0].match(/^\s+/);
-    const indent = match ? match[0].length : 0;
-    return lines.map((line) => line.slice(indent)).join("\n");
-  }
-  function interpolate(strings, values) {
-    return strings.reduce((result, string, i) => {
-      const value = values[i] == void 0 ? "" : values[i];
-      return result + string + value;
-    }, "");
-  }
-  function uuid() {
-    return Array.apply(null, { length: 36 }).map((_, i) => {
-      if (i == 8 || i == 13 || i == 18 || i == 23) {
-        return "-";
-      } else if (i == 14) {
-        return "4";
-      } else if (i == 19) {
-        return (Math.floor(Math.random() * 4) + 8).toString(16);
-      } else {
-        return Math.floor(Math.random() * 15).toString(16);
-      }
-    }).join("");
-  }
-  function getAttribute(attributeName, ...elements) {
-    for (const value of elements.map((element) => element === null || element === void 0 ? void 0 : element.getAttribute(attributeName))) {
-      if (typeof value == "string")
-        return value;
-    }
-    return null;
-  }
-  function markAsBusy(...elements) {
-    for (const element of elements) {
-      if (element.localName == "turbo-frame") {
-        element.setAttribute("busy", "");
-      }
-      element.setAttribute("aria-busy", "true");
-    }
-  }
-  function clearBusyState(...elements) {
-    for (const element of elements) {
-      if (element.localName == "turbo-frame") {
-        element.removeAttribute("busy");
-      }
-      element.removeAttribute("aria-busy");
-    }
-  }
-  var FetchMethod;
-  (function(FetchMethod2) {
-    FetchMethod2[FetchMethod2["get"] = 0] = "get";
-    FetchMethod2[FetchMethod2["post"] = 1] = "post";
-    FetchMethod2[FetchMethod2["put"] = 2] = "put";
-    FetchMethod2[FetchMethod2["patch"] = 3] = "patch";
-    FetchMethod2[FetchMethod2["delete"] = 4] = "delete";
-  })(FetchMethod || (FetchMethod = {}));
-  function fetchMethodFromString(method) {
-    switch (method.toLowerCase()) {
-      case "get":
-        return FetchMethod.get;
-      case "post":
-        return FetchMethod.post;
-      case "put":
-        return FetchMethod.put;
-      case "patch":
-        return FetchMethod.patch;
-      case "delete":
-        return FetchMethod.delete;
-    }
-  }
-  var FetchRequest = class {
-    constructor(delegate, method, location2, body = new URLSearchParams(), target = null) {
-      this.abortController = new AbortController();
-      this.resolveRequestPromise = (value) => {
-      };
-      this.delegate = delegate;
-      this.method = method;
-      this.headers = this.defaultHeaders;
-      this.body = body;
-      this.url = location2;
-      this.target = target;
-    }
-    get location() {
-      return this.url;
-    }
-    get params() {
-      return this.url.searchParams;
-    }
-    get entries() {
-      return this.body ? Array.from(this.body.entries()) : [];
-    }
-    cancel() {
-      this.abortController.abort();
-    }
-    async perform() {
-      var _a, _b;
-      const { fetchOptions } = this;
-      (_b = (_a = this.delegate).prepareHeadersForRequest) === null || _b === void 0 ? void 0 : _b.call(_a, this.headers, this);
-      await this.allowRequestToBeIntercepted(fetchOptions);
-      try {
-        this.delegate.requestStarted(this);
-        const response = await fetch(this.url.href, fetchOptions);
-        return await this.receive(response);
-      } catch (error2) {
-        if (error2.name !== "AbortError") {
-          this.delegate.requestErrored(this, error2);
-          throw error2;
-        }
-      } finally {
-        this.delegate.requestFinished(this);
-      }
-    }
-    async receive(response) {
-      const fetchResponse = new FetchResponse(response);
-      const event = dispatch("turbo:before-fetch-response", { cancelable: true, detail: { fetchResponse }, target: this.target });
-      if (event.defaultPrevented) {
-        this.delegate.requestPreventedHandlingResponse(this, fetchResponse);
-      } else if (fetchResponse.succeeded) {
-        this.delegate.requestSucceededWithResponse(this, fetchResponse);
-      } else {
-        this.delegate.requestFailedWithResponse(this, fetchResponse);
-      }
-      return fetchResponse;
-    }
-    get fetchOptions() {
-      var _a;
-      return {
-        method: FetchMethod[this.method].toUpperCase(),
-        credentials: "same-origin",
-        headers: this.headers,
-        redirect: "follow",
-        body: this.isIdempotent ? null : this.body,
-        signal: this.abortSignal,
-        referrer: (_a = this.delegate.referrer) === null || _a === void 0 ? void 0 : _a.href
-      };
-    }
-    get defaultHeaders() {
-      return {
-        "Accept": "text/html, application/xhtml+xml"
-      };
-    }
-    get isIdempotent() {
-      return this.method == FetchMethod.get;
-    }
-    get abortSignal() {
-      return this.abortController.signal;
-    }
-    async allowRequestToBeIntercepted(fetchOptions) {
-      const requestInterception = new Promise((resolve) => this.resolveRequestPromise = resolve);
-      const event = dispatch("turbo:before-fetch-request", {
-        cancelable: true,
-        detail: {
-          fetchOptions,
-          url: this.url,
-          resume: this.resolveRequestPromise
-        },
-        target: this.target
-      });
-      if (event.defaultPrevented)
-        await requestInterception;
-    }
-  };
-  var AppearanceObserver = class {
-    constructor(delegate, element) {
-      this.started = false;
-      this.intersect = (entries) => {
-        const lastEntry = entries.slice(-1)[0];
-        if (lastEntry === null || lastEntry === void 0 ? void 0 : lastEntry.isIntersecting) {
-          this.delegate.elementAppearedInViewport(this.element);
-        }
-      };
-      this.delegate = delegate;
-      this.element = element;
-      this.intersectionObserver = new IntersectionObserver(this.intersect);
-    }
-    start() {
-      if (!this.started) {
-        this.started = true;
-        this.intersectionObserver.observe(this.element);
-      }
-    }
-    stop() {
-      if (this.started) {
-        this.started = false;
-        this.intersectionObserver.unobserve(this.element);
-      }
-    }
-  };
-  var StreamMessage = class {
-    constructor(html) {
-      this.templateElement = document.createElement("template");
-      this.templateElement.innerHTML = html;
-    }
-    static wrap(message) {
-      if (typeof message == "string") {
-        return new this(message);
-      } else {
-        return message;
-      }
-    }
-    get fragment() {
-      const fragment = document.createDocumentFragment();
-      for (const element of this.foreignElements) {
-        fragment.appendChild(document.importNode(element, true));
-      }
-      return fragment;
-    }
-    get foreignElements() {
-      return this.templateChildren.reduce((streamElements, child) => {
-        if (child.tagName.toLowerCase() == "turbo-stream") {
-          return [...streamElements, child];
-        } else {
-          return streamElements;
-        }
-      }, []);
-    }
-    get templateChildren() {
-      return Array.from(this.templateElement.content.children);
-    }
-  };
-  StreamMessage.contentType = "text/vnd.turbo-stream.html";
-  var FormSubmissionState;
-  (function(FormSubmissionState2) {
-    FormSubmissionState2[FormSubmissionState2["initialized"] = 0] = "initialized";
-    FormSubmissionState2[FormSubmissionState2["requesting"] = 1] = "requesting";
-    FormSubmissionState2[FormSubmissionState2["waiting"] = 2] = "waiting";
-    FormSubmissionState2[FormSubmissionState2["receiving"] = 3] = "receiving";
-    FormSubmissionState2[FormSubmissionState2["stopping"] = 4] = "stopping";
-    FormSubmissionState2[FormSubmissionState2["stopped"] = 5] = "stopped";
-  })(FormSubmissionState || (FormSubmissionState = {}));
-  var FormEnctype;
-  (function(FormEnctype2) {
-    FormEnctype2["urlEncoded"] = "application/x-www-form-urlencoded";
-    FormEnctype2["multipart"] = "multipart/form-data";
-    FormEnctype2["plain"] = "text/plain";
-  })(FormEnctype || (FormEnctype = {}));
-  function formEnctypeFromString(encoding) {
-    switch (encoding.toLowerCase()) {
-      case FormEnctype.multipart:
-        return FormEnctype.multipart;
-      case FormEnctype.plain:
-        return FormEnctype.plain;
-      default:
-        return FormEnctype.urlEncoded;
-    }
-  }
-  var FormSubmission = class {
-    constructor(delegate, formElement, submitter, mustRedirect = false) {
-      this.state = FormSubmissionState.initialized;
-      this.delegate = delegate;
-      this.formElement = formElement;
-      this.submitter = submitter;
-      this.formData = buildFormData(formElement, submitter);
-      this.location = expandURL(this.action);
-      if (this.method == FetchMethod.get) {
-        mergeFormDataEntries(this.location, [...this.body.entries()]);
-      }
-      this.fetchRequest = new FetchRequest(this, this.method, this.location, this.body, this.formElement);
-      this.mustRedirect = mustRedirect;
-    }
-    static confirmMethod(message, element) {
-      return confirm(message);
-    }
-    get method() {
-      var _a;
-      const method = ((_a = this.submitter) === null || _a === void 0 ? void 0 : _a.getAttribute("formmethod")) || this.formElement.getAttribute("method") || "";
-      return fetchMethodFromString(method.toLowerCase()) || FetchMethod.get;
-    }
-    get action() {
-      var _a;
-      const formElementAction = typeof this.formElement.action === "string" ? this.formElement.action : null;
-      return ((_a = this.submitter) === null || _a === void 0 ? void 0 : _a.getAttribute("formaction")) || this.formElement.getAttribute("action") || formElementAction || "";
-    }
-    get body() {
-      if (this.enctype == FormEnctype.urlEncoded || this.method == FetchMethod.get) {
-        return new URLSearchParams(this.stringFormData);
-      } else {
-        return this.formData;
-      }
-    }
-    get enctype() {
-      var _a;
-      return formEnctypeFromString(((_a = this.submitter) === null || _a === void 0 ? void 0 : _a.getAttribute("formenctype")) || this.formElement.enctype);
-    }
-    get isIdempotent() {
-      return this.fetchRequest.isIdempotent;
-    }
-    get stringFormData() {
-      return [...this.formData].reduce((entries, [name, value]) => {
-        return entries.concat(typeof value == "string" ? [[name, value]] : []);
-      }, []);
-    }
-    get confirmationMessage() {
-      return this.formElement.getAttribute("data-turbo-confirm");
-    }
-    get needsConfirmation() {
-      return this.confirmationMessage !== null;
-    }
-    async start() {
-      const { initialized, requesting } = FormSubmissionState;
-      if (this.needsConfirmation) {
-        const answer = FormSubmission.confirmMethod(this.confirmationMessage, this.formElement);
-        if (!answer) {
-          return;
-        }
-      }
-      if (this.state == initialized) {
-        this.state = requesting;
-        return this.fetchRequest.perform();
-      }
-    }
-    stop() {
-      const { stopping, stopped } = FormSubmissionState;
-      if (this.state != stopping && this.state != stopped) {
-        this.state = stopping;
-        this.fetchRequest.cancel();
-        return true;
-      }
-    }
-    prepareHeadersForRequest(headers, request) {
-      if (!request.isIdempotent) {
-        const token = getCookieValue(getMetaContent("csrf-param")) || getMetaContent("csrf-token");
-        if (token) {
-          headers["X-CSRF-Token"] = token;
-        }
-        headers["Accept"] = [StreamMessage.contentType, headers["Accept"]].join(", ");
-      }
-    }
-    requestStarted(request) {
-      var _a;
-      this.state = FormSubmissionState.waiting;
-      (_a = this.submitter) === null || _a === void 0 ? void 0 : _a.setAttribute("disabled", "");
-      dispatch("turbo:submit-start", { target: this.formElement, detail: { formSubmission: this } });
-      this.delegate.formSubmissionStarted(this);
-    }
-    requestPreventedHandlingResponse(request, response) {
-      this.result = { success: response.succeeded, fetchResponse: response };
-    }
-    requestSucceededWithResponse(request, response) {
-      if (response.clientError || response.serverError) {
-        this.delegate.formSubmissionFailedWithResponse(this, response);
-      } else if (this.requestMustRedirect(request) && responseSucceededWithoutRedirect(response)) {
-        const error2 = new Error("Form responses must redirect to another location");
-        this.delegate.formSubmissionErrored(this, error2);
-      } else {
-        this.state = FormSubmissionState.receiving;
-        this.result = { success: true, fetchResponse: response };
-        this.delegate.formSubmissionSucceededWithResponse(this, response);
-      }
-    }
-    requestFailedWithResponse(request, response) {
-      this.result = { success: false, fetchResponse: response };
-      this.delegate.formSubmissionFailedWithResponse(this, response);
-    }
-    requestErrored(request, error2) {
-      this.result = { success: false, error: error2 };
-      this.delegate.formSubmissionErrored(this, error2);
-    }
-    requestFinished(request) {
-      var _a;
-      this.state = FormSubmissionState.stopped;
-      (_a = this.submitter) === null || _a === void 0 ? void 0 : _a.removeAttribute("disabled");
-      dispatch("turbo:submit-end", { target: this.formElement, detail: Object.assign({ formSubmission: this }, this.result) });
-      this.delegate.formSubmissionFinished(this);
-    }
-    requestMustRedirect(request) {
-      return !request.isIdempotent && this.mustRedirect;
-    }
-  };
-  function buildFormData(formElement, submitter) {
-    const formData = new FormData(formElement);
-    const name = submitter === null || submitter === void 0 ? void 0 : submitter.getAttribute("name");
-    const value = submitter === null || submitter === void 0 ? void 0 : submitter.getAttribute("value");
-    if (name && value != null && formData.get(name) != value) {
-      formData.append(name, value);
-    }
-    return formData;
-  }
-  function getCookieValue(cookieName) {
-    if (cookieName != null) {
-      const cookies = document.cookie ? document.cookie.split("; ") : [];
-      const cookie = cookies.find((cookie2) => cookie2.startsWith(cookieName));
-      if (cookie) {
-        const value = cookie.split("=").slice(1).join("=");
-        return value ? decodeURIComponent(value) : void 0;
-      }
-    }
-  }
-  function getMetaContent(name) {
-    const element = document.querySelector(`meta[name="${name}"]`);
-    return element && element.content;
-  }
-  function responseSucceededWithoutRedirect(response) {
-    return response.statusCode == 200 && !response.redirected;
-  }
-  function mergeFormDataEntries(url, entries) {
-    const searchParams = new URLSearchParams();
-    for (const [name, value] of entries) {
-      if (value instanceof File)
-        continue;
-      searchParams.append(name, value);
-    }
-    url.search = searchParams.toString();
-    return url;
-  }
-  var Snapshot = class {
-    constructor(element) {
-      this.element = element;
-    }
-    get children() {
-      return [...this.element.children];
-    }
-    hasAnchor(anchor) {
-      return this.getElementForAnchor(anchor) != null;
-    }
-    getElementForAnchor(anchor) {
-      return anchor ? this.element.querySelector(`[id='${anchor}'], a[name='${anchor}']`) : null;
-    }
-    get isConnected() {
-      return this.element.isConnected;
-    }
-    get firstAutofocusableElement() {
-      return this.element.querySelector("[autofocus]");
-    }
-    get permanentElements() {
-      return [...this.element.querySelectorAll("[id][data-turbo-permanent]")];
-    }
-    getPermanentElementById(id) {
-      return this.element.querySelector(`#${id}[data-turbo-permanent]`);
-    }
-    getPermanentElementMapForSnapshot(snapshot) {
-      const permanentElementMap = {};
-      for (const currentPermanentElement of this.permanentElements) {
-        const { id } = currentPermanentElement;
-        const newPermanentElement = snapshot.getPermanentElementById(id);
-        if (newPermanentElement) {
-          permanentElementMap[id] = [currentPermanentElement, newPermanentElement];
-        }
-      }
-      return permanentElementMap;
-    }
-  };
-  var FormInterceptor = class {
-    constructor(delegate, element) {
-      this.submitBubbled = (event) => {
-        const form = event.target;
-        if (!event.defaultPrevented && form instanceof HTMLFormElement && form.closest("turbo-frame, html") == this.element) {
-          const submitter = event.submitter || void 0;
-          const method = (submitter === null || submitter === void 0 ? void 0 : submitter.getAttribute("formmethod")) || form.method;
-          if (method != "dialog" && this.delegate.shouldInterceptFormSubmission(form, submitter)) {
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            this.delegate.formSubmissionIntercepted(form, submitter);
-          }
-        }
-      };
-      this.delegate = delegate;
-      this.element = element;
-    }
-    start() {
-      this.element.addEventListener("submit", this.submitBubbled);
-    }
-    stop() {
-      this.element.removeEventListener("submit", this.submitBubbled);
-    }
-  };
-  var View = class {
-    constructor(delegate, element) {
-      this.resolveRenderPromise = (value) => {
-      };
-      this.resolveInterceptionPromise = (value) => {
-      };
-      this.delegate = delegate;
-      this.element = element;
-    }
-    scrollToAnchor(anchor) {
-      const element = this.snapshot.getElementForAnchor(anchor);
-      if (element) {
-        this.scrollToElement(element);
-        this.focusElement(element);
-      } else {
-        this.scrollToPosition({ x: 0, y: 0 });
-      }
-    }
-    scrollToAnchorFromLocation(location2) {
-      this.scrollToAnchor(getAnchor(location2));
-    }
-    scrollToElement(element) {
-      element.scrollIntoView();
-    }
-    focusElement(element) {
-      if (element instanceof HTMLElement) {
-        if (element.hasAttribute("tabindex")) {
-          element.focus();
-        } else {
-          element.setAttribute("tabindex", "-1");
-          element.focus();
-          element.removeAttribute("tabindex");
-        }
-      }
-    }
-    scrollToPosition({ x, y }) {
-      this.scrollRoot.scrollTo(x, y);
-    }
-    scrollToTop() {
-      this.scrollToPosition({ x: 0, y: 0 });
-    }
-    get scrollRoot() {
-      return window;
-    }
-    async render(renderer) {
-      const { isPreview, shouldRender, newSnapshot: snapshot } = renderer;
-      if (shouldRender) {
-        try {
-          this.renderPromise = new Promise((resolve) => this.resolveRenderPromise = resolve);
-          this.renderer = renderer;
-          this.prepareToRenderSnapshot(renderer);
-          const renderInterception = new Promise((resolve) => this.resolveInterceptionPromise = resolve);
-          const immediateRender = this.delegate.allowsImmediateRender(snapshot, this.resolveInterceptionPromise);
-          if (!immediateRender)
-            await renderInterception;
-          await this.renderSnapshot(renderer);
-          this.delegate.viewRenderedSnapshot(snapshot, isPreview);
-          this.finishRenderingSnapshot(renderer);
-        } finally {
-          delete this.renderer;
-          this.resolveRenderPromise(void 0);
-          delete this.renderPromise;
-        }
-      } else {
-        this.invalidate();
-      }
-    }
-    invalidate() {
-      this.delegate.viewInvalidated();
-    }
-    prepareToRenderSnapshot(renderer) {
-      this.markAsPreview(renderer.isPreview);
-      renderer.prepareToRender();
-    }
-    markAsPreview(isPreview) {
-      if (isPreview) {
-        this.element.setAttribute("data-turbo-preview", "");
-      } else {
-        this.element.removeAttribute("data-turbo-preview");
-      }
-    }
-    async renderSnapshot(renderer) {
-      await renderer.render();
-    }
-    finishRenderingSnapshot(renderer) {
-      renderer.finishRendering();
-    }
-  };
-  var FrameView = class extends View {
-    invalidate() {
-      this.element.innerHTML = "";
-    }
-    get snapshot() {
-      return new Snapshot(this.element);
-    }
-  };
-  var LinkInterceptor = class {
-    constructor(delegate, element) {
-      this.clickBubbled = (event) => {
-        if (this.respondsToEventTarget(event.target)) {
-          this.clickEvent = event;
-        } else {
-          delete this.clickEvent;
-        }
-      };
-      this.linkClicked = (event) => {
-        if (this.clickEvent && this.respondsToEventTarget(event.target) && event.target instanceof Element) {
-          if (this.delegate.shouldInterceptLinkClick(event.target, event.detail.url)) {
-            this.clickEvent.preventDefault();
-            event.preventDefault();
-            this.delegate.linkClickIntercepted(event.target, event.detail.url);
-          }
-        }
-        delete this.clickEvent;
-      };
-      this.willVisit = () => {
-        delete this.clickEvent;
-      };
-      this.delegate = delegate;
-      this.element = element;
-    }
-    start() {
-      this.element.addEventListener("click", this.clickBubbled);
-      document.addEventListener("turbo:click", this.linkClicked);
-      document.addEventListener("turbo:before-visit", this.willVisit);
-    }
-    stop() {
-      this.element.removeEventListener("click", this.clickBubbled);
-      document.removeEventListener("turbo:click", this.linkClicked);
-      document.removeEventListener("turbo:before-visit", this.willVisit);
-    }
-    respondsToEventTarget(target) {
-      const element = target instanceof Element ? target : target instanceof Node ? target.parentElement : null;
-      return element && element.closest("turbo-frame, html") == this.element;
-    }
-  };
-  var Bardo = class {
-    constructor(permanentElementMap) {
-      this.permanentElementMap = permanentElementMap;
-    }
-    static preservingPermanentElements(permanentElementMap, callback) {
-      const bardo = new this(permanentElementMap);
-      bardo.enter();
-      callback();
-      bardo.leave();
-    }
-    enter() {
-      for (const id in this.permanentElementMap) {
-        const [, newPermanentElement] = this.permanentElementMap[id];
-        this.replaceNewPermanentElementWithPlaceholder(newPermanentElement);
-      }
-    }
-    leave() {
-      for (const id in this.permanentElementMap) {
-        const [currentPermanentElement] = this.permanentElementMap[id];
-        this.replaceCurrentPermanentElementWithClone(currentPermanentElement);
-        this.replacePlaceholderWithPermanentElement(currentPermanentElement);
-      }
-    }
-    replaceNewPermanentElementWithPlaceholder(permanentElement) {
-      const placeholder = createPlaceholderForPermanentElement(permanentElement);
-      permanentElement.replaceWith(placeholder);
-    }
-    replaceCurrentPermanentElementWithClone(permanentElement) {
-      const clone = permanentElement.cloneNode(true);
-      permanentElement.replaceWith(clone);
-    }
-    replacePlaceholderWithPermanentElement(permanentElement) {
-      const placeholder = this.getPlaceholderById(permanentElement.id);
-      placeholder === null || placeholder === void 0 ? void 0 : placeholder.replaceWith(permanentElement);
-    }
-    getPlaceholderById(id) {
-      return this.placeholders.find((element) => element.content == id);
-    }
-    get placeholders() {
-      return [...document.querySelectorAll("meta[name=turbo-permanent-placeholder][content]")];
-    }
-  };
-  function createPlaceholderForPermanentElement(permanentElement) {
-    const element = document.createElement("meta");
-    element.setAttribute("name", "turbo-permanent-placeholder");
-    element.setAttribute("content", permanentElement.id);
-    return element;
-  }
-  var Renderer = class {
-    constructor(currentSnapshot, newSnapshot, isPreview, willRender = true) {
-      this.currentSnapshot = currentSnapshot;
-      this.newSnapshot = newSnapshot;
-      this.isPreview = isPreview;
-      this.willRender = willRender;
-      this.promise = new Promise((resolve, reject) => this.resolvingFunctions = { resolve, reject });
-    }
-    get shouldRender() {
-      return true;
-    }
-    prepareToRender() {
-      return;
-    }
-    finishRendering() {
-      if (this.resolvingFunctions) {
-        this.resolvingFunctions.resolve();
-        delete this.resolvingFunctions;
-      }
-    }
-    createScriptElement(element) {
-      if (element.getAttribute("data-turbo-eval") == "false") {
-        return element;
-      } else {
-        const createdScriptElement = document.createElement("script");
-        if (this.cspNonce) {
-          createdScriptElement.nonce = this.cspNonce;
-        }
-        createdScriptElement.textContent = element.textContent;
-        createdScriptElement.async = false;
-        copyElementAttributes(createdScriptElement, element);
-        return createdScriptElement;
-      }
-    }
-    preservingPermanentElements(callback) {
-      Bardo.preservingPermanentElements(this.permanentElementMap, callback);
-    }
-    focusFirstAutofocusableElement() {
-      const element = this.connectedSnapshot.firstAutofocusableElement;
-      if (elementIsFocusable(element)) {
-        element.focus();
-      }
-    }
-    get connectedSnapshot() {
-      return this.newSnapshot.isConnected ? this.newSnapshot : this.currentSnapshot;
-    }
-    get currentElement() {
-      return this.currentSnapshot.element;
-    }
-    get newElement() {
-      return this.newSnapshot.element;
-    }
-    get permanentElementMap() {
-      return this.currentSnapshot.getPermanentElementMapForSnapshot(this.newSnapshot);
-    }
-    get cspNonce() {
-      var _a;
-      return (_a = document.head.querySelector('meta[name="csp-nonce"]')) === null || _a === void 0 ? void 0 : _a.getAttribute("content");
-    }
-  };
-  function copyElementAttributes(destinationElement, sourceElement) {
-    for (const { name, value } of [...sourceElement.attributes]) {
-      destinationElement.setAttribute(name, value);
-    }
-  }
-  function elementIsFocusable(element) {
-    return element && typeof element.focus == "function";
-  }
-  var FrameRenderer = class extends Renderer {
-    get shouldRender() {
-      return true;
-    }
-    async render() {
-      await nextAnimationFrame();
-      this.preservingPermanentElements(() => {
-        this.loadFrameElement();
-      });
-      this.scrollFrameIntoView();
-      await nextAnimationFrame();
-      this.focusFirstAutofocusableElement();
-      await nextAnimationFrame();
-      this.activateScriptElements();
-    }
-    loadFrameElement() {
-      var _a;
-      const destinationRange = document.createRange();
-      destinationRange.selectNodeContents(this.currentElement);
-      destinationRange.deleteContents();
-      const frameElement = this.newElement;
-      const sourceRange = (_a = frameElement.ownerDocument) === null || _a === void 0 ? void 0 : _a.createRange();
-      if (sourceRange) {
-        sourceRange.selectNodeContents(frameElement);
-        this.currentElement.appendChild(sourceRange.extractContents());
-      }
-    }
-    scrollFrameIntoView() {
-      if (this.currentElement.autoscroll || this.newElement.autoscroll) {
-        const element = this.currentElement.firstElementChild;
-        const block = readScrollLogicalPosition(this.currentElement.getAttribute("data-autoscroll-block"), "end");
-        if (element) {
-          element.scrollIntoView({ block });
-          return true;
-        }
-      }
-      return false;
-    }
-    activateScriptElements() {
-      for (const inertScriptElement of this.newScriptElements) {
-        const activatedScriptElement = this.createScriptElement(inertScriptElement);
-        inertScriptElement.replaceWith(activatedScriptElement);
-      }
-    }
-    get newScriptElements() {
-      return this.currentElement.querySelectorAll("script");
-    }
-  };
-  function readScrollLogicalPosition(value, defaultValue) {
-    if (value == "end" || value == "start" || value == "center" || value == "nearest") {
-      return value;
-    } else {
-      return defaultValue;
-    }
-  }
-  var ProgressBar = class {
-    constructor() {
-      this.hiding = false;
-      this.value = 0;
-      this.visible = false;
-      this.trickle = () => {
-        this.setValue(this.value + Math.random() / 100);
-      };
-      this.stylesheetElement = this.createStylesheetElement();
-      this.progressElement = this.createProgressElement();
-      this.installStylesheetElement();
-      this.setValue(0);
-    }
-    static get defaultCSS() {
-      return unindent`
-      .turbo-progress-bar {
-        position: fixed;
-        display: block;
-        top: 0;
-        left: 0;
-        height: 3px;
-        background: #0076ff;
-        z-index: 9999;
-        transition:
-          width ${ProgressBar.animationDuration}ms ease-out,
-          opacity ${ProgressBar.animationDuration / 2}ms ${ProgressBar.animationDuration / 2}ms ease-in;
-        transform: translate3d(0, 0, 0);
-      }
-    `;
-    }
-    show() {
-      if (!this.visible) {
-        this.visible = true;
-        this.installProgressElement();
-        this.startTrickling();
-      }
-    }
-    hide() {
-      if (this.visible && !this.hiding) {
-        this.hiding = true;
-        this.fadeProgressElement(() => {
-          this.uninstallProgressElement();
-          this.stopTrickling();
-          this.visible = false;
-          this.hiding = false;
-        });
-      }
-    }
-    setValue(value) {
-      this.value = value;
-      this.refresh();
-    }
-    installStylesheetElement() {
-      document.head.insertBefore(this.stylesheetElement, document.head.firstChild);
-    }
-    installProgressElement() {
-      this.progressElement.style.width = "0";
-      this.progressElement.style.opacity = "1";
-      document.documentElement.insertBefore(this.progressElement, document.body);
-      this.refresh();
-    }
-    fadeProgressElement(callback) {
-      this.progressElement.style.opacity = "0";
-      setTimeout(callback, ProgressBar.animationDuration * 1.5);
-    }
-    uninstallProgressElement() {
-      if (this.progressElement.parentNode) {
-        document.documentElement.removeChild(this.progressElement);
-      }
-    }
-    startTrickling() {
-      if (!this.trickleInterval) {
-        this.trickleInterval = window.setInterval(this.trickle, ProgressBar.animationDuration);
-      }
-    }
-    stopTrickling() {
-      window.clearInterval(this.trickleInterval);
-      delete this.trickleInterval;
-    }
-    refresh() {
-      requestAnimationFrame(() => {
-        this.progressElement.style.width = `${10 + this.value * 90}%`;
-      });
-    }
-    createStylesheetElement() {
-      const element = document.createElement("style");
-      element.type = "text/css";
-      element.textContent = ProgressBar.defaultCSS;
-      return element;
-    }
-    createProgressElement() {
-      const element = document.createElement("div");
-      element.className = "turbo-progress-bar";
-      return element;
-    }
-  };
-  ProgressBar.animationDuration = 300;
-  var HeadSnapshot = class extends Snapshot {
-    constructor() {
-      super(...arguments);
-      this.detailsByOuterHTML = this.children.filter((element) => !elementIsNoscript(element)).map((element) => elementWithoutNonce(element)).reduce((result, element) => {
-        const { outerHTML } = element;
-        const details = outerHTML in result ? result[outerHTML] : {
-          type: elementType(element),
-          tracked: elementIsTracked(element),
-          elements: []
-        };
-        return Object.assign(Object.assign({}, result), { [outerHTML]: Object.assign(Object.assign({}, details), { elements: [...details.elements, element] }) });
-      }, {});
-    }
-    get trackedElementSignature() {
-      return Object.keys(this.detailsByOuterHTML).filter((outerHTML) => this.detailsByOuterHTML[outerHTML].tracked).join("");
-    }
-    getScriptElementsNotInSnapshot(snapshot) {
-      return this.getElementsMatchingTypeNotInSnapshot("script", snapshot);
-    }
-    getStylesheetElementsNotInSnapshot(snapshot) {
-      return this.getElementsMatchingTypeNotInSnapshot("stylesheet", snapshot);
-    }
-    getElementsMatchingTypeNotInSnapshot(matchedType, snapshot) {
-      return Object.keys(this.detailsByOuterHTML).filter((outerHTML) => !(outerHTML in snapshot.detailsByOuterHTML)).map((outerHTML) => this.detailsByOuterHTML[outerHTML]).filter(({ type }) => type == matchedType).map(({ elements: [element] }) => element);
-    }
-    get provisionalElements() {
-      return Object.keys(this.detailsByOuterHTML).reduce((result, outerHTML) => {
-        const { type, tracked, elements } = this.detailsByOuterHTML[outerHTML];
-        if (type == null && !tracked) {
-          return [...result, ...elements];
-        } else if (elements.length > 1) {
-          return [...result, ...elements.slice(1)];
-        } else {
-          return result;
-        }
-      }, []);
-    }
-    getMetaValue(name) {
-      const element = this.findMetaElementByName(name);
-      return element ? element.getAttribute("content") : null;
-    }
-    findMetaElementByName(name) {
-      return Object.keys(this.detailsByOuterHTML).reduce((result, outerHTML) => {
-        const { elements: [element] } = this.detailsByOuterHTML[outerHTML];
-        return elementIsMetaElementWithName(element, name) ? element : result;
-      }, void 0);
-    }
-  };
-  function elementType(element) {
-    if (elementIsScript(element)) {
-      return "script";
-    } else if (elementIsStylesheet(element)) {
-      return "stylesheet";
-    }
-  }
-  function elementIsTracked(element) {
-    return element.getAttribute("data-turbo-track") == "reload";
-  }
-  function elementIsScript(element) {
-    const tagName = element.tagName.toLowerCase();
-    return tagName == "script";
-  }
-  function elementIsNoscript(element) {
-    const tagName = element.tagName.toLowerCase();
-    return tagName == "noscript";
-  }
-  function elementIsStylesheet(element) {
-    const tagName = element.tagName.toLowerCase();
-    return tagName == "style" || tagName == "link" && element.getAttribute("rel") == "stylesheet";
-  }
-  function elementIsMetaElementWithName(element, name) {
-    const tagName = element.tagName.toLowerCase();
-    return tagName == "meta" && element.getAttribute("name") == name;
-  }
-  function elementWithoutNonce(element) {
-    if (element.hasAttribute("nonce")) {
-      element.setAttribute("nonce", "");
-    }
-    return element;
-  }
-  var PageSnapshot = class extends Snapshot {
-    constructor(element, headSnapshot) {
-      super(element);
-      this.headSnapshot = headSnapshot;
-    }
-    static fromHTMLString(html = "") {
-      return this.fromDocument(parseHTMLDocument(html));
-    }
-    static fromElement(element) {
-      return this.fromDocument(element.ownerDocument);
-    }
-    static fromDocument({ head, body }) {
-      return new this(body, new HeadSnapshot(head));
-    }
-    clone() {
-      return new PageSnapshot(this.element.cloneNode(true), this.headSnapshot);
-    }
-    get headElement() {
-      return this.headSnapshot.element;
-    }
-    get rootLocation() {
-      var _a;
-      const root = (_a = this.getSetting("root")) !== null && _a !== void 0 ? _a : "/";
-      return expandURL(root);
-    }
-    get cacheControlValue() {
-      return this.getSetting("cache-control");
-    }
-    get isPreviewable() {
-      return this.cacheControlValue != "no-preview";
-    }
-    get isCacheable() {
-      return this.cacheControlValue != "no-cache";
-    }
-    get isVisitable() {
-      return this.getSetting("visit-control") != "reload";
-    }
-    getSetting(name) {
-      return this.headSnapshot.getMetaValue(`turbo-${name}`);
-    }
-  };
-  var TimingMetric;
-  (function(TimingMetric2) {
-    TimingMetric2["visitStart"] = "visitStart";
-    TimingMetric2["requestStart"] = "requestStart";
-    TimingMetric2["requestEnd"] = "requestEnd";
-    TimingMetric2["visitEnd"] = "visitEnd";
-  })(TimingMetric || (TimingMetric = {}));
-  var VisitState;
-  (function(VisitState2) {
-    VisitState2["initialized"] = "initialized";
-    VisitState2["started"] = "started";
-    VisitState2["canceled"] = "canceled";
-    VisitState2["failed"] = "failed";
-    VisitState2["completed"] = "completed";
-  })(VisitState || (VisitState = {}));
-  var defaultOptions = {
-    action: "advance",
-    historyChanged: false,
-    visitCachedSnapshot: () => {
-    },
-    willRender: true
-  };
-  var SystemStatusCode;
-  (function(SystemStatusCode2) {
-    SystemStatusCode2[SystemStatusCode2["networkFailure"] = 0] = "networkFailure";
-    SystemStatusCode2[SystemStatusCode2["timeoutFailure"] = -1] = "timeoutFailure";
-    SystemStatusCode2[SystemStatusCode2["contentTypeMismatch"] = -2] = "contentTypeMismatch";
-  })(SystemStatusCode || (SystemStatusCode = {}));
-  var Visit = class {
-    constructor(delegate, location2, restorationIdentifier, options = {}) {
-      this.identifier = uuid();
-      this.timingMetrics = {};
-      this.followedRedirect = false;
-      this.historyChanged = false;
-      this.scrolled = false;
-      this.snapshotCached = false;
-      this.state = VisitState.initialized;
-      this.delegate = delegate;
-      this.location = location2;
-      this.restorationIdentifier = restorationIdentifier || uuid();
-      const { action, historyChanged, referrer, snapshotHTML, response, visitCachedSnapshot, willRender } = Object.assign(Object.assign({}, defaultOptions), options);
-      this.action = action;
-      this.historyChanged = historyChanged;
-      this.referrer = referrer;
-      this.snapshotHTML = snapshotHTML;
-      this.response = response;
-      this.isSamePage = this.delegate.locationWithActionIsSamePage(this.location, this.action);
-      this.visitCachedSnapshot = visitCachedSnapshot;
-      this.willRender = willRender;
-      this.scrolled = !willRender;
-    }
-    get adapter() {
-      return this.delegate.adapter;
-    }
-    get view() {
-      return this.delegate.view;
-    }
-    get history() {
-      return this.delegate.history;
-    }
-    get restorationData() {
-      return this.history.getRestorationDataForIdentifier(this.restorationIdentifier);
-    }
-    get silent() {
-      return this.isSamePage;
-    }
-    start() {
-      if (this.state == VisitState.initialized) {
-        this.recordTimingMetric(TimingMetric.visitStart);
-        this.state = VisitState.started;
-        this.adapter.visitStarted(this);
-        this.delegate.visitStarted(this);
-      }
-    }
-    cancel() {
-      if (this.state == VisitState.started) {
-        if (this.request) {
-          this.request.cancel();
-        }
-        this.cancelRender();
-        this.state = VisitState.canceled;
-      }
-    }
-    complete() {
-      if (this.state == VisitState.started) {
-        this.recordTimingMetric(TimingMetric.visitEnd);
-        this.state = VisitState.completed;
-        this.adapter.visitCompleted(this);
-        this.delegate.visitCompleted(this);
-        this.followRedirect();
-      }
-    }
-    fail() {
-      if (this.state == VisitState.started) {
-        this.state = VisitState.failed;
-        this.adapter.visitFailed(this);
-      }
-    }
-    changeHistory() {
-      var _a;
-      if (!this.historyChanged) {
-        const actionForHistory = this.location.href === ((_a = this.referrer) === null || _a === void 0 ? void 0 : _a.href) ? "replace" : this.action;
-        const method = this.getHistoryMethodForAction(actionForHistory);
-        this.history.update(method, this.location, this.restorationIdentifier);
-        this.historyChanged = true;
-      }
-    }
-    issueRequest() {
-      if (this.hasPreloadedResponse()) {
-        this.simulateRequest();
-      } else if (this.shouldIssueRequest() && !this.request) {
-        this.request = new FetchRequest(this, FetchMethod.get, this.location);
-        this.request.perform();
-      }
-    }
-    simulateRequest() {
-      if (this.response) {
-        this.startRequest();
-        this.recordResponse();
-        this.finishRequest();
-      }
-    }
-    startRequest() {
-      this.recordTimingMetric(TimingMetric.requestStart);
-      this.adapter.visitRequestStarted(this);
-    }
-    recordResponse(response = this.response) {
-      this.response = response;
-      if (response) {
-        const { statusCode } = response;
-        if (isSuccessful(statusCode)) {
-          this.adapter.visitRequestCompleted(this);
-        } else {
-          this.adapter.visitRequestFailedWithStatusCode(this, statusCode);
-        }
-      }
-    }
-    finishRequest() {
-      this.recordTimingMetric(TimingMetric.requestEnd);
-      this.adapter.visitRequestFinished(this);
-    }
-    loadResponse() {
-      if (this.response) {
-        const { statusCode, responseHTML } = this.response;
-        this.render(async () => {
-          this.cacheSnapshot();
-          if (this.view.renderPromise)
-            await this.view.renderPromise;
-          if (isSuccessful(statusCode) && responseHTML != null) {
-            await this.view.renderPage(PageSnapshot.fromHTMLString(responseHTML), false, this.willRender);
-            this.adapter.visitRendered(this);
-            this.complete();
-          } else {
-            await this.view.renderError(PageSnapshot.fromHTMLString(responseHTML));
-            this.adapter.visitRendered(this);
-            this.fail();
-          }
-        });
-      }
-    }
-    getCachedSnapshot() {
-      const snapshot = this.view.getCachedSnapshotForLocation(this.location) || this.getPreloadedSnapshot();
-      if (snapshot && (!getAnchor(this.location) || snapshot.hasAnchor(getAnchor(this.location)))) {
-        if (this.action == "restore" || snapshot.isPreviewable) {
-          return snapshot;
-        }
-      }
-    }
-    getPreloadedSnapshot() {
-      if (this.snapshotHTML) {
-        return PageSnapshot.fromHTMLString(this.snapshotHTML);
-      }
-    }
-    hasCachedSnapshot() {
-      return this.getCachedSnapshot() != null;
-    }
-    loadCachedSnapshot() {
-      const snapshot = this.getCachedSnapshot();
-      if (snapshot) {
-        const isPreview = this.shouldIssueRequest();
-        this.render(async () => {
-          this.cacheSnapshot();
-          if (this.isSamePage) {
-            this.adapter.visitRendered(this);
-          } else {
-            if (this.view.renderPromise)
-              await this.view.renderPromise;
-            await this.view.renderPage(snapshot, isPreview, this.willRender);
-            this.adapter.visitRendered(this);
-            if (!isPreview) {
-              this.complete();
-            }
-          }
-        });
-      }
-    }
-    followRedirect() {
-      var _a;
-      if (this.redirectedToLocation && !this.followedRedirect && ((_a = this.response) === null || _a === void 0 ? void 0 : _a.redirected)) {
-        this.adapter.visitProposedToLocation(this.redirectedToLocation, {
-          action: "replace",
-          response: this.response
-        });
-        this.followedRedirect = true;
-      }
-    }
-    goToSamePageAnchor() {
-      if (this.isSamePage) {
-        this.render(async () => {
-          this.cacheSnapshot();
-          this.adapter.visitRendered(this);
-        });
-      }
-    }
-    requestStarted() {
-      this.startRequest();
-    }
-    requestPreventedHandlingResponse(request, response) {
-    }
-    async requestSucceededWithResponse(request, response) {
-      const responseHTML = await response.responseHTML;
-      const { redirected, statusCode } = response;
-      if (responseHTML == void 0) {
-        this.recordResponse({ statusCode: SystemStatusCode.contentTypeMismatch, redirected });
-      } else {
-        this.redirectedToLocation = response.redirected ? response.location : void 0;
-        this.recordResponse({ statusCode, responseHTML, redirected });
-      }
-    }
-    async requestFailedWithResponse(request, response) {
-      const responseHTML = await response.responseHTML;
-      const { redirected, statusCode } = response;
-      if (responseHTML == void 0) {
-        this.recordResponse({ statusCode: SystemStatusCode.contentTypeMismatch, redirected });
-      } else {
-        this.recordResponse({ statusCode, responseHTML, redirected });
-      }
-    }
-    requestErrored(request, error2) {
-      this.recordResponse({ statusCode: SystemStatusCode.networkFailure, redirected: false });
-    }
-    requestFinished() {
-      this.finishRequest();
-    }
-    performScroll() {
-      if (!this.scrolled) {
-        if (this.action == "restore") {
-          this.scrollToRestoredPosition() || this.scrollToAnchor() || this.view.scrollToTop();
-        } else {
-          this.scrollToAnchor() || this.view.scrollToTop();
-        }
-        if (this.isSamePage) {
-          this.delegate.visitScrolledToSamePageLocation(this.view.lastRenderedLocation, this.location);
-        }
-        this.scrolled = true;
-      }
-    }
-    scrollToRestoredPosition() {
-      const { scrollPosition } = this.restorationData;
-      if (scrollPosition) {
-        this.view.scrollToPosition(scrollPosition);
-        return true;
-      }
-    }
-    scrollToAnchor() {
-      const anchor = getAnchor(this.location);
-      if (anchor != null) {
-        this.view.scrollToAnchor(anchor);
-        return true;
-      }
-    }
-    recordTimingMetric(metric) {
-      this.timingMetrics[metric] = new Date().getTime();
-    }
-    getTimingMetrics() {
-      return Object.assign({}, this.timingMetrics);
-    }
-    getHistoryMethodForAction(action) {
-      switch (action) {
-        case "replace":
-          return history.replaceState;
-        case "advance":
-        case "restore":
-          return history.pushState;
-      }
-    }
-    hasPreloadedResponse() {
-      return typeof this.response == "object";
-    }
-    shouldIssueRequest() {
-      if (this.isSamePage) {
-        return false;
-      } else if (this.action == "restore") {
-        return !this.hasCachedSnapshot();
-      } else {
-        return this.willRender;
-      }
-    }
-    cacheSnapshot() {
-      if (!this.snapshotCached) {
-        this.view.cacheSnapshot().then((snapshot) => snapshot && this.visitCachedSnapshot(snapshot));
-        this.snapshotCached = true;
-      }
-    }
-    async render(callback) {
-      this.cancelRender();
-      await new Promise((resolve) => {
-        this.frame = requestAnimationFrame(() => resolve());
-      });
-      await callback();
-      delete this.frame;
-      this.performScroll();
-    }
-    cancelRender() {
-      if (this.frame) {
-        cancelAnimationFrame(this.frame);
-        delete this.frame;
-      }
-    }
-  };
-  function isSuccessful(statusCode) {
-    return statusCode >= 200 && statusCode < 300;
-  }
-  var BrowserAdapter = class {
-    constructor(session2) {
-      this.progressBar = new ProgressBar();
-      this.showProgressBar = () => {
-        this.progressBar.show();
-      };
-      this.session = session2;
-    }
-    visitProposedToLocation(location2, options) {
-      this.navigator.startVisit(location2, uuid(), options);
-    }
-    visitStarted(visit2) {
-      visit2.loadCachedSnapshot();
-      visit2.issueRequest();
-      visit2.changeHistory();
-      visit2.goToSamePageAnchor();
-    }
-    visitRequestStarted(visit2) {
-      this.progressBar.setValue(0);
-      if (visit2.hasCachedSnapshot() || visit2.action != "restore") {
-        this.showVisitProgressBarAfterDelay();
-      } else {
-        this.showProgressBar();
-      }
-    }
-    visitRequestCompleted(visit2) {
-      visit2.loadResponse();
-    }
-    visitRequestFailedWithStatusCode(visit2, statusCode) {
-      switch (statusCode) {
-        case SystemStatusCode.networkFailure:
-        case SystemStatusCode.timeoutFailure:
-        case SystemStatusCode.contentTypeMismatch:
-          return this.reload();
-        default:
-          return visit2.loadResponse();
-      }
-    }
-    visitRequestFinished(visit2) {
-      this.progressBar.setValue(1);
-      this.hideVisitProgressBar();
-    }
-    visitCompleted(visit2) {
-    }
-    pageInvalidated() {
-      this.reload();
-    }
-    visitFailed(visit2) {
-    }
-    visitRendered(visit2) {
-    }
-    formSubmissionStarted(formSubmission) {
-      this.progressBar.setValue(0);
-      this.showFormProgressBarAfterDelay();
-    }
-    formSubmissionFinished(formSubmission) {
-      this.progressBar.setValue(1);
-      this.hideFormProgressBar();
-    }
-    showVisitProgressBarAfterDelay() {
-      this.visitProgressBarTimeout = window.setTimeout(this.showProgressBar, this.session.progressBarDelay);
-    }
-    hideVisitProgressBar() {
-      this.progressBar.hide();
-      if (this.visitProgressBarTimeout != null) {
-        window.clearTimeout(this.visitProgressBarTimeout);
-        delete this.visitProgressBarTimeout;
-      }
-    }
-    showFormProgressBarAfterDelay() {
-      if (this.formProgressBarTimeout == null) {
-        this.formProgressBarTimeout = window.setTimeout(this.showProgressBar, this.session.progressBarDelay);
-      }
-    }
-    hideFormProgressBar() {
-      this.progressBar.hide();
-      if (this.formProgressBarTimeout != null) {
-        window.clearTimeout(this.formProgressBarTimeout);
-        delete this.formProgressBarTimeout;
-      }
-    }
-    reload() {
-      window.location.reload();
-    }
-    get navigator() {
-      return this.session.navigator;
-    }
-  };
-  var CacheObserver = class {
-    constructor() {
-      this.started = false;
-    }
-    start() {
-      if (!this.started) {
-        this.started = true;
-        addEventListener("turbo:before-cache", this.removeStaleElements, false);
-      }
-    }
-    stop() {
-      if (this.started) {
-        this.started = false;
-        removeEventListener("turbo:before-cache", this.removeStaleElements, false);
-      }
-    }
-    removeStaleElements() {
-      const staleElements = [...document.querySelectorAll('[data-turbo-cache="false"]')];
-      for (const element of staleElements) {
-        element.remove();
-      }
-    }
-  };
-  var FormSubmitObserver = class {
-    constructor(delegate) {
-      this.started = false;
-      this.submitCaptured = () => {
-        removeEventListener("submit", this.submitBubbled, false);
-        addEventListener("submit", this.submitBubbled, false);
-      };
-      this.submitBubbled = (event) => {
-        if (!event.defaultPrevented) {
-          const form = event.target instanceof HTMLFormElement ? event.target : void 0;
-          const submitter = event.submitter || void 0;
-          if (form) {
-            const method = (submitter === null || submitter === void 0 ? void 0 : submitter.getAttribute("formmethod")) || form.getAttribute("method");
-            if (method != "dialog" && this.delegate.willSubmitForm(form, submitter)) {
-              event.preventDefault();
-              this.delegate.formSubmitted(form, submitter);
-            }
-          }
-        }
-      };
-      this.delegate = delegate;
-    }
-    start() {
-      if (!this.started) {
-        addEventListener("submit", this.submitCaptured, true);
-        this.started = true;
-      }
-    }
-    stop() {
-      if (this.started) {
-        removeEventListener("submit", this.submitCaptured, true);
-        this.started = false;
-      }
-    }
-  };
-  var FrameRedirector = class {
-    constructor(element) {
-      this.element = element;
-      this.linkInterceptor = new LinkInterceptor(this, element);
-      this.formInterceptor = new FormInterceptor(this, element);
-    }
-    start() {
-      this.linkInterceptor.start();
-      this.formInterceptor.start();
-    }
-    stop() {
-      this.linkInterceptor.stop();
-      this.formInterceptor.stop();
-    }
-    shouldInterceptLinkClick(element, url) {
-      return this.shouldRedirect(element);
-    }
-    linkClickIntercepted(element, url) {
-      const frame = this.findFrameElement(element);
-      if (frame) {
-        frame.delegate.linkClickIntercepted(element, url);
-      }
-    }
-    shouldInterceptFormSubmission(element, submitter) {
-      return this.shouldSubmit(element, submitter);
-    }
-    formSubmissionIntercepted(element, submitter) {
-      const frame = this.findFrameElement(element, submitter);
-      if (frame) {
-        frame.removeAttribute("reloadable");
-        frame.delegate.formSubmissionIntercepted(element, submitter);
-      }
-    }
-    shouldSubmit(form, submitter) {
-      var _a;
-      const action = getAction(form, submitter);
-      const meta = this.element.ownerDocument.querySelector(`meta[name="turbo-root"]`);
-      const rootLocation = expandURL((_a = meta === null || meta === void 0 ? void 0 : meta.content) !== null && _a !== void 0 ? _a : "/");
-      return this.shouldRedirect(form, submitter) && locationIsVisitable(action, rootLocation);
-    }
-    shouldRedirect(element, submitter) {
-      const frame = this.findFrameElement(element, submitter);
-      return frame ? frame != element.closest("turbo-frame") : false;
-    }
-    findFrameElement(element, submitter) {
-      const id = (submitter === null || submitter === void 0 ? void 0 : submitter.getAttribute("data-turbo-frame")) || element.getAttribute("data-turbo-frame");
-      if (id && id != "_top") {
-        const frame = this.element.querySelector(`#${id}:not([disabled])`);
-        if (frame instanceof FrameElement) {
-          return frame;
-        }
-      }
-    }
-  };
-  var History = class {
-    constructor(delegate) {
-      this.restorationIdentifier = uuid();
-      this.restorationData = {};
-      this.started = false;
-      this.pageLoaded = false;
-      this.onPopState = (event) => {
-        if (this.shouldHandlePopState()) {
-          const { turbo } = event.state || {};
-          if (turbo) {
-            this.location = new URL(window.location.href);
-            const { restorationIdentifier } = turbo;
-            this.restorationIdentifier = restorationIdentifier;
-            this.delegate.historyPoppedToLocationWithRestorationIdentifier(this.location, restorationIdentifier);
-          }
-        }
-      };
-      this.onPageLoad = async (event) => {
-        await nextMicrotask();
-        this.pageLoaded = true;
-      };
-      this.delegate = delegate;
-    }
-    start() {
-      if (!this.started) {
-        addEventListener("popstate", this.onPopState, false);
-        addEventListener("load", this.onPageLoad, false);
-        this.started = true;
-        this.replace(new URL(window.location.href));
-      }
-    }
-    stop() {
-      if (this.started) {
-        removeEventListener("popstate", this.onPopState, false);
-        removeEventListener("load", this.onPageLoad, false);
-        this.started = false;
-      }
-    }
-    push(location2, restorationIdentifier) {
-      this.update(history.pushState, location2, restorationIdentifier);
-    }
-    replace(location2, restorationIdentifier) {
-      this.update(history.replaceState, location2, restorationIdentifier);
-    }
-    update(method, location2, restorationIdentifier = uuid()) {
-      const state = { turbo: { restorationIdentifier } };
-      method.call(history, state, "", location2.href);
-      this.location = location2;
-      this.restorationIdentifier = restorationIdentifier;
-    }
-    getRestorationDataForIdentifier(restorationIdentifier) {
-      return this.restorationData[restorationIdentifier] || {};
-    }
-    updateRestorationData(additionalData) {
-      const { restorationIdentifier } = this;
-      const restorationData = this.restorationData[restorationIdentifier];
-      this.restorationData[restorationIdentifier] = Object.assign(Object.assign({}, restorationData), additionalData);
-    }
-    assumeControlOfScrollRestoration() {
-      var _a;
-      if (!this.previousScrollRestoration) {
-        this.previousScrollRestoration = (_a = history.scrollRestoration) !== null && _a !== void 0 ? _a : "auto";
-        history.scrollRestoration = "manual";
-      }
-    }
-    relinquishControlOfScrollRestoration() {
-      if (this.previousScrollRestoration) {
-        history.scrollRestoration = this.previousScrollRestoration;
-        delete this.previousScrollRestoration;
-      }
-    }
-    shouldHandlePopState() {
-      return this.pageIsLoaded();
-    }
-    pageIsLoaded() {
-      return this.pageLoaded || document.readyState == "complete";
-    }
-  };
-  var LinkClickObserver = class {
-    constructor(delegate) {
-      this.started = false;
-      this.clickCaptured = () => {
-        removeEventListener("click", this.clickBubbled, false);
-        addEventListener("click", this.clickBubbled, false);
-      };
-      this.clickBubbled = (event) => {
-        if (this.clickEventIsSignificant(event)) {
-          const target = event.composedPath && event.composedPath()[0] || event.target;
-          const link = this.findLinkFromClickTarget(target);
-          if (link) {
-            const location2 = this.getLocationForLink(link);
-            if (this.delegate.willFollowLinkToLocation(link, location2)) {
-              event.preventDefault();
-              this.delegate.followedLinkToLocation(link, location2);
-            }
-          }
-        }
-      };
-      this.delegate = delegate;
-    }
-    start() {
-      if (!this.started) {
-        addEventListener("click", this.clickCaptured, true);
-        this.started = true;
-      }
-    }
-    stop() {
-      if (this.started) {
-        removeEventListener("click", this.clickCaptured, true);
-        this.started = false;
-      }
-    }
-    clickEventIsSignificant(event) {
-      return !(event.target && event.target.isContentEditable || event.defaultPrevented || event.which > 1 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey);
-    }
-    findLinkFromClickTarget(target) {
-      if (target instanceof Element) {
-        return target.closest("a[href]:not([target^=_]):not([download])");
-      }
-    }
-    getLocationForLink(link) {
-      return expandURL(link.getAttribute("href") || "");
-    }
-  };
-  function isAction(action) {
-    return action == "advance" || action == "replace" || action == "restore";
-  }
-  var Navigator = class {
-    constructor(delegate) {
-      this.delegate = delegate;
-    }
-    proposeVisit(location2, options = {}) {
-      if (this.delegate.allowsVisitingLocationWithAction(location2, options.action)) {
-        if (locationIsVisitable(location2, this.view.snapshot.rootLocation)) {
-          this.delegate.visitProposedToLocation(location2, options);
-        } else {
-          window.location.href = location2.toString();
-        }
-      }
-    }
-    startVisit(locatable, restorationIdentifier, options = {}) {
-      this.stop();
-      this.currentVisit = new Visit(this, expandURL(locatable), restorationIdentifier, Object.assign({ referrer: this.location }, options));
-      this.currentVisit.start();
-    }
-    submitForm(form, submitter) {
-      this.stop();
-      this.formSubmission = new FormSubmission(this, form, submitter, true);
-      this.formSubmission.start();
-    }
-    stop() {
-      if (this.formSubmission) {
-        this.formSubmission.stop();
-        delete this.formSubmission;
-      }
-      if (this.currentVisit) {
-        this.currentVisit.cancel();
-        delete this.currentVisit;
-      }
-    }
-    get adapter() {
-      return this.delegate.adapter;
-    }
-    get view() {
-      return this.delegate.view;
-    }
-    get history() {
-      return this.delegate.history;
-    }
-    formSubmissionStarted(formSubmission) {
-      if (typeof this.adapter.formSubmissionStarted === "function") {
-        this.adapter.formSubmissionStarted(formSubmission);
-      }
-    }
-    async formSubmissionSucceededWithResponse(formSubmission, fetchResponse) {
-      if (formSubmission == this.formSubmission) {
-        const responseHTML = await fetchResponse.responseHTML;
-        if (responseHTML) {
-          if (formSubmission.method != FetchMethod.get) {
-            this.view.clearSnapshotCache();
-          }
-          const { statusCode, redirected } = fetchResponse;
-          const action = this.getActionForFormSubmission(formSubmission);
-          const visitOptions = { action, response: { statusCode, responseHTML, redirected } };
-          this.proposeVisit(fetchResponse.location, visitOptions);
-        }
-      }
-    }
-    async formSubmissionFailedWithResponse(formSubmission, fetchResponse) {
-      const responseHTML = await fetchResponse.responseHTML;
-      if (responseHTML) {
-        const snapshot = PageSnapshot.fromHTMLString(responseHTML);
-        if (fetchResponse.serverError) {
-          await this.view.renderError(snapshot);
-        } else {
-          await this.view.renderPage(snapshot);
-        }
-        this.view.scrollToTop();
-        this.view.clearSnapshotCache();
-      }
-    }
-    formSubmissionErrored(formSubmission, error2) {
-      console.error(error2);
-    }
-    formSubmissionFinished(formSubmission) {
-      if (typeof this.adapter.formSubmissionFinished === "function") {
-        this.adapter.formSubmissionFinished(formSubmission);
-      }
-    }
-    visitStarted(visit2) {
-      this.delegate.visitStarted(visit2);
-    }
-    visitCompleted(visit2) {
-      this.delegate.visitCompleted(visit2);
-    }
-    locationWithActionIsSamePage(location2, action) {
-      const anchor = getAnchor(location2);
-      const currentAnchor = getAnchor(this.view.lastRenderedLocation);
-      const isRestorationToTop = action === "restore" && typeof anchor === "undefined";
-      return action !== "replace" && getRequestURL(location2) === getRequestURL(this.view.lastRenderedLocation) && (isRestorationToTop || anchor != null && anchor !== currentAnchor);
-    }
-    visitScrolledToSamePageLocation(oldURL, newURL) {
-      this.delegate.visitScrolledToSamePageLocation(oldURL, newURL);
-    }
-    get location() {
-      return this.history.location;
-    }
-    get restorationIdentifier() {
-      return this.history.restorationIdentifier;
-    }
-    getActionForFormSubmission(formSubmission) {
-      const { formElement, submitter } = formSubmission;
-      const action = getAttribute("data-turbo-action", submitter, formElement);
-      return isAction(action) ? action : "advance";
-    }
-  };
-  var PageStage;
-  (function(PageStage2) {
-    PageStage2[PageStage2["initial"] = 0] = "initial";
-    PageStage2[PageStage2["loading"] = 1] = "loading";
-    PageStage2[PageStage2["interactive"] = 2] = "interactive";
-    PageStage2[PageStage2["complete"] = 3] = "complete";
-  })(PageStage || (PageStage = {}));
-  var PageObserver = class {
-    constructor(delegate) {
-      this.stage = PageStage.initial;
-      this.started = false;
-      this.interpretReadyState = () => {
-        const { readyState } = this;
-        if (readyState == "interactive") {
-          this.pageIsInteractive();
-        } else if (readyState == "complete") {
-          this.pageIsComplete();
-        }
-      };
-      this.pageWillUnload = () => {
-        this.delegate.pageWillUnload();
-      };
-      this.delegate = delegate;
-    }
-    start() {
-      if (!this.started) {
-        if (this.stage == PageStage.initial) {
-          this.stage = PageStage.loading;
-        }
-        document.addEventListener("readystatechange", this.interpretReadyState, false);
-        addEventListener("pagehide", this.pageWillUnload, false);
-        this.started = true;
-      }
-    }
-    stop() {
-      if (this.started) {
-        document.removeEventListener("readystatechange", this.interpretReadyState, false);
-        removeEventListener("pagehide", this.pageWillUnload, false);
-        this.started = false;
-      }
-    }
-    pageIsInteractive() {
-      if (this.stage == PageStage.loading) {
-        this.stage = PageStage.interactive;
-        this.delegate.pageBecameInteractive();
-      }
-    }
-    pageIsComplete() {
-      this.pageIsInteractive();
-      if (this.stage == PageStage.interactive) {
-        this.stage = PageStage.complete;
-        this.delegate.pageLoaded();
-      }
-    }
-    get readyState() {
-      return document.readyState;
-    }
-  };
-  var ScrollObserver = class {
-    constructor(delegate) {
-      this.started = false;
-      this.onScroll = () => {
-        this.updatePosition({ x: window.pageXOffset, y: window.pageYOffset });
-      };
-      this.delegate = delegate;
-    }
-    start() {
-      if (!this.started) {
-        addEventListener("scroll", this.onScroll, false);
-        this.onScroll();
-        this.started = true;
-      }
-    }
-    stop() {
-      if (this.started) {
-        removeEventListener("scroll", this.onScroll, false);
-        this.started = false;
-      }
-    }
-    updatePosition(position) {
-      this.delegate.scrollPositionChanged(position);
-    }
-  };
-  var StreamObserver = class {
-    constructor(delegate) {
-      this.sources = /* @__PURE__ */ new Set();
-      this.started = false;
-      this.inspectFetchResponse = (event) => {
-        const response = fetchResponseFromEvent(event);
-        if (response && fetchResponseIsStream(response)) {
-          event.preventDefault();
-          this.receiveMessageResponse(response);
-        }
-      };
-      this.receiveMessageEvent = (event) => {
-        if (this.started && typeof event.data == "string") {
-          this.receiveMessageHTML(event.data);
-        }
-      };
-      this.delegate = delegate;
-    }
-    start() {
-      if (!this.started) {
-        this.started = true;
-        addEventListener("turbo:before-fetch-response", this.inspectFetchResponse, false);
-      }
-    }
-    stop() {
-      if (this.started) {
-        this.started = false;
-        removeEventListener("turbo:before-fetch-response", this.inspectFetchResponse, false);
-      }
-    }
-    connectStreamSource(source) {
-      if (!this.streamSourceIsConnected(source)) {
-        this.sources.add(source);
-        source.addEventListener("message", this.receiveMessageEvent, false);
-      }
-    }
-    disconnectStreamSource(source) {
-      if (this.streamSourceIsConnected(source)) {
-        this.sources.delete(source);
-        source.removeEventListener("message", this.receiveMessageEvent, false);
-      }
-    }
-    streamSourceIsConnected(source) {
-      return this.sources.has(source);
-    }
-    async receiveMessageResponse(response) {
-      const html = await response.responseHTML;
-      if (html) {
-        this.receiveMessageHTML(html);
-      }
-    }
-    receiveMessageHTML(html) {
-      this.delegate.receivedMessageFromStream(new StreamMessage(html));
-    }
-  };
-  function fetchResponseFromEvent(event) {
-    var _a;
-    const fetchResponse = (_a = event.detail) === null || _a === void 0 ? void 0 : _a.fetchResponse;
-    if (fetchResponse instanceof FetchResponse) {
-      return fetchResponse;
-    }
-  }
-  function fetchResponseIsStream(response) {
-    var _a;
-    const contentType = (_a = response.contentType) !== null && _a !== void 0 ? _a : "";
-    return contentType.startsWith(StreamMessage.contentType);
-  }
-  var ErrorRenderer = class extends Renderer {
-    async render() {
-      this.replaceHeadAndBody();
-      this.activateScriptElements();
-    }
-    replaceHeadAndBody() {
-      const { documentElement, head, body } = document;
-      documentElement.replaceChild(this.newHead, head);
-      documentElement.replaceChild(this.newElement, body);
-    }
-    activateScriptElements() {
-      for (const replaceableElement of this.scriptElements) {
-        const parentNode = replaceableElement.parentNode;
-        if (parentNode) {
-          const element = this.createScriptElement(replaceableElement);
-          parentNode.replaceChild(element, replaceableElement);
-        }
-      }
-    }
-    get newHead() {
-      return this.newSnapshot.headSnapshot.element;
-    }
-    get scriptElements() {
-      return [...document.documentElement.querySelectorAll("script")];
-    }
-  };
-  var PageRenderer = class extends Renderer {
-    get shouldRender() {
-      return this.newSnapshot.isVisitable && this.trackedElementsAreIdentical;
-    }
-    prepareToRender() {
-      this.mergeHead();
-    }
-    async render() {
-      if (this.willRender) {
-        this.replaceBody();
-      }
-    }
-    finishRendering() {
-      super.finishRendering();
-      if (!this.isPreview) {
-        this.focusFirstAutofocusableElement();
-      }
-    }
-    get currentHeadSnapshot() {
-      return this.currentSnapshot.headSnapshot;
-    }
-    get newHeadSnapshot() {
-      return this.newSnapshot.headSnapshot;
-    }
-    get newElement() {
-      return this.newSnapshot.element;
-    }
-    mergeHead() {
-      this.copyNewHeadStylesheetElements();
-      this.copyNewHeadScriptElements();
-      this.removeCurrentHeadProvisionalElements();
-      this.copyNewHeadProvisionalElements();
-    }
-    replaceBody() {
-      this.preservingPermanentElements(() => {
-        this.activateNewBody();
-        this.assignNewBody();
-      });
-    }
-    get trackedElementsAreIdentical() {
-      return this.currentHeadSnapshot.trackedElementSignature == this.newHeadSnapshot.trackedElementSignature;
-    }
-    copyNewHeadStylesheetElements() {
-      for (const element of this.newHeadStylesheetElements) {
-        document.head.appendChild(element);
-      }
-    }
-    copyNewHeadScriptElements() {
-      for (const element of this.newHeadScriptElements) {
-        document.head.appendChild(this.createScriptElement(element));
-      }
-    }
-    removeCurrentHeadProvisionalElements() {
-      for (const element of this.currentHeadProvisionalElements) {
-        document.head.removeChild(element);
-      }
-    }
-    copyNewHeadProvisionalElements() {
-      for (const element of this.newHeadProvisionalElements) {
-        document.head.appendChild(element);
-      }
-    }
-    activateNewBody() {
-      document.adoptNode(this.newElement);
-      this.activateNewBodyScriptElements();
-    }
-    activateNewBodyScriptElements() {
-      for (const inertScriptElement of this.newBodyScriptElements) {
-        const activatedScriptElement = this.createScriptElement(inertScriptElement);
-        inertScriptElement.replaceWith(activatedScriptElement);
-      }
-    }
-    assignNewBody() {
-      if (document.body && this.newElement instanceof HTMLBodyElement) {
-        document.body.replaceWith(this.newElement);
-      } else {
-        document.documentElement.appendChild(this.newElement);
-      }
-    }
-    get newHeadStylesheetElements() {
-      return this.newHeadSnapshot.getStylesheetElementsNotInSnapshot(this.currentHeadSnapshot);
-    }
-    get newHeadScriptElements() {
-      return this.newHeadSnapshot.getScriptElementsNotInSnapshot(this.currentHeadSnapshot);
-    }
-    get currentHeadProvisionalElements() {
-      return this.currentHeadSnapshot.provisionalElements;
-    }
-    get newHeadProvisionalElements() {
-      return this.newHeadSnapshot.provisionalElements;
-    }
-    get newBodyScriptElements() {
-      return this.newElement.querySelectorAll("script");
-    }
-  };
-  var SnapshotCache = class {
-    constructor(size2) {
-      this.keys = [];
-      this.snapshots = {};
-      this.size = size2;
-    }
-    has(location2) {
-      return toCacheKey(location2) in this.snapshots;
-    }
-    get(location2) {
-      if (this.has(location2)) {
-        const snapshot = this.read(location2);
-        this.touch(location2);
-        return snapshot;
-      }
-    }
-    put(location2, snapshot) {
-      this.write(location2, snapshot);
-      this.touch(location2);
-      return snapshot;
-    }
-    clear() {
-      this.snapshots = {};
-    }
-    read(location2) {
-      return this.snapshots[toCacheKey(location2)];
-    }
-    write(location2, snapshot) {
-      this.snapshots[toCacheKey(location2)] = snapshot;
-    }
-    touch(location2) {
-      const key = toCacheKey(location2);
-      const index = this.keys.indexOf(key);
-      if (index > -1)
-        this.keys.splice(index, 1);
-      this.keys.unshift(key);
-      this.trim();
-    }
-    trim() {
-      for (const key of this.keys.splice(this.size)) {
-        delete this.snapshots[key];
-      }
-    }
-  };
-  var PageView = class extends View {
-    constructor() {
-      super(...arguments);
-      this.snapshotCache = new SnapshotCache(10);
-      this.lastRenderedLocation = new URL(location.href);
-    }
-    renderPage(snapshot, isPreview = false, willRender = true) {
-      const renderer = new PageRenderer(this.snapshot, snapshot, isPreview, willRender);
-      return this.render(renderer);
-    }
-    renderError(snapshot) {
-      const renderer = new ErrorRenderer(this.snapshot, snapshot, false);
-      return this.render(renderer);
-    }
-    clearSnapshotCache() {
-      this.snapshotCache.clear();
-    }
-    async cacheSnapshot() {
-      if (this.shouldCacheSnapshot) {
-        this.delegate.viewWillCacheSnapshot();
-        const { snapshot, lastRenderedLocation: location2 } = this;
-        await nextEventLoopTick();
-        const cachedSnapshot = snapshot.clone();
-        this.snapshotCache.put(location2, cachedSnapshot);
-        return cachedSnapshot;
-      }
-    }
-    getCachedSnapshotForLocation(location2) {
-      return this.snapshotCache.get(location2);
-    }
-    get snapshot() {
-      return PageSnapshot.fromElement(this.element);
-    }
-    get shouldCacheSnapshot() {
-      return this.snapshot.isCacheable;
-    }
-  };
-  var Session = class {
-    constructor() {
-      this.navigator = new Navigator(this);
-      this.history = new History(this);
-      this.view = new PageView(this, document.documentElement);
-      this.adapter = new BrowserAdapter(this);
-      this.pageObserver = new PageObserver(this);
-      this.cacheObserver = new CacheObserver();
-      this.linkClickObserver = new LinkClickObserver(this);
-      this.formSubmitObserver = new FormSubmitObserver(this);
-      this.scrollObserver = new ScrollObserver(this);
-      this.streamObserver = new StreamObserver(this);
-      this.frameRedirector = new FrameRedirector(document.documentElement);
-      this.drive = true;
-      this.enabled = true;
-      this.progressBarDelay = 500;
-      this.started = false;
-    }
-    start() {
-      if (!this.started) {
-        this.pageObserver.start();
-        this.cacheObserver.start();
-        this.linkClickObserver.start();
-        this.formSubmitObserver.start();
-        this.scrollObserver.start();
-        this.streamObserver.start();
-        this.frameRedirector.start();
-        this.history.start();
-        this.started = true;
-        this.enabled = true;
-      }
-    }
-    disable() {
-      this.enabled = false;
-    }
-    stop() {
-      if (this.started) {
-        this.pageObserver.stop();
-        this.cacheObserver.stop();
-        this.linkClickObserver.stop();
-        this.formSubmitObserver.stop();
-        this.scrollObserver.stop();
-        this.streamObserver.stop();
-        this.frameRedirector.stop();
-        this.history.stop();
-        this.started = false;
-      }
-    }
-    registerAdapter(adapter) {
-      this.adapter = adapter;
-    }
-    visit(location2, options = {}) {
-      this.navigator.proposeVisit(expandURL(location2), options);
-    }
-    connectStreamSource(source) {
-      this.streamObserver.connectStreamSource(source);
-    }
-    disconnectStreamSource(source) {
-      this.streamObserver.disconnectStreamSource(source);
-    }
-    renderStreamMessage(message) {
-      document.documentElement.appendChild(StreamMessage.wrap(message).fragment);
-    }
-    clearCache() {
-      this.view.clearSnapshotCache();
-    }
-    setProgressBarDelay(delay) {
-      this.progressBarDelay = delay;
-    }
-    get location() {
-      return this.history.location;
-    }
-    get restorationIdentifier() {
-      return this.history.restorationIdentifier;
-    }
-    historyPoppedToLocationWithRestorationIdentifier(location2, restorationIdentifier) {
-      if (this.enabled) {
-        this.navigator.startVisit(location2, restorationIdentifier, { action: "restore", historyChanged: true });
-      } else {
-        this.adapter.pageInvalidated();
-      }
-    }
-    scrollPositionChanged(position) {
-      this.history.updateRestorationData({ scrollPosition: position });
-    }
-    willFollowLinkToLocation(link, location2) {
-      return this.elementDriveEnabled(link) && locationIsVisitable(location2, this.snapshot.rootLocation) && this.applicationAllowsFollowingLinkToLocation(link, location2);
-    }
-    followedLinkToLocation(link, location2) {
-      const action = this.getActionForLink(link);
-      this.convertLinkWithMethodClickToFormSubmission(link) || this.visit(location2.href, { action });
-    }
-    convertLinkWithMethodClickToFormSubmission(link) {
-      const linkMethod = link.getAttribute("data-turbo-method");
-      if (linkMethod) {
-        const form = document.createElement("form");
-        form.method = linkMethod;
-        form.action = link.getAttribute("href") || "undefined";
-        form.hidden = true;
-        if (link.hasAttribute("data-turbo-confirm")) {
-          form.setAttribute("data-turbo-confirm", link.getAttribute("data-turbo-confirm"));
-        }
-        const frame = this.getTargetFrameForLink(link);
-        if (frame) {
-          form.setAttribute("data-turbo-frame", frame);
-          form.addEventListener("turbo:submit-start", () => form.remove());
-        } else {
-          form.addEventListener("submit", () => form.remove());
-        }
-        document.body.appendChild(form);
-        return dispatch("submit", { cancelable: true, target: form });
-      } else {
-        return false;
-      }
-    }
-    allowsVisitingLocationWithAction(location2, action) {
-      return this.locationWithActionIsSamePage(location2, action) || this.applicationAllowsVisitingLocation(location2);
-    }
-    visitProposedToLocation(location2, options) {
-      extendURLWithDeprecatedProperties(location2);
-      this.adapter.visitProposedToLocation(location2, options);
-    }
-    visitStarted(visit2) {
-      extendURLWithDeprecatedProperties(visit2.location);
-      if (!visit2.silent) {
-        this.notifyApplicationAfterVisitingLocation(visit2.location, visit2.action);
-      }
-    }
-    visitCompleted(visit2) {
-      this.notifyApplicationAfterPageLoad(visit2.getTimingMetrics());
-    }
-    locationWithActionIsSamePage(location2, action) {
-      return this.navigator.locationWithActionIsSamePage(location2, action);
-    }
-    visitScrolledToSamePageLocation(oldURL, newURL) {
-      this.notifyApplicationAfterVisitingSamePageLocation(oldURL, newURL);
-    }
-    willSubmitForm(form, submitter) {
-      const action = getAction(form, submitter);
-      return this.elementDriveEnabled(form) && (!submitter || this.elementDriveEnabled(submitter)) && locationIsVisitable(expandURL(action), this.snapshot.rootLocation);
-    }
-    formSubmitted(form, submitter) {
-      this.navigator.submitForm(form, submitter);
-    }
-    pageBecameInteractive() {
-      this.view.lastRenderedLocation = this.location;
-      this.notifyApplicationAfterPageLoad();
-    }
-    pageLoaded() {
-      this.history.assumeControlOfScrollRestoration();
-    }
-    pageWillUnload() {
-      this.history.relinquishControlOfScrollRestoration();
-    }
-    receivedMessageFromStream(message) {
-      this.renderStreamMessage(message);
-    }
-    viewWillCacheSnapshot() {
-      var _a;
-      if (!((_a = this.navigator.currentVisit) === null || _a === void 0 ? void 0 : _a.silent)) {
-        this.notifyApplicationBeforeCachingSnapshot();
-      }
-    }
-    allowsImmediateRender({ element }, resume) {
-      const event = this.notifyApplicationBeforeRender(element, resume);
-      return !event.defaultPrevented;
-    }
-    viewRenderedSnapshot(snapshot, isPreview) {
-      this.view.lastRenderedLocation = this.history.location;
-      this.notifyApplicationAfterRender();
-    }
-    viewInvalidated() {
-      this.adapter.pageInvalidated();
-    }
-    frameLoaded(frame) {
-      this.notifyApplicationAfterFrameLoad(frame);
-    }
-    frameRendered(fetchResponse, frame) {
-      this.notifyApplicationAfterFrameRender(fetchResponse, frame);
-    }
-    applicationAllowsFollowingLinkToLocation(link, location2) {
-      const event = this.notifyApplicationAfterClickingLinkToLocation(link, location2);
-      return !event.defaultPrevented;
-    }
-    applicationAllowsVisitingLocation(location2) {
-      const event = this.notifyApplicationBeforeVisitingLocation(location2);
-      return !event.defaultPrevented;
-    }
-    notifyApplicationAfterClickingLinkToLocation(link, location2) {
-      return dispatch("turbo:click", { target: link, detail: { url: location2.href }, cancelable: true });
-    }
-    notifyApplicationBeforeVisitingLocation(location2) {
-      return dispatch("turbo:before-visit", { detail: { url: location2.href }, cancelable: true });
-    }
-    notifyApplicationAfterVisitingLocation(location2, action) {
-      markAsBusy(document.documentElement);
-      return dispatch("turbo:visit", { detail: { url: location2.href, action } });
-    }
-    notifyApplicationBeforeCachingSnapshot() {
-      return dispatch("turbo:before-cache");
-    }
-    notifyApplicationBeforeRender(newBody, resume) {
-      return dispatch("turbo:before-render", { detail: { newBody, resume }, cancelable: true });
-    }
-    notifyApplicationAfterRender() {
-      return dispatch("turbo:render");
-    }
-    notifyApplicationAfterPageLoad(timing = {}) {
-      clearBusyState(document.documentElement);
-      return dispatch("turbo:load", { detail: { url: this.location.href, timing } });
-    }
-    notifyApplicationAfterVisitingSamePageLocation(oldURL, newURL) {
-      dispatchEvent(new HashChangeEvent("hashchange", { oldURL: oldURL.toString(), newURL: newURL.toString() }));
-    }
-    notifyApplicationAfterFrameLoad(frame) {
-      return dispatch("turbo:frame-load", { target: frame });
-    }
-    notifyApplicationAfterFrameRender(fetchResponse, frame) {
-      return dispatch("turbo:frame-render", { detail: { fetchResponse }, target: frame, cancelable: true });
-    }
-    elementDriveEnabled(element) {
-      const container = element === null || element === void 0 ? void 0 : element.closest("[data-turbo]");
-      if (this.drive) {
-        if (container) {
-          return container.getAttribute("data-turbo") != "false";
-        } else {
-          return true;
-        }
-      } else {
-        if (container) {
-          return container.getAttribute("data-turbo") == "true";
-        } else {
-          return false;
-        }
-      }
-    }
-    getActionForLink(link) {
-      const action = link.getAttribute("data-turbo-action");
-      return isAction(action) ? action : "advance";
-    }
-    getTargetFrameForLink(link) {
-      const frame = link.getAttribute("data-turbo-frame");
-      if (frame) {
-        return frame;
-      } else {
-        const container = link.closest("turbo-frame");
-        if (container) {
-          return container.id;
-        }
-      }
-    }
-    get snapshot() {
-      return this.view.snapshot;
-    }
-  };
-  function extendURLWithDeprecatedProperties(url) {
-    Object.defineProperties(url, deprecatedLocationPropertyDescriptors);
-  }
-  var deprecatedLocationPropertyDescriptors = {
-    absoluteURL: {
-      get() {
-        return this.toString();
-      }
-    }
-  };
-  var session = new Session();
-  var { navigator: navigator$1 } = session;
-  function start() {
-    session.start();
-  }
-  function registerAdapter(adapter) {
-    session.registerAdapter(adapter);
-  }
-  function visit(location2, options) {
-    session.visit(location2, options);
-  }
-  function connectStreamSource(source) {
-    session.connectStreamSource(source);
-  }
-  function disconnectStreamSource(source) {
-    session.disconnectStreamSource(source);
-  }
-  function renderStreamMessage(message) {
-    session.renderStreamMessage(message);
-  }
-  function clearCache() {
-    session.clearCache();
-  }
-  function setProgressBarDelay(delay) {
-    session.setProgressBarDelay(delay);
-  }
-  function setConfirmMethod(confirmMethod) {
-    FormSubmission.confirmMethod = confirmMethod;
-  }
-  var Turbo = /* @__PURE__ */ Object.freeze({
-    __proto__: null,
-    navigator: navigator$1,
-    session,
-    PageRenderer,
-    PageSnapshot,
-    start,
-    registerAdapter,
-    visit,
-    connectStreamSource,
-    disconnectStreamSource,
-    renderStreamMessage,
-    clearCache,
-    setProgressBarDelay,
-    setConfirmMethod
-  });
-  var FrameController = class {
-    constructor(element) {
-      this.fetchResponseLoaded = (fetchResponse) => {
-      };
-      this.currentFetchRequest = null;
-      this.resolveVisitPromise = () => {
-      };
-      this.connected = false;
-      this.hasBeenLoaded = false;
-      this.settingSourceURL = false;
-      this.element = element;
-      this.view = new FrameView(this, this.element);
-      this.appearanceObserver = new AppearanceObserver(this, this.element);
-      this.linkInterceptor = new LinkInterceptor(this, this.element);
-      this.formInterceptor = new FormInterceptor(this, this.element);
-    }
-    connect() {
-      if (!this.connected) {
-        this.connected = true;
-        this.reloadable = false;
-        if (this.loadingStyle == FrameLoadingStyle.lazy) {
-          this.appearanceObserver.start();
-        }
-        this.linkInterceptor.start();
-        this.formInterceptor.start();
-        this.sourceURLChanged();
-      }
-    }
-    disconnect() {
-      if (this.connected) {
-        this.connected = false;
-        this.appearanceObserver.stop();
-        this.linkInterceptor.stop();
-        this.formInterceptor.stop();
-      }
-    }
-    disabledChanged() {
-      if (this.loadingStyle == FrameLoadingStyle.eager) {
-        this.loadSourceURL();
-      }
-    }
-    sourceURLChanged() {
-      if (this.loadingStyle == FrameLoadingStyle.eager || this.hasBeenLoaded) {
-        this.loadSourceURL();
-      }
-    }
-    loadingStyleChanged() {
-      if (this.loadingStyle == FrameLoadingStyle.lazy) {
-        this.appearanceObserver.start();
-      } else {
-        this.appearanceObserver.stop();
-        this.loadSourceURL();
-      }
-    }
-    async loadSourceURL() {
-      if (!this.settingSourceURL && this.enabled && this.isActive && (this.reloadable || this.sourceURL != this.currentURL)) {
-        const previousURL = this.currentURL;
-        this.currentURL = this.sourceURL;
-        if (this.sourceURL) {
-          try {
-            this.element.loaded = this.visit(expandURL(this.sourceURL));
-            this.appearanceObserver.stop();
-            await this.element.loaded;
-            this.hasBeenLoaded = true;
-          } catch (error2) {
-            this.currentURL = previousURL;
-            throw error2;
-          }
-        }
-      }
-    }
-    async loadResponse(fetchResponse) {
-      if (fetchResponse.redirected || fetchResponse.succeeded && fetchResponse.isHTML) {
-        this.sourceURL = fetchResponse.response.url;
-      }
-      try {
-        const html = await fetchResponse.responseHTML;
-        if (html) {
-          const { body } = parseHTMLDocument(html);
-          const snapshot = new Snapshot(await this.extractForeignFrameElement(body));
-          const renderer = new FrameRenderer(this.view.snapshot, snapshot, false, false);
-          if (this.view.renderPromise)
-            await this.view.renderPromise;
-          await this.view.render(renderer);
-          session.frameRendered(fetchResponse, this.element);
-          session.frameLoaded(this.element);
-          this.fetchResponseLoaded(fetchResponse);
-        }
-      } catch (error2) {
-        console.error(error2);
-        this.view.invalidate();
-      } finally {
-        this.fetchResponseLoaded = () => {
-        };
-      }
-    }
-    elementAppearedInViewport(element) {
-      this.loadSourceURL();
-    }
-    shouldInterceptLinkClick(element, url) {
-      if (element.hasAttribute("data-turbo-method")) {
-        return false;
-      } else {
-        return this.shouldInterceptNavigation(element);
-      }
-    }
-    linkClickIntercepted(element, url) {
-      this.reloadable = true;
-      this.navigateFrame(element, url);
-    }
-    shouldInterceptFormSubmission(element, submitter) {
-      return this.shouldInterceptNavigation(element, submitter);
-    }
-    formSubmissionIntercepted(element, submitter) {
-      if (this.formSubmission) {
-        this.formSubmission.stop();
-      }
-      this.reloadable = false;
-      this.formSubmission = new FormSubmission(this, element, submitter);
-      const { fetchRequest } = this.formSubmission;
-      this.prepareHeadersForRequest(fetchRequest.headers, fetchRequest);
-      this.formSubmission.start();
-    }
-    prepareHeadersForRequest(headers, request) {
-      headers["Turbo-Frame"] = this.id;
-    }
-    requestStarted(request) {
-      markAsBusy(this.element);
-    }
-    requestPreventedHandlingResponse(request, response) {
-      this.resolveVisitPromise();
-    }
-    async requestSucceededWithResponse(request, response) {
-      await this.loadResponse(response);
-      this.resolveVisitPromise();
-    }
-    requestFailedWithResponse(request, response) {
-      console.error(response);
-      this.resolveVisitPromise();
-    }
-    requestErrored(request, error2) {
-      console.error(error2);
-      this.resolveVisitPromise();
-    }
-    requestFinished(request) {
-      clearBusyState(this.element);
-    }
-    formSubmissionStarted({ formElement }) {
-      markAsBusy(formElement, this.findFrameElement(formElement));
-    }
-    formSubmissionSucceededWithResponse(formSubmission, response) {
-      const frame = this.findFrameElement(formSubmission.formElement, formSubmission.submitter);
-      this.proposeVisitIfNavigatedWithAction(frame, formSubmission.formElement, formSubmission.submitter);
-      frame.delegate.loadResponse(response);
-    }
-    formSubmissionFailedWithResponse(formSubmission, fetchResponse) {
-      this.element.delegate.loadResponse(fetchResponse);
-    }
-    formSubmissionErrored(formSubmission, error2) {
-      console.error(error2);
-    }
-    formSubmissionFinished({ formElement }) {
-      clearBusyState(formElement, this.findFrameElement(formElement));
-    }
-    allowsImmediateRender(snapshot, resume) {
-      return true;
-    }
-    viewRenderedSnapshot(snapshot, isPreview) {
-    }
-    viewInvalidated() {
-    }
-    async visit(url) {
-      var _a;
-      const request = new FetchRequest(this, FetchMethod.get, url, new URLSearchParams(), this.element);
-      (_a = this.currentFetchRequest) === null || _a === void 0 ? void 0 : _a.cancel();
-      this.currentFetchRequest = request;
-      return new Promise((resolve) => {
-        this.resolveVisitPromise = () => {
-          this.resolveVisitPromise = () => {
-          };
-          this.currentFetchRequest = null;
-          resolve();
-        };
-        request.perform();
-      });
-    }
-    navigateFrame(element, url, submitter) {
-      const frame = this.findFrameElement(element, submitter);
-      this.proposeVisitIfNavigatedWithAction(frame, element, submitter);
-      frame.setAttribute("reloadable", "");
-      frame.src = url;
-    }
-    proposeVisitIfNavigatedWithAction(frame, element, submitter) {
-      const action = getAttribute("data-turbo-action", submitter, element, frame);
-      if (isAction(action)) {
-        const { visitCachedSnapshot } = new SnapshotSubstitution(frame);
-        frame.delegate.fetchResponseLoaded = (fetchResponse) => {
-          if (frame.src) {
-            const { statusCode, redirected } = fetchResponse;
-            const responseHTML = frame.ownerDocument.documentElement.outerHTML;
-            const response = { statusCode, redirected, responseHTML };
-            session.visit(frame.src, { action, response, visitCachedSnapshot, willRender: false });
-          }
-        };
-      }
-    }
-    findFrameElement(element, submitter) {
-      var _a;
-      const id = getAttribute("data-turbo-frame", submitter, element) || this.element.getAttribute("target");
-      return (_a = getFrameElementById(id)) !== null && _a !== void 0 ? _a : this.element;
-    }
-    async extractForeignFrameElement(container) {
-      let element;
-      const id = CSS.escape(this.id);
-      try {
-        if (element = activateElement(container.querySelector(`turbo-frame#${id}`), this.currentURL)) {
-          return element;
-        }
-        if (element = activateElement(container.querySelector(`turbo-frame[src][recurse~=${id}]`), this.currentURL)) {
-          await element.loaded;
-          return await this.extractForeignFrameElement(element);
-        }
-        console.error(`Response has no matching <turbo-frame id="${id}"> element`);
-      } catch (error2) {
-        console.error(error2);
-      }
-      return new FrameElement();
-    }
-    formActionIsVisitable(form, submitter) {
-      const action = getAction(form, submitter);
-      return locationIsVisitable(expandURL(action), this.rootLocation);
-    }
-    shouldInterceptNavigation(element, submitter) {
-      const id = getAttribute("data-turbo-frame", submitter, element) || this.element.getAttribute("target");
-      if (element instanceof HTMLFormElement && !this.formActionIsVisitable(element, submitter)) {
-        return false;
-      }
-      if (!this.enabled || id == "_top") {
-        return false;
-      }
-      if (id) {
-        const frameElement = getFrameElementById(id);
-        if (frameElement) {
-          return !frameElement.disabled;
-        }
-      }
-      if (!session.elementDriveEnabled(element)) {
-        return false;
-      }
-      if (submitter && !session.elementDriveEnabled(submitter)) {
-        return false;
-      }
-      return true;
-    }
-    get id() {
-      return this.element.id;
-    }
-    get enabled() {
-      return !this.element.disabled;
-    }
-    get sourceURL() {
-      if (this.element.src) {
-        return this.element.src;
-      }
-    }
-    get reloadable() {
-      const frame = this.findFrameElement(this.element);
-      return frame.hasAttribute("reloadable");
-    }
-    set reloadable(value) {
-      const frame = this.findFrameElement(this.element);
-      if (value) {
-        frame.setAttribute("reloadable", "");
-      } else {
-        frame.removeAttribute("reloadable");
-      }
-    }
-    set sourceURL(sourceURL) {
-      this.settingSourceURL = true;
-      this.element.src = sourceURL !== null && sourceURL !== void 0 ? sourceURL : null;
-      this.currentURL = this.element.src;
-      this.settingSourceURL = false;
-    }
-    get loadingStyle() {
-      return this.element.loading;
-    }
-    get isLoading() {
-      return this.formSubmission !== void 0 || this.resolveVisitPromise() !== void 0;
-    }
-    get isActive() {
-      return this.element.isActive && this.connected;
-    }
-    get rootLocation() {
-      var _a;
-      const meta = this.element.ownerDocument.querySelector(`meta[name="turbo-root"]`);
-      const root = (_a = meta === null || meta === void 0 ? void 0 : meta.content) !== null && _a !== void 0 ? _a : "/";
-      return expandURL(root);
-    }
-  };
-  var SnapshotSubstitution = class {
-    constructor(element) {
-      this.visitCachedSnapshot = ({ element: element2 }) => {
-        var _a;
-        const { id, clone } = this;
-        (_a = element2.querySelector("#" + id)) === null || _a === void 0 ? void 0 : _a.replaceWith(clone);
-      };
-      this.clone = element.cloneNode(true);
-      this.id = element.id;
-    }
-  };
-  function getFrameElementById(id) {
-    if (id != null) {
-      const element = document.getElementById(id);
-      if (element instanceof FrameElement) {
-        return element;
-      }
-    }
-  }
-  function activateElement(element, currentURL) {
-    if (element) {
-      const src = element.getAttribute("src");
-      if (src != null && currentURL != null && urlsAreEqual(src, currentURL)) {
-        throw new Error(`Matching <turbo-frame id="${element.id}"> element has a source URL which references itself`);
-      }
-      if (element.ownerDocument !== document) {
-        element = document.importNode(element, true);
-      }
-      if (element instanceof FrameElement) {
-        element.connectedCallback();
-        element.disconnectedCallback();
-        return element;
-      }
-    }
-  }
-  var StreamActions = {
-    after() {
-      this.targetElements.forEach((e) => {
-        var _a;
-        return (_a = e.parentElement) === null || _a === void 0 ? void 0 : _a.insertBefore(this.templateContent, e.nextSibling);
-      });
-    },
-    append() {
-      this.removeDuplicateTargetChildren();
-      this.targetElements.forEach((e) => e.append(this.templateContent));
-    },
-    before() {
-      this.targetElements.forEach((e) => {
-        var _a;
-        return (_a = e.parentElement) === null || _a === void 0 ? void 0 : _a.insertBefore(this.templateContent, e);
-      });
-    },
-    prepend() {
-      this.removeDuplicateTargetChildren();
-      this.targetElements.forEach((e) => e.prepend(this.templateContent));
-    },
-    remove() {
-      this.targetElements.forEach((e) => e.remove());
-    },
-    replace() {
-      this.targetElements.forEach((e) => e.replaceWith(this.templateContent));
-    },
-    update() {
-      this.targetElements.forEach((e) => {
-        e.innerHTML = "";
-        e.append(this.templateContent);
-      });
-    }
-  };
-  var StreamElement = class extends HTMLElement {
-    async connectedCallback() {
-      try {
-        await this.render();
-      } catch (error2) {
-        console.error(error2);
-      } finally {
-        this.disconnect();
-      }
-    }
-    async render() {
-      var _a;
-      return (_a = this.renderPromise) !== null && _a !== void 0 ? _a : this.renderPromise = (async () => {
-        if (this.dispatchEvent(this.beforeRenderEvent)) {
-          await nextAnimationFrame();
-          this.performAction();
-        }
-      })();
-    }
-    disconnect() {
-      try {
-        this.remove();
-      } catch (_a) {
-      }
-    }
-    removeDuplicateTargetChildren() {
-      this.duplicateChildren.forEach((c) => c.remove());
-    }
-    get duplicateChildren() {
-      var _a;
-      const existingChildren = this.targetElements.flatMap((e) => [...e.children]).filter((c) => !!c.id);
-      const newChildrenIds = [...(_a = this.templateContent) === null || _a === void 0 ? void 0 : _a.children].filter((c) => !!c.id).map((c) => c.id);
-      return existingChildren.filter((c) => newChildrenIds.includes(c.id));
-    }
-    get performAction() {
-      if (this.action) {
-        const actionFunction = StreamActions[this.action];
-        if (actionFunction) {
-          return actionFunction;
-        }
-        this.raise("unknown action");
-      }
-      this.raise("action attribute is missing");
-    }
-    get targetElements() {
-      if (this.target) {
-        return this.targetElementsById;
-      } else if (this.targets) {
-        return this.targetElementsByQuery;
-      } else {
-        this.raise("target or targets attribute is missing");
-      }
-    }
-    get templateContent() {
-      return this.templateElement.content.cloneNode(true);
-    }
-    get templateElement() {
-      if (this.firstElementChild instanceof HTMLTemplateElement) {
-        return this.firstElementChild;
-      }
-      this.raise("first child element must be a <template> element");
-    }
-    get action() {
-      return this.getAttribute("action");
-    }
-    get target() {
-      return this.getAttribute("target");
-    }
-    get targets() {
-      return this.getAttribute("targets");
-    }
-    raise(message) {
-      throw new Error(`${this.description}: ${message}`);
-    }
-    get description() {
-      var _a, _b;
-      return (_b = ((_a = this.outerHTML.match(/<[^>]+>/)) !== null && _a !== void 0 ? _a : [])[0]) !== null && _b !== void 0 ? _b : "<turbo-stream>";
-    }
-    get beforeRenderEvent() {
-      return new CustomEvent("turbo:before-stream-render", { bubbles: true, cancelable: true });
-    }
-    get targetElementsById() {
-      var _a;
-      const element = (_a = this.ownerDocument) === null || _a === void 0 ? void 0 : _a.getElementById(this.target);
-      if (element !== null) {
-        return [element];
-      } else {
-        return [];
-      }
-    }
-    get targetElementsByQuery() {
-      var _a;
-      const elements = (_a = this.ownerDocument) === null || _a === void 0 ? void 0 : _a.querySelectorAll(this.targets);
-      if (elements.length !== 0) {
-        return Array.prototype.slice.call(elements);
-      } else {
-        return [];
-      }
-    }
-  };
-  FrameElement.delegateConstructor = FrameController;
-  customElements.define("turbo-frame", FrameElement);
-  customElements.define("turbo-stream", StreamElement);
-  (() => {
-    let element = document.currentScript;
-    if (!element)
-      return;
-    if (element.hasAttribute("data-turbo-suppress-warning"))
-      return;
-    while (element = element.parentElement) {
-      if (element == document.body) {
-        return console.warn(unindent`
-        You are loading Turbo from a <script> element inside the <body> element. This is probably not what you meant to do!
-
-        Load your application’s JavaScript bundle inside the <head> element instead. <script> elements in <body> are evaluated with each page change.
-
-        For more information, see: https://turbo.hotwired.dev/handbook/building#working-with-script-elements
-
-        ——
-        Suppress this warning by adding a "data-turbo-suppress-warning" attribute to: %s
-      `, element.outerHTML);
-      }
-    }
-  })();
-  window.Turbo = Turbo;
-  start();
-
-  // node_modules/@hotwired/turbo-rails/app/javascript/turbo/cable.js
-  var consumer;
-  async function getConsumer() {
-    return consumer || setConsumer(createConsumer2().then(setConsumer));
-  }
-  function setConsumer(newConsumer) {
-    return consumer = newConsumer;
-  }
-  async function createConsumer2() {
-    const { createConsumer: createConsumer3 } = await Promise.resolve().then(() => (init_src(), src_exports));
-    return createConsumer3();
-  }
-  async function subscribeTo(channel, mixin) {
-    const { subscriptions } = await getConsumer();
-    return subscriptions.create(channel, mixin);
-  }
-
-  // node_modules/@hotwired/turbo-rails/app/javascript/turbo/cable_stream_source_element.js
-  var TurboCableStreamSourceElement = class extends HTMLElement {
-    async connectedCallback() {
-      connectStreamSource(this);
-      this.subscription = await subscribeTo(this.channel, { received: this.dispatchMessageEvent.bind(this) });
-    }
-    disconnectedCallback() {
-      disconnectStreamSource(this);
-      if (this.subscription)
-        this.subscription.unsubscribe();
-    }
-    dispatchMessageEvent(data) {
-      const event = new MessageEvent("message", { data });
-      return this.dispatchEvent(event);
-    }
-    get channel() {
-      const channel = this.getAttribute("channel");
-      const signed_stream_name = this.getAttribute("signed-stream-name");
-      return { channel, signed_stream_name };
-    }
-  };
-  customElements.define("turbo-cable-stream-source", TurboCableStreamSourceElement);
-
-  // node_modules/@hotwired/stimulus/dist/stimulus.js
-  var EventListener = class {
-    constructor(eventTarget, eventName, eventOptions) {
-      this.eventTarget = eventTarget;
-      this.eventName = eventName;
-      this.eventOptions = eventOptions;
-      this.unorderedBindings = /* @__PURE__ */ new Set();
-    }
-    connect() {
-      this.eventTarget.addEventListener(this.eventName, this, this.eventOptions);
-    }
-    disconnect() {
-      this.eventTarget.removeEventListener(this.eventName, this, this.eventOptions);
-    }
-    bindingConnected(binding) {
-      this.unorderedBindings.add(binding);
-    }
-    bindingDisconnected(binding) {
-      this.unorderedBindings.delete(binding);
-    }
-    handleEvent(event) {
-      const extendedEvent = extendEvent(event);
-      for (const binding of this.bindings) {
-        if (extendedEvent.immediatePropagationStopped) {
-          break;
-        } else {
-          binding.handleEvent(extendedEvent);
-        }
-      }
-    }
-    get bindings() {
-      return Array.from(this.unorderedBindings).sort((left, right) => {
-        const leftIndex = left.index, rightIndex = right.index;
-        return leftIndex < rightIndex ? -1 : leftIndex > rightIndex ? 1 : 0;
-      });
-    }
-  };
-  function extendEvent(event) {
-    if ("immediatePropagationStopped" in event) {
-      return event;
-    } else {
-      const { stopImmediatePropagation } = event;
-      return Object.assign(event, {
-        immediatePropagationStopped: false,
-        stopImmediatePropagation() {
-          this.immediatePropagationStopped = true;
-          stopImmediatePropagation.call(this);
-        }
-      });
-    }
-  }
-  var Dispatcher = class {
-    constructor(application2) {
-      this.application = application2;
-      this.eventListenerMaps = /* @__PURE__ */ new Map();
-      this.started = false;
-    }
-    start() {
-      if (!this.started) {
-        this.started = true;
-        this.eventListeners.forEach((eventListener) => eventListener.connect());
-      }
-    }
-    stop() {
-      if (this.started) {
-        this.started = false;
-        this.eventListeners.forEach((eventListener) => eventListener.disconnect());
-      }
-    }
-    get eventListeners() {
-      return Array.from(this.eventListenerMaps.values()).reduce((listeners, map) => listeners.concat(Array.from(map.values())), []);
-    }
-    bindingConnected(binding) {
-      this.fetchEventListenerForBinding(binding).bindingConnected(binding);
-    }
-    bindingDisconnected(binding) {
-      this.fetchEventListenerForBinding(binding).bindingDisconnected(binding);
-    }
-    handleError(error2, message, detail = {}) {
-      this.application.handleError(error2, `Error ${message}`, detail);
-    }
-    fetchEventListenerForBinding(binding) {
-      const { eventTarget, eventName, eventOptions } = binding;
-      return this.fetchEventListener(eventTarget, eventName, eventOptions);
-    }
-    fetchEventListener(eventTarget, eventName, eventOptions) {
-      const eventListenerMap = this.fetchEventListenerMapForEventTarget(eventTarget);
-      const cacheKey = this.cacheKey(eventName, eventOptions);
-      let eventListener = eventListenerMap.get(cacheKey);
-      if (!eventListener) {
-        eventListener = this.createEventListener(eventTarget, eventName, eventOptions);
-        eventListenerMap.set(cacheKey, eventListener);
-      }
-      return eventListener;
-    }
-    createEventListener(eventTarget, eventName, eventOptions) {
-      const eventListener = new EventListener(eventTarget, eventName, eventOptions);
-      if (this.started) {
-        eventListener.connect();
-      }
-      return eventListener;
-    }
-    fetchEventListenerMapForEventTarget(eventTarget) {
-      let eventListenerMap = this.eventListenerMaps.get(eventTarget);
-      if (!eventListenerMap) {
-        eventListenerMap = /* @__PURE__ */ new Map();
-        this.eventListenerMaps.set(eventTarget, eventListenerMap);
-      }
-      return eventListenerMap;
-    }
-    cacheKey(eventName, eventOptions) {
-      const parts = [eventName];
-      Object.keys(eventOptions).sort().forEach((key) => {
-        parts.push(`${eventOptions[key] ? "" : "!"}${key}`);
-      });
-      return parts.join(":");
-    }
-  };
-  var descriptorPattern = /^((.+?)(@(window|document))?->)?(.+?)(#([^:]+?))(:(.+))?$/;
-  function parseActionDescriptorString(descriptorString) {
-    const source = descriptorString.trim();
-    const matches = source.match(descriptorPattern) || [];
-    return {
-      eventTarget: parseEventTarget(matches[4]),
-      eventName: matches[2],
-      eventOptions: matches[9] ? parseEventOptions(matches[9]) : {},
-      identifier: matches[5],
-      methodName: matches[7]
-    };
-  }
-  function parseEventTarget(eventTargetName) {
-    if (eventTargetName == "window") {
-      return window;
-    } else if (eventTargetName == "document") {
-      return document;
-    }
-  }
-  function parseEventOptions(eventOptions) {
-    return eventOptions.split(":").reduce((options, token) => Object.assign(options, { [token.replace(/^!/, "")]: !/^!/.test(token) }), {});
-  }
-  function stringifyEventTarget(eventTarget) {
-    if (eventTarget == window) {
-      return "window";
-    } else if (eventTarget == document) {
-      return "document";
-    }
-  }
-  function camelize(value) {
-    return value.replace(/(?:[_-])([a-z0-9])/g, (_, char) => char.toUpperCase());
-  }
-  function capitalize(value) {
-    return value.charAt(0).toUpperCase() + value.slice(1);
-  }
-  function dasherize(value) {
-    return value.replace(/([A-Z])/g, (_, char) => `-${char.toLowerCase()}`);
-  }
-  function tokenize(value) {
-    return value.match(/[^\s]+/g) || [];
-  }
-  var Action = class {
-    constructor(element, index, descriptor) {
-      this.element = element;
-      this.index = index;
-      this.eventTarget = descriptor.eventTarget || element;
-      this.eventName = descriptor.eventName || getDefaultEventNameForElement(element) || error("missing event name");
-      this.eventOptions = descriptor.eventOptions || {};
-      this.identifier = descriptor.identifier || error("missing identifier");
-      this.methodName = descriptor.methodName || error("missing method name");
-    }
-    static forToken(token) {
-      return new this(token.element, token.index, parseActionDescriptorString(token.content));
-    }
-    toString() {
-      const eventNameSuffix = this.eventTargetName ? `@${this.eventTargetName}` : "";
-      return `${this.eventName}${eventNameSuffix}->${this.identifier}#${this.methodName}`;
-    }
-    get params() {
-      if (this.eventTarget instanceof Element) {
-        return this.getParamsFromEventTargetAttributes(this.eventTarget);
-      } else {
-        return {};
-      }
-    }
-    getParamsFromEventTargetAttributes(eventTarget) {
-      const params = {};
-      const pattern = new RegExp(`^data-${this.identifier}-(.+)-param$`);
-      const attributes = Array.from(eventTarget.attributes);
-      attributes.forEach(({ name, value }) => {
-        const match = name.match(pattern);
-        const key = match && match[1];
-        if (key) {
-          Object.assign(params, { [camelize(key)]: typecast(value) });
-        }
-      });
-      return params;
-    }
-    get eventTargetName() {
-      return stringifyEventTarget(this.eventTarget);
-    }
-  };
-  var defaultEventNames = {
-    "a": (e) => "click",
-    "button": (e) => "click",
-    "form": (e) => "submit",
-    "details": (e) => "toggle",
-    "input": (e) => e.getAttribute("type") == "submit" ? "click" : "input",
-    "select": (e) => "change",
-    "textarea": (e) => "input"
-  };
-  function getDefaultEventNameForElement(element) {
-    const tagName = element.tagName.toLowerCase();
-    if (tagName in defaultEventNames) {
-      return defaultEventNames[tagName](element);
-    }
-  }
-  function error(message) {
-    throw new Error(message);
-  }
-  function typecast(value) {
-    try {
-      return JSON.parse(value);
-    } catch (o_O) {
-      return value;
-    }
-  }
-  var Binding = class {
-    constructor(context, action) {
-      this.context = context;
-      this.action = action;
-    }
-    get index() {
-      return this.action.index;
-    }
-    get eventTarget() {
-      return this.action.eventTarget;
-    }
-    get eventOptions() {
-      return this.action.eventOptions;
-    }
-    get identifier() {
-      return this.context.identifier;
-    }
-    handleEvent(event) {
-      if (this.willBeInvokedByEvent(event)) {
-        this.invokeWithEvent(event);
-      }
-    }
-    get eventName() {
-      return this.action.eventName;
-    }
-    get method() {
-      const method = this.controller[this.methodName];
-      if (typeof method == "function") {
-        return method;
-      }
-      throw new Error(`Action "${this.action}" references undefined method "${this.methodName}"`);
-    }
-    invokeWithEvent(event) {
-      const { target, currentTarget } = event;
-      try {
-        const { params } = this.action;
-        const actionEvent = Object.assign(event, { params });
-        this.method.call(this.controller, actionEvent);
-        this.context.logDebugActivity(this.methodName, { event, target, currentTarget, action: this.methodName });
-      } catch (error2) {
-        const { identifier, controller, element, index } = this;
-        const detail = { identifier, controller, element, index, event };
-        this.context.handleError(error2, `invoking action "${this.action}"`, detail);
-      }
-    }
-    willBeInvokedByEvent(event) {
-      const eventTarget = event.target;
-      if (this.element === eventTarget) {
-        return true;
-      } else if (eventTarget instanceof Element && this.element.contains(eventTarget)) {
-        return this.scope.containsElement(eventTarget);
-      } else {
-        return this.scope.containsElement(this.action.element);
-      }
-    }
-    get controller() {
-      return this.context.controller;
-    }
-    get methodName() {
-      return this.action.methodName;
-    }
-    get element() {
-      return this.scope.element;
-    }
-    get scope() {
-      return this.context.scope;
-    }
-  };
-  var ElementObserver = class {
-    constructor(element, delegate) {
-      this.mutationObserverInit = { attributes: true, childList: true, subtree: true };
-      this.element = element;
-      this.started = false;
-      this.delegate = delegate;
-      this.elements = /* @__PURE__ */ new Set();
-      this.mutationObserver = new MutationObserver((mutations) => this.processMutations(mutations));
-    }
-    start() {
-      if (!this.started) {
-        this.started = true;
-        this.mutationObserver.observe(this.element, this.mutationObserverInit);
-        this.refresh();
-      }
-    }
-    pause(callback) {
-      if (this.started) {
-        this.mutationObserver.disconnect();
-        this.started = false;
-      }
-      callback();
-      if (!this.started) {
-        this.mutationObserver.observe(this.element, this.mutationObserverInit);
-        this.started = true;
-      }
-    }
-    stop() {
-      if (this.started) {
-        this.mutationObserver.takeRecords();
-        this.mutationObserver.disconnect();
-        this.started = false;
-      }
-    }
-    refresh() {
-      if (this.started) {
-        const matches = new Set(this.matchElementsInTree());
-        for (const element of Array.from(this.elements)) {
-          if (!matches.has(element)) {
-            this.removeElement(element);
-          }
-        }
-        for (const element of Array.from(matches)) {
-          this.addElement(element);
-        }
-      }
-    }
-    processMutations(mutations) {
-      if (this.started) {
-        for (const mutation of mutations) {
-          this.processMutation(mutation);
-        }
-      }
-    }
-    processMutation(mutation) {
-      if (mutation.type == "attributes") {
-        this.processAttributeChange(mutation.target, mutation.attributeName);
-      } else if (mutation.type == "childList") {
-        this.processRemovedNodes(mutation.removedNodes);
-        this.processAddedNodes(mutation.addedNodes);
-      }
-    }
-    processAttributeChange(node, attributeName) {
-      const element = node;
-      if (this.elements.has(element)) {
-        if (this.delegate.elementAttributeChanged && this.matchElement(element)) {
-          this.delegate.elementAttributeChanged(element, attributeName);
-        } else {
-          this.removeElement(element);
-        }
-      } else if (this.matchElement(element)) {
-        this.addElement(element);
-      }
-    }
-    processRemovedNodes(nodes) {
-      for (const node of Array.from(nodes)) {
-        const element = this.elementFromNode(node);
-        if (element) {
-          this.processTree(element, this.removeElement);
-        }
-      }
-    }
-    processAddedNodes(nodes) {
-      for (const node of Array.from(nodes)) {
-        const element = this.elementFromNode(node);
-        if (element && this.elementIsActive(element)) {
-          this.processTree(element, this.addElement);
-        }
-      }
-    }
-    matchElement(element) {
-      return this.delegate.matchElement(element);
-    }
-    matchElementsInTree(tree = this.element) {
-      return this.delegate.matchElementsInTree(tree);
-    }
-    processTree(tree, processor) {
-      for (const element of this.matchElementsInTree(tree)) {
-        processor.call(this, element);
-      }
-    }
-    elementFromNode(node) {
-      if (node.nodeType == Node.ELEMENT_NODE) {
-        return node;
-      }
-    }
-    elementIsActive(element) {
-      if (element.isConnected != this.element.isConnected) {
-        return false;
-      } else {
-        return this.element.contains(element);
-      }
-    }
-    addElement(element) {
-      if (!this.elements.has(element)) {
-        if (this.elementIsActive(element)) {
-          this.elements.add(element);
-          if (this.delegate.elementMatched) {
-            this.delegate.elementMatched(element);
-          }
-        }
-      }
-    }
-    removeElement(element) {
-      if (this.elements.has(element)) {
-        this.elements.delete(element);
-        if (this.delegate.elementUnmatched) {
-          this.delegate.elementUnmatched(element);
-        }
-      }
-    }
-  };
-  var AttributeObserver = class {
-    constructor(element, attributeName, delegate) {
-      this.attributeName = attributeName;
-      this.delegate = delegate;
-      this.elementObserver = new ElementObserver(element, this);
-    }
-    get element() {
-      return this.elementObserver.element;
-    }
-    get selector() {
-      return `[${this.attributeName}]`;
-    }
-    start() {
-      this.elementObserver.start();
-    }
-    pause(callback) {
-      this.elementObserver.pause(callback);
-    }
-    stop() {
-      this.elementObserver.stop();
-    }
-    refresh() {
-      this.elementObserver.refresh();
-    }
-    get started() {
-      return this.elementObserver.started;
-    }
-    matchElement(element) {
-      return element.hasAttribute(this.attributeName);
-    }
-    matchElementsInTree(tree) {
-      const match = this.matchElement(tree) ? [tree] : [];
-      const matches = Array.from(tree.querySelectorAll(this.selector));
-      return match.concat(matches);
-    }
-    elementMatched(element) {
-      if (this.delegate.elementMatchedAttribute) {
-        this.delegate.elementMatchedAttribute(element, this.attributeName);
-      }
-    }
-    elementUnmatched(element) {
-      if (this.delegate.elementUnmatchedAttribute) {
-        this.delegate.elementUnmatchedAttribute(element, this.attributeName);
-      }
-    }
-    elementAttributeChanged(element, attributeName) {
-      if (this.delegate.elementAttributeValueChanged && this.attributeName == attributeName) {
-        this.delegate.elementAttributeValueChanged(element, attributeName);
-      }
-    }
-  };
-  var StringMapObserver = class {
-    constructor(element, delegate) {
-      this.element = element;
-      this.delegate = delegate;
-      this.started = false;
-      this.stringMap = /* @__PURE__ */ new Map();
-      this.mutationObserver = new MutationObserver((mutations) => this.processMutations(mutations));
-    }
-    start() {
-      if (!this.started) {
-        this.started = true;
-        this.mutationObserver.observe(this.element, { attributes: true, attributeOldValue: true });
-        this.refresh();
-      }
-    }
-    stop() {
-      if (this.started) {
-        this.mutationObserver.takeRecords();
-        this.mutationObserver.disconnect();
-        this.started = false;
-      }
-    }
-    refresh() {
-      if (this.started) {
-        for (const attributeName of this.knownAttributeNames) {
-          this.refreshAttribute(attributeName, null);
-        }
-      }
-    }
-    processMutations(mutations) {
-      if (this.started) {
-        for (const mutation of mutations) {
-          this.processMutation(mutation);
-        }
-      }
-    }
-    processMutation(mutation) {
-      const attributeName = mutation.attributeName;
-      if (attributeName) {
-        this.refreshAttribute(attributeName, mutation.oldValue);
-      }
-    }
-    refreshAttribute(attributeName, oldValue) {
-      const key = this.delegate.getStringMapKeyForAttribute(attributeName);
-      if (key != null) {
-        if (!this.stringMap.has(attributeName)) {
-          this.stringMapKeyAdded(key, attributeName);
-        }
-        const value = this.element.getAttribute(attributeName);
-        if (this.stringMap.get(attributeName) != value) {
-          this.stringMapValueChanged(value, key, oldValue);
-        }
-        if (value == null) {
-          const oldValue2 = this.stringMap.get(attributeName);
-          this.stringMap.delete(attributeName);
-          if (oldValue2)
-            this.stringMapKeyRemoved(key, attributeName, oldValue2);
-        } else {
-          this.stringMap.set(attributeName, value);
-        }
-      }
-    }
-    stringMapKeyAdded(key, attributeName) {
-      if (this.delegate.stringMapKeyAdded) {
-        this.delegate.stringMapKeyAdded(key, attributeName);
-      }
-    }
-    stringMapValueChanged(value, key, oldValue) {
-      if (this.delegate.stringMapValueChanged) {
-        this.delegate.stringMapValueChanged(value, key, oldValue);
-      }
-    }
-    stringMapKeyRemoved(key, attributeName, oldValue) {
-      if (this.delegate.stringMapKeyRemoved) {
-        this.delegate.stringMapKeyRemoved(key, attributeName, oldValue);
-      }
-    }
-    get knownAttributeNames() {
-      return Array.from(new Set(this.currentAttributeNames.concat(this.recordedAttributeNames)));
-    }
-    get currentAttributeNames() {
-      return Array.from(this.element.attributes).map((attribute) => attribute.name);
-    }
-    get recordedAttributeNames() {
-      return Array.from(this.stringMap.keys());
-    }
-  };
-  function add(map, key, value) {
-    fetch2(map, key).add(value);
-  }
-  function del(map, key, value) {
-    fetch2(map, key).delete(value);
-    prune(map, key);
-  }
-  function fetch2(map, key) {
-    let values = map.get(key);
-    if (!values) {
-      values = /* @__PURE__ */ new Set();
-      map.set(key, values);
-    }
-    return values;
-  }
-  function prune(map, key) {
-    const values = map.get(key);
-    if (values != null && values.size == 0) {
-      map.delete(key);
-    }
-  }
-  var Multimap = class {
-    constructor() {
-      this.valuesByKey = /* @__PURE__ */ new Map();
-    }
-    get keys() {
-      return Array.from(this.valuesByKey.keys());
-    }
-    get values() {
-      const sets = Array.from(this.valuesByKey.values());
-      return sets.reduce((values, set) => values.concat(Array.from(set)), []);
-    }
-    get size() {
-      const sets = Array.from(this.valuesByKey.values());
-      return sets.reduce((size2, set) => size2 + set.size, 0);
-    }
-    add(key, value) {
-      add(this.valuesByKey, key, value);
-    }
-    delete(key, value) {
-      del(this.valuesByKey, key, value);
-    }
-    has(key, value) {
-      const values = this.valuesByKey.get(key);
-      return values != null && values.has(value);
-    }
-    hasKey(key) {
-      return this.valuesByKey.has(key);
-    }
-    hasValue(value) {
-      const sets = Array.from(this.valuesByKey.values());
-      return sets.some((set) => set.has(value));
-    }
-    getValuesForKey(key) {
-      const values = this.valuesByKey.get(key);
-      return values ? Array.from(values) : [];
-    }
-    getKeysForValue(value) {
-      return Array.from(this.valuesByKey).filter(([key, values]) => values.has(value)).map(([key, values]) => key);
-    }
-  };
-  var TokenListObserver = class {
-    constructor(element, attributeName, delegate) {
-      this.attributeObserver = new AttributeObserver(element, attributeName, this);
-      this.delegate = delegate;
-      this.tokensByElement = new Multimap();
-    }
-    get started() {
-      return this.attributeObserver.started;
-    }
-    start() {
-      this.attributeObserver.start();
-    }
-    pause(callback) {
-      this.attributeObserver.pause(callback);
-    }
-    stop() {
-      this.attributeObserver.stop();
-    }
-    refresh() {
-      this.attributeObserver.refresh();
-    }
-    get element() {
-      return this.attributeObserver.element;
-    }
-    get attributeName() {
-      return this.attributeObserver.attributeName;
-    }
-    elementMatchedAttribute(element) {
-      this.tokensMatched(this.readTokensForElement(element));
-    }
-    elementAttributeValueChanged(element) {
-      const [unmatchedTokens, matchedTokens] = this.refreshTokensForElement(element);
-      this.tokensUnmatched(unmatchedTokens);
-      this.tokensMatched(matchedTokens);
-    }
-    elementUnmatchedAttribute(element) {
-      this.tokensUnmatched(this.tokensByElement.getValuesForKey(element));
-    }
-    tokensMatched(tokens) {
-      tokens.forEach((token) => this.tokenMatched(token));
-    }
-    tokensUnmatched(tokens) {
-      tokens.forEach((token) => this.tokenUnmatched(token));
-    }
-    tokenMatched(token) {
-      this.delegate.tokenMatched(token);
-      this.tokensByElement.add(token.element, token);
-    }
-    tokenUnmatched(token) {
-      this.delegate.tokenUnmatched(token);
-      this.tokensByElement.delete(token.element, token);
-    }
-    refreshTokensForElement(element) {
-      const previousTokens = this.tokensByElement.getValuesForKey(element);
-      const currentTokens = this.readTokensForElement(element);
-      const firstDifferingIndex = zip(previousTokens, currentTokens).findIndex(([previousToken, currentToken]) => !tokensAreEqual(previousToken, currentToken));
-      if (firstDifferingIndex == -1) {
-        return [[], []];
-      } else {
-        return [previousTokens.slice(firstDifferingIndex), currentTokens.slice(firstDifferingIndex)];
-      }
-    }
-    readTokensForElement(element) {
-      const attributeName = this.attributeName;
-      const tokenString = element.getAttribute(attributeName) || "";
-      return parseTokenString(tokenString, element, attributeName);
-    }
-  };
-  function parseTokenString(tokenString, element, attributeName) {
-    return tokenString.trim().split(/\s+/).filter((content) => content.length).map((content, index) => ({ element, attributeName, content, index }));
-  }
-  function zip(left, right) {
-    const length = Math.max(left.length, right.length);
-    return Array.from({ length }, (_, index) => [left[index], right[index]]);
-  }
-  function tokensAreEqual(left, right) {
-    return left && right && left.index == right.index && left.content == right.content;
-  }
-  var ValueListObserver = class {
-    constructor(element, attributeName, delegate) {
-      this.tokenListObserver = new TokenListObserver(element, attributeName, this);
-      this.delegate = delegate;
-      this.parseResultsByToken = /* @__PURE__ */ new WeakMap();
-      this.valuesByTokenByElement = /* @__PURE__ */ new WeakMap();
-    }
-    get started() {
-      return this.tokenListObserver.started;
-    }
-    start() {
-      this.tokenListObserver.start();
-    }
-    stop() {
-      this.tokenListObserver.stop();
-    }
-    refresh() {
-      this.tokenListObserver.refresh();
-    }
-    get element() {
-      return this.tokenListObserver.element;
-    }
-    get attributeName() {
-      return this.tokenListObserver.attributeName;
-    }
-    tokenMatched(token) {
-      const { element } = token;
-      const { value } = this.fetchParseResultForToken(token);
-      if (value) {
-        this.fetchValuesByTokenForElement(element).set(token, value);
-        this.delegate.elementMatchedValue(element, value);
-      }
-    }
-    tokenUnmatched(token) {
-      const { element } = token;
-      const { value } = this.fetchParseResultForToken(token);
-      if (value) {
-        this.fetchValuesByTokenForElement(element).delete(token);
-        this.delegate.elementUnmatchedValue(element, value);
-      }
-    }
-    fetchParseResultForToken(token) {
-      let parseResult = this.parseResultsByToken.get(token);
-      if (!parseResult) {
-        parseResult = this.parseToken(token);
-        this.parseResultsByToken.set(token, parseResult);
-      }
-      return parseResult;
-    }
-    fetchValuesByTokenForElement(element) {
-      let valuesByToken = this.valuesByTokenByElement.get(element);
-      if (!valuesByToken) {
-        valuesByToken = /* @__PURE__ */ new Map();
-        this.valuesByTokenByElement.set(element, valuesByToken);
-      }
-      return valuesByToken;
-    }
-    parseToken(token) {
-      try {
-        const value = this.delegate.parseValueForToken(token);
-        return { value };
-      } catch (error2) {
-        return { error: error2 };
-      }
-    }
-  };
-  var BindingObserver = class {
-    constructor(context, delegate) {
-      this.context = context;
-      this.delegate = delegate;
-      this.bindingsByAction = /* @__PURE__ */ new Map();
-    }
-    start() {
-      if (!this.valueListObserver) {
-        this.valueListObserver = new ValueListObserver(this.element, this.actionAttribute, this);
-        this.valueListObserver.start();
-      }
-    }
-    stop() {
-      if (this.valueListObserver) {
-        this.valueListObserver.stop();
-        delete this.valueListObserver;
-        this.disconnectAllActions();
-      }
-    }
-    get element() {
-      return this.context.element;
-    }
-    get identifier() {
-      return this.context.identifier;
-    }
-    get actionAttribute() {
-      return this.schema.actionAttribute;
-    }
-    get schema() {
-      return this.context.schema;
-    }
-    get bindings() {
-      return Array.from(this.bindingsByAction.values());
-    }
-    connectAction(action) {
-      const binding = new Binding(this.context, action);
-      this.bindingsByAction.set(action, binding);
-      this.delegate.bindingConnected(binding);
-    }
-    disconnectAction(action) {
-      const binding = this.bindingsByAction.get(action);
-      if (binding) {
-        this.bindingsByAction.delete(action);
-        this.delegate.bindingDisconnected(binding);
-      }
-    }
-    disconnectAllActions() {
-      this.bindings.forEach((binding) => this.delegate.bindingDisconnected(binding));
-      this.bindingsByAction.clear();
-    }
-    parseValueForToken(token) {
-      const action = Action.forToken(token);
-      if (action.identifier == this.identifier) {
-        return action;
-      }
-    }
-    elementMatchedValue(element, action) {
-      this.connectAction(action);
-    }
-    elementUnmatchedValue(element, action) {
-      this.disconnectAction(action);
-    }
-  };
-  var ValueObserver = class {
-    constructor(context, receiver) {
-      this.context = context;
-      this.receiver = receiver;
-      this.stringMapObserver = new StringMapObserver(this.element, this);
-      this.valueDescriptorMap = this.controller.valueDescriptorMap;
-      this.invokeChangedCallbacksForDefaultValues();
-    }
-    start() {
-      this.stringMapObserver.start();
-    }
-    stop() {
-      this.stringMapObserver.stop();
-    }
-    get element() {
-      return this.context.element;
-    }
-    get controller() {
-      return this.context.controller;
-    }
-    getStringMapKeyForAttribute(attributeName) {
-      if (attributeName in this.valueDescriptorMap) {
-        return this.valueDescriptorMap[attributeName].name;
-      }
-    }
-    stringMapKeyAdded(key, attributeName) {
-      const descriptor = this.valueDescriptorMap[attributeName];
-      if (!this.hasValue(key)) {
-        this.invokeChangedCallback(key, descriptor.writer(this.receiver[key]), descriptor.writer(descriptor.defaultValue));
-      }
-    }
-    stringMapValueChanged(value, name, oldValue) {
-      const descriptor = this.valueDescriptorNameMap[name];
-      if (value === null)
-        return;
-      if (oldValue === null) {
-        oldValue = descriptor.writer(descriptor.defaultValue);
-      }
-      this.invokeChangedCallback(name, value, oldValue);
-    }
-    stringMapKeyRemoved(key, attributeName, oldValue) {
-      const descriptor = this.valueDescriptorNameMap[key];
-      if (this.hasValue(key)) {
-        this.invokeChangedCallback(key, descriptor.writer(this.receiver[key]), oldValue);
-      } else {
-        this.invokeChangedCallback(key, descriptor.writer(descriptor.defaultValue), oldValue);
-      }
-    }
-    invokeChangedCallbacksForDefaultValues() {
-      for (const { key, name, defaultValue, writer } of this.valueDescriptors) {
-        if (defaultValue != void 0 && !this.controller.data.has(key)) {
-          this.invokeChangedCallback(name, writer(defaultValue), void 0);
-        }
-      }
-    }
-    invokeChangedCallback(name, rawValue, rawOldValue) {
-      const changedMethodName = `${name}Changed`;
-      const changedMethod = this.receiver[changedMethodName];
-      if (typeof changedMethod == "function") {
-        const descriptor = this.valueDescriptorNameMap[name];
-        const value = descriptor.reader(rawValue);
-        let oldValue = rawOldValue;
-        if (rawOldValue) {
-          oldValue = descriptor.reader(rawOldValue);
-        }
-        changedMethod.call(this.receiver, value, oldValue);
-      }
-    }
-    get valueDescriptors() {
-      const { valueDescriptorMap } = this;
-      return Object.keys(valueDescriptorMap).map((key) => valueDescriptorMap[key]);
-    }
-    get valueDescriptorNameMap() {
-      const descriptors = {};
-      Object.keys(this.valueDescriptorMap).forEach((key) => {
-        const descriptor = this.valueDescriptorMap[key];
-        descriptors[descriptor.name] = descriptor;
-      });
-      return descriptors;
-    }
-    hasValue(attributeName) {
-      const descriptor = this.valueDescriptorNameMap[attributeName];
-      const hasMethodName = `has${capitalize(descriptor.name)}`;
-      return this.receiver[hasMethodName];
-    }
-  };
-  var TargetObserver = class {
-    constructor(context, delegate) {
-      this.context = context;
-      this.delegate = delegate;
-      this.targetsByName = new Multimap();
-    }
-    start() {
-      if (!this.tokenListObserver) {
-        this.tokenListObserver = new TokenListObserver(this.element, this.attributeName, this);
-        this.tokenListObserver.start();
-      }
-    }
-    stop() {
-      if (this.tokenListObserver) {
-        this.disconnectAllTargets();
-        this.tokenListObserver.stop();
-        delete this.tokenListObserver;
-      }
-    }
-    tokenMatched({ element, content: name }) {
-      if (this.scope.containsElement(element)) {
-        this.connectTarget(element, name);
-      }
-    }
-    tokenUnmatched({ element, content: name }) {
-      this.disconnectTarget(element, name);
-    }
-    connectTarget(element, name) {
-      var _a;
-      if (!this.targetsByName.has(name, element)) {
-        this.targetsByName.add(name, element);
-        (_a = this.tokenListObserver) === null || _a === void 0 ? void 0 : _a.pause(() => this.delegate.targetConnected(element, name));
-      }
-    }
-    disconnectTarget(element, name) {
-      var _a;
-      if (this.targetsByName.has(name, element)) {
-        this.targetsByName.delete(name, element);
-        (_a = this.tokenListObserver) === null || _a === void 0 ? void 0 : _a.pause(() => this.delegate.targetDisconnected(element, name));
-      }
-    }
-    disconnectAllTargets() {
-      for (const name of this.targetsByName.keys) {
-        for (const element of this.targetsByName.getValuesForKey(name)) {
-          this.disconnectTarget(element, name);
-        }
-      }
-    }
-    get attributeName() {
-      return `data-${this.context.identifier}-target`;
-    }
-    get element() {
-      return this.context.element;
-    }
-    get scope() {
-      return this.context.scope;
-    }
-  };
-  var Context = class {
-    constructor(module, scope) {
-      this.logDebugActivity = (functionName, detail = {}) => {
-        const { identifier, controller, element } = this;
-        detail = Object.assign({ identifier, controller, element }, detail);
-        this.application.logDebugActivity(this.identifier, functionName, detail);
-      };
-      this.module = module;
-      this.scope = scope;
-      this.controller = new module.controllerConstructor(this);
-      this.bindingObserver = new BindingObserver(this, this.dispatcher);
-      this.valueObserver = new ValueObserver(this, this.controller);
-      this.targetObserver = new TargetObserver(this, this);
-      try {
-        this.controller.initialize();
-        this.logDebugActivity("initialize");
-      } catch (error2) {
-        this.handleError(error2, "initializing controller");
-      }
-    }
-    connect() {
-      this.bindingObserver.start();
-      this.valueObserver.start();
-      this.targetObserver.start();
-      try {
-        this.controller.connect();
-        this.logDebugActivity("connect");
-      } catch (error2) {
-        this.handleError(error2, "connecting controller");
-      }
-    }
-    disconnect() {
-      try {
-        this.controller.disconnect();
-        this.logDebugActivity("disconnect");
-      } catch (error2) {
-        this.handleError(error2, "disconnecting controller");
-      }
-      this.targetObserver.stop();
-      this.valueObserver.stop();
-      this.bindingObserver.stop();
-    }
-    get application() {
-      return this.module.application;
-    }
-    get identifier() {
-      return this.module.identifier;
-    }
-    get schema() {
-      return this.application.schema;
-    }
-    get dispatcher() {
-      return this.application.dispatcher;
-    }
-    get element() {
-      return this.scope.element;
-    }
-    get parentElement() {
-      return this.element.parentElement;
-    }
-    handleError(error2, message, detail = {}) {
-      const { identifier, controller, element } = this;
-      detail = Object.assign({ identifier, controller, element }, detail);
-      this.application.handleError(error2, `Error ${message}`, detail);
-    }
-    targetConnected(element, name) {
-      this.invokeControllerMethod(`${name}TargetConnected`, element);
-    }
-    targetDisconnected(element, name) {
-      this.invokeControllerMethod(`${name}TargetDisconnected`, element);
-    }
-    invokeControllerMethod(methodName, ...args) {
-      const controller = this.controller;
-      if (typeof controller[methodName] == "function") {
-        controller[methodName](...args);
-      }
-    }
-  };
-  function readInheritableStaticArrayValues(constructor, propertyName) {
-    const ancestors = getAncestorsForConstructor(constructor);
-    return Array.from(ancestors.reduce((values, constructor2) => {
-      getOwnStaticArrayValues(constructor2, propertyName).forEach((name) => values.add(name));
-      return values;
-    }, /* @__PURE__ */ new Set()));
-  }
-  function readInheritableStaticObjectPairs(constructor, propertyName) {
-    const ancestors = getAncestorsForConstructor(constructor);
-    return ancestors.reduce((pairs, constructor2) => {
-      pairs.push(...getOwnStaticObjectPairs(constructor2, propertyName));
-      return pairs;
-    }, []);
-  }
-  function getAncestorsForConstructor(constructor) {
-    const ancestors = [];
-    while (constructor) {
-      ancestors.push(constructor);
-      constructor = Object.getPrototypeOf(constructor);
-    }
-    return ancestors.reverse();
-  }
-  function getOwnStaticArrayValues(constructor, propertyName) {
-    const definition = constructor[propertyName];
-    return Array.isArray(definition) ? definition : [];
-  }
-  function getOwnStaticObjectPairs(constructor, propertyName) {
-    const definition = constructor[propertyName];
-    return definition ? Object.keys(definition).map((key) => [key, definition[key]]) : [];
-  }
-  function bless(constructor) {
-    return shadow(constructor, getBlessedProperties(constructor));
-  }
-  function shadow(constructor, properties) {
-    const shadowConstructor = extend2(constructor);
-    const shadowProperties = getShadowProperties(constructor.prototype, properties);
-    Object.defineProperties(shadowConstructor.prototype, shadowProperties);
-    return shadowConstructor;
-  }
-  function getBlessedProperties(constructor) {
-    const blessings = readInheritableStaticArrayValues(constructor, "blessings");
-    return blessings.reduce((blessedProperties, blessing) => {
-      const properties = blessing(constructor);
-      for (const key in properties) {
-        const descriptor = blessedProperties[key] || {};
-        blessedProperties[key] = Object.assign(descriptor, properties[key]);
-      }
-      return blessedProperties;
-    }, {});
-  }
-  function getShadowProperties(prototype, properties) {
-    return getOwnKeys(properties).reduce((shadowProperties, key) => {
-      const descriptor = getShadowedDescriptor(prototype, properties, key);
-      if (descriptor) {
-        Object.assign(shadowProperties, { [key]: descriptor });
-      }
-      return shadowProperties;
-    }, {});
-  }
-  function getShadowedDescriptor(prototype, properties, key) {
-    const shadowingDescriptor = Object.getOwnPropertyDescriptor(prototype, key);
-    const shadowedByValue = shadowingDescriptor && "value" in shadowingDescriptor;
-    if (!shadowedByValue) {
-      const descriptor = Object.getOwnPropertyDescriptor(properties, key).value;
-      if (shadowingDescriptor) {
-        descriptor.get = shadowingDescriptor.get || descriptor.get;
-        descriptor.set = shadowingDescriptor.set || descriptor.set;
-      }
-      return descriptor;
-    }
-  }
-  var getOwnKeys = (() => {
-    if (typeof Object.getOwnPropertySymbols == "function") {
-      return (object) => [
-        ...Object.getOwnPropertyNames(object),
-        ...Object.getOwnPropertySymbols(object)
-      ];
-    } else {
-      return Object.getOwnPropertyNames;
-    }
-  })();
-  var extend2 = (() => {
-    function extendWithReflect(constructor) {
-      function extended() {
-        return Reflect.construct(constructor, arguments, new.target);
-      }
-      extended.prototype = Object.create(constructor.prototype, {
-        constructor: { value: extended }
-      });
-      Reflect.setPrototypeOf(extended, constructor);
-      return extended;
-    }
-    function testReflectExtension() {
-      const a = function() {
-        this.a.call(this);
-      };
-      const b = extendWithReflect(a);
-      b.prototype.a = function() {
-      };
-      return new b();
-    }
-    try {
-      testReflectExtension();
-      return extendWithReflect;
-    } catch (error2) {
-      return (constructor) => class extended extends constructor {
-      };
-    }
-  })();
-  function blessDefinition(definition) {
-    return {
-      identifier: definition.identifier,
-      controllerConstructor: bless(definition.controllerConstructor)
-    };
-  }
-  var Module = class {
-    constructor(application2, definition) {
-      this.application = application2;
-      this.definition = blessDefinition(definition);
-      this.contextsByScope = /* @__PURE__ */ new WeakMap();
-      this.connectedContexts = /* @__PURE__ */ new Set();
-    }
-    get identifier() {
-      return this.definition.identifier;
-    }
-    get controllerConstructor() {
-      return this.definition.controllerConstructor;
-    }
-    get contexts() {
-      return Array.from(this.connectedContexts);
-    }
-    connectContextForScope(scope) {
-      const context = this.fetchContextForScope(scope);
-      this.connectedContexts.add(context);
-      context.connect();
-    }
-    disconnectContextForScope(scope) {
-      const context = this.contextsByScope.get(scope);
-      if (context) {
-        this.connectedContexts.delete(context);
-        context.disconnect();
-      }
-    }
-    fetchContextForScope(scope) {
-      let context = this.contextsByScope.get(scope);
-      if (!context) {
-        context = new Context(this, scope);
-        this.contextsByScope.set(scope, context);
-      }
-      return context;
-    }
-  };
-  var ClassMap = class {
-    constructor(scope) {
-      this.scope = scope;
-    }
-    has(name) {
-      return this.data.has(this.getDataKey(name));
-    }
-    get(name) {
-      return this.getAll(name)[0];
-    }
-    getAll(name) {
-      const tokenString = this.data.get(this.getDataKey(name)) || "";
-      return tokenize(tokenString);
-    }
-    getAttributeName(name) {
-      return this.data.getAttributeNameForKey(this.getDataKey(name));
-    }
-    getDataKey(name) {
-      return `${name}-class`;
-    }
-    get data() {
-      return this.scope.data;
-    }
-  };
-  var DataMap = class {
-    constructor(scope) {
-      this.scope = scope;
-    }
-    get element() {
-      return this.scope.element;
-    }
-    get identifier() {
-      return this.scope.identifier;
-    }
-    get(key) {
-      const name = this.getAttributeNameForKey(key);
-      return this.element.getAttribute(name);
-    }
-    set(key, value) {
-      const name = this.getAttributeNameForKey(key);
-      this.element.setAttribute(name, value);
-      return this.get(key);
-    }
-    has(key) {
-      const name = this.getAttributeNameForKey(key);
-      return this.element.hasAttribute(name);
-    }
-    delete(key) {
-      if (this.has(key)) {
-        const name = this.getAttributeNameForKey(key);
-        this.element.removeAttribute(name);
-        return true;
-      } else {
-        return false;
-      }
-    }
-    getAttributeNameForKey(key) {
-      return `data-${this.identifier}-${dasherize(key)}`;
-    }
-  };
-  var Guide = class {
-    constructor(logger) {
-      this.warnedKeysByObject = /* @__PURE__ */ new WeakMap();
-      this.logger = logger;
-    }
-    warn(object, key, message) {
-      let warnedKeys = this.warnedKeysByObject.get(object);
-      if (!warnedKeys) {
-        warnedKeys = /* @__PURE__ */ new Set();
-        this.warnedKeysByObject.set(object, warnedKeys);
-      }
-      if (!warnedKeys.has(key)) {
-        warnedKeys.add(key);
-        this.logger.warn(message, object);
-      }
-    }
-  };
-  function attributeValueContainsToken(attributeName, token) {
-    return `[${attributeName}~="${token}"]`;
-  }
-  var TargetSet = class {
-    constructor(scope) {
-      this.scope = scope;
-    }
-    get element() {
-      return this.scope.element;
-    }
-    get identifier() {
-      return this.scope.identifier;
-    }
-    get schema() {
-      return this.scope.schema;
-    }
-    has(targetName) {
-      return this.find(targetName) != null;
-    }
-    find(...targetNames) {
-      return targetNames.reduce((target, targetName) => target || this.findTarget(targetName) || this.findLegacyTarget(targetName), void 0);
-    }
-    findAll(...targetNames) {
-      return targetNames.reduce((targets, targetName) => [
-        ...targets,
-        ...this.findAllTargets(targetName),
-        ...this.findAllLegacyTargets(targetName)
-      ], []);
-    }
-    findTarget(targetName) {
-      const selector = this.getSelectorForTargetName(targetName);
-      return this.scope.findElement(selector);
-    }
-    findAllTargets(targetName) {
-      const selector = this.getSelectorForTargetName(targetName);
-      return this.scope.findAllElements(selector);
-    }
-    getSelectorForTargetName(targetName) {
-      const attributeName = this.schema.targetAttributeForScope(this.identifier);
-      return attributeValueContainsToken(attributeName, targetName);
-    }
-    findLegacyTarget(targetName) {
-      const selector = this.getLegacySelectorForTargetName(targetName);
-      return this.deprecate(this.scope.findElement(selector), targetName);
-    }
-    findAllLegacyTargets(targetName) {
-      const selector = this.getLegacySelectorForTargetName(targetName);
-      return this.scope.findAllElements(selector).map((element) => this.deprecate(element, targetName));
-    }
-    getLegacySelectorForTargetName(targetName) {
-      const targetDescriptor = `${this.identifier}.${targetName}`;
-      return attributeValueContainsToken(this.schema.targetAttribute, targetDescriptor);
-    }
-    deprecate(element, targetName) {
-      if (element) {
-        const { identifier } = this;
-        const attributeName = this.schema.targetAttribute;
-        const revisedAttributeName = this.schema.targetAttributeForScope(identifier);
-        this.guide.warn(element, `target:${targetName}`, `Please replace ${attributeName}="${identifier}.${targetName}" with ${revisedAttributeName}="${targetName}". The ${attributeName} attribute is deprecated and will be removed in a future version of Stimulus.`);
-      }
-      return element;
-    }
-    get guide() {
-      return this.scope.guide;
-    }
-  };
-  var Scope = class {
-    constructor(schema, element, identifier, logger) {
-      this.targets = new TargetSet(this);
-      this.classes = new ClassMap(this);
-      this.data = new DataMap(this);
-      this.containsElement = (element2) => {
-        return element2.closest(this.controllerSelector) === this.element;
-      };
-      this.schema = schema;
-      this.element = element;
-      this.identifier = identifier;
-      this.guide = new Guide(logger);
-    }
-    findElement(selector) {
-      return this.element.matches(selector) ? this.element : this.queryElements(selector).find(this.containsElement);
-    }
-    findAllElements(selector) {
-      return [
-        ...this.element.matches(selector) ? [this.element] : [],
-        ...this.queryElements(selector).filter(this.containsElement)
-      ];
-    }
-    queryElements(selector) {
-      return Array.from(this.element.querySelectorAll(selector));
-    }
-    get controllerSelector() {
-      return attributeValueContainsToken(this.schema.controllerAttribute, this.identifier);
-    }
-  };
-  var ScopeObserver = class {
-    constructor(element, schema, delegate) {
-      this.element = element;
-      this.schema = schema;
-      this.delegate = delegate;
-      this.valueListObserver = new ValueListObserver(this.element, this.controllerAttribute, this);
-      this.scopesByIdentifierByElement = /* @__PURE__ */ new WeakMap();
-      this.scopeReferenceCounts = /* @__PURE__ */ new WeakMap();
-    }
-    start() {
-      this.valueListObserver.start();
-    }
-    stop() {
-      this.valueListObserver.stop();
-    }
-    get controllerAttribute() {
-      return this.schema.controllerAttribute;
-    }
-    parseValueForToken(token) {
-      const { element, content: identifier } = token;
-      const scopesByIdentifier = this.fetchScopesByIdentifierForElement(element);
-      let scope = scopesByIdentifier.get(identifier);
-      if (!scope) {
-        scope = this.delegate.createScopeForElementAndIdentifier(element, identifier);
-        scopesByIdentifier.set(identifier, scope);
-      }
-      return scope;
-    }
-    elementMatchedValue(element, value) {
-      const referenceCount = (this.scopeReferenceCounts.get(value) || 0) + 1;
-      this.scopeReferenceCounts.set(value, referenceCount);
-      if (referenceCount == 1) {
-        this.delegate.scopeConnected(value);
-      }
-    }
-    elementUnmatchedValue(element, value) {
-      const referenceCount = this.scopeReferenceCounts.get(value);
-      if (referenceCount) {
-        this.scopeReferenceCounts.set(value, referenceCount - 1);
-        if (referenceCount == 1) {
-          this.delegate.scopeDisconnected(value);
-        }
-      }
-    }
-    fetchScopesByIdentifierForElement(element) {
-      let scopesByIdentifier = this.scopesByIdentifierByElement.get(element);
-      if (!scopesByIdentifier) {
-        scopesByIdentifier = /* @__PURE__ */ new Map();
-        this.scopesByIdentifierByElement.set(element, scopesByIdentifier);
-      }
-      return scopesByIdentifier;
-    }
-  };
-  var Router = class {
-    constructor(application2) {
-      this.application = application2;
-      this.scopeObserver = new ScopeObserver(this.element, this.schema, this);
-      this.scopesByIdentifier = new Multimap();
-      this.modulesByIdentifier = /* @__PURE__ */ new Map();
-    }
-    get element() {
-      return this.application.element;
-    }
-    get schema() {
-      return this.application.schema;
-    }
-    get logger() {
-      return this.application.logger;
-    }
-    get controllerAttribute() {
-      return this.schema.controllerAttribute;
-    }
-    get modules() {
-      return Array.from(this.modulesByIdentifier.values());
-    }
-    get contexts() {
-      return this.modules.reduce((contexts, module) => contexts.concat(module.contexts), []);
-    }
-    start() {
-      this.scopeObserver.start();
-    }
-    stop() {
-      this.scopeObserver.stop();
-    }
-    loadDefinition(definition) {
-      this.unloadIdentifier(definition.identifier);
-      const module = new Module(this.application, definition);
-      this.connectModule(module);
-    }
-    unloadIdentifier(identifier) {
-      const module = this.modulesByIdentifier.get(identifier);
-      if (module) {
-        this.disconnectModule(module);
-      }
-    }
-    getContextForElementAndIdentifier(element, identifier) {
-      const module = this.modulesByIdentifier.get(identifier);
-      if (module) {
-        return module.contexts.find((context) => context.element == element);
-      }
-    }
-    handleError(error2, message, detail) {
-      this.application.handleError(error2, message, detail);
-    }
-    createScopeForElementAndIdentifier(element, identifier) {
-      return new Scope(this.schema, element, identifier, this.logger);
-    }
-    scopeConnected(scope) {
-      this.scopesByIdentifier.add(scope.identifier, scope);
-      const module = this.modulesByIdentifier.get(scope.identifier);
-      if (module) {
-        module.connectContextForScope(scope);
-      }
-    }
-    scopeDisconnected(scope) {
-      this.scopesByIdentifier.delete(scope.identifier, scope);
-      const module = this.modulesByIdentifier.get(scope.identifier);
-      if (module) {
-        module.disconnectContextForScope(scope);
-      }
-    }
-    connectModule(module) {
-      this.modulesByIdentifier.set(module.identifier, module);
-      const scopes = this.scopesByIdentifier.getValuesForKey(module.identifier);
-      scopes.forEach((scope) => module.connectContextForScope(scope));
-    }
-    disconnectModule(module) {
-      this.modulesByIdentifier.delete(module.identifier);
-      const scopes = this.scopesByIdentifier.getValuesForKey(module.identifier);
-      scopes.forEach((scope) => module.disconnectContextForScope(scope));
-    }
-  };
-  var defaultSchema = {
-    controllerAttribute: "data-controller",
-    actionAttribute: "data-action",
-    targetAttribute: "data-target",
-    targetAttributeForScope: (identifier) => `data-${identifier}-target`
-  };
-  var Application = class {
-    constructor(element = document.documentElement, schema = defaultSchema) {
-      this.logger = console;
-      this.debug = false;
-      this.logDebugActivity = (identifier, functionName, detail = {}) => {
-        if (this.debug) {
-          this.logFormattedMessage(identifier, functionName, detail);
-        }
-      };
-      this.element = element;
-      this.schema = schema;
-      this.dispatcher = new Dispatcher(this);
-      this.router = new Router(this);
-    }
-    static start(element, schema) {
-      const application2 = new Application(element, schema);
-      application2.start();
-      return application2;
-    }
-    async start() {
-      await domReady();
-      this.logDebugActivity("application", "starting");
-      this.dispatcher.start();
-      this.router.start();
-      this.logDebugActivity("application", "start");
-    }
-    stop() {
-      this.logDebugActivity("application", "stopping");
-      this.dispatcher.stop();
-      this.router.stop();
-      this.logDebugActivity("application", "stop");
-    }
-    register(identifier, controllerConstructor) {
-      if (controllerConstructor.shouldLoad) {
-        this.load({ identifier, controllerConstructor });
-      }
-    }
-    load(head, ...rest) {
-      const definitions = Array.isArray(head) ? head : [head, ...rest];
-      definitions.forEach((definition) => this.router.loadDefinition(definition));
-    }
-    unload(head, ...rest) {
-      const identifiers = Array.isArray(head) ? head : [head, ...rest];
-      identifiers.forEach((identifier) => this.router.unloadIdentifier(identifier));
-    }
-    get controllers() {
-      return this.router.contexts.map((context) => context.controller);
-    }
-    getControllerForElementAndIdentifier(element, identifier) {
-      const context = this.router.getContextForElementAndIdentifier(element, identifier);
-      return context ? context.controller : null;
-    }
-    handleError(error2, message, detail) {
-      var _a;
-      this.logger.error(`%s
-
-%o
-
-%o`, message, error2, detail);
-      (_a = window.onerror) === null || _a === void 0 ? void 0 : _a.call(window, message, "", 0, 0, error2);
-    }
-    logFormattedMessage(identifier, functionName, detail = {}) {
-      detail = Object.assign({ application: this }, detail);
-      this.logger.groupCollapsed(`${identifier} #${functionName}`);
-      this.logger.log("details:", Object.assign({}, detail));
-      this.logger.groupEnd();
-    }
-  };
-  function domReady() {
-    return new Promise((resolve) => {
-      if (document.readyState == "loading") {
-        document.addEventListener("DOMContentLoaded", () => resolve());
-      } else {
-        resolve();
-      }
-    });
-  }
-  function ClassPropertiesBlessing(constructor) {
-    const classes = readInheritableStaticArrayValues(constructor, "classes");
-    return classes.reduce((properties, classDefinition) => {
-      return Object.assign(properties, propertiesForClassDefinition(classDefinition));
-    }, {});
-  }
-  function propertiesForClassDefinition(key) {
-    return {
-      [`${key}Class`]: {
-        get() {
-          const { classes } = this;
-          if (classes.has(key)) {
-            return classes.get(key);
-          } else {
-            const attribute = classes.getAttributeName(key);
-            throw new Error(`Missing attribute "${attribute}"`);
-          }
-        }
-      },
-      [`${key}Classes`]: {
-        get() {
-          return this.classes.getAll(key);
-        }
-      },
-      [`has${capitalize(key)}Class`]: {
-        get() {
-          return this.classes.has(key);
-        }
-      }
-    };
-  }
-  function TargetPropertiesBlessing(constructor) {
-    const targets = readInheritableStaticArrayValues(constructor, "targets");
-    return targets.reduce((properties, targetDefinition) => {
-      return Object.assign(properties, propertiesForTargetDefinition(targetDefinition));
-    }, {});
-  }
-  function propertiesForTargetDefinition(name) {
-    return {
-      [`${name}Target`]: {
-        get() {
-          const target = this.targets.find(name);
-          if (target) {
-            return target;
-          } else {
-            throw new Error(`Missing target element "${name}" for "${this.identifier}" controller`);
-          }
-        }
-      },
-      [`${name}Targets`]: {
-        get() {
-          return this.targets.findAll(name);
-        }
-      },
-      [`has${capitalize(name)}Target`]: {
-        get() {
-          return this.targets.has(name);
-        }
-      }
-    };
-  }
-  function ValuePropertiesBlessing(constructor) {
-    const valueDefinitionPairs = readInheritableStaticObjectPairs(constructor, "values");
-    const propertyDescriptorMap = {
-      valueDescriptorMap: {
-        get() {
-          return valueDefinitionPairs.reduce((result, valueDefinitionPair) => {
-            const valueDescriptor = parseValueDefinitionPair(valueDefinitionPair);
-            const attributeName = this.data.getAttributeNameForKey(valueDescriptor.key);
-            return Object.assign(result, { [attributeName]: valueDescriptor });
-          }, {});
-        }
-      }
-    };
-    return valueDefinitionPairs.reduce((properties, valueDefinitionPair) => {
-      return Object.assign(properties, propertiesForValueDefinitionPair(valueDefinitionPair));
-    }, propertyDescriptorMap);
-  }
-  function propertiesForValueDefinitionPair(valueDefinitionPair) {
-    const definition = parseValueDefinitionPair(valueDefinitionPair);
-    const { key, name, reader: read, writer: write } = definition;
-    return {
-      [name]: {
-        get() {
-          const value = this.data.get(key);
-          if (value !== null) {
-            return read(value);
-          } else {
-            return definition.defaultValue;
-          }
-        },
-        set(value) {
-          if (value === void 0) {
-            this.data.delete(key);
-          } else {
-            this.data.set(key, write(value));
-          }
-        }
-      },
-      [`has${capitalize(name)}`]: {
-        get() {
-          return this.data.has(key) || definition.hasCustomDefaultValue;
-        }
-      }
-    };
-  }
-  function parseValueDefinitionPair([token, typeDefinition]) {
-    return valueDescriptorForTokenAndTypeDefinition(token, typeDefinition);
-  }
-  function parseValueTypeConstant(constant) {
-    switch (constant) {
-      case Array:
-        return "array";
-      case Boolean:
-        return "boolean";
-      case Number:
-        return "number";
-      case Object:
-        return "object";
-      case String:
-        return "string";
-    }
-  }
-  function parseValueTypeDefault(defaultValue) {
-    switch (typeof defaultValue) {
-      case "boolean":
-        return "boolean";
-      case "number":
-        return "number";
-      case "string":
-        return "string";
-    }
-    if (Array.isArray(defaultValue))
-      return "array";
-    if (Object.prototype.toString.call(defaultValue) === "[object Object]")
-      return "object";
-  }
-  function parseValueTypeObject(typeObject) {
-    const typeFromObject = parseValueTypeConstant(typeObject.type);
-    if (typeFromObject) {
-      const defaultValueType = parseValueTypeDefault(typeObject.default);
-      if (typeFromObject !== defaultValueType) {
-        throw new Error(`Type "${typeFromObject}" must match the type of the default value. Given default value: "${typeObject.default}" as "${defaultValueType}"`);
-      }
-      return typeFromObject;
-    }
-  }
-  function parseValueTypeDefinition(typeDefinition) {
-    const typeFromObject = parseValueTypeObject(typeDefinition);
-    const typeFromDefaultValue = parseValueTypeDefault(typeDefinition);
-    const typeFromConstant = parseValueTypeConstant(typeDefinition);
-    const type = typeFromObject || typeFromDefaultValue || typeFromConstant;
-    if (type)
-      return type;
-    throw new Error(`Unknown value type "${typeDefinition}"`);
-  }
-  function defaultValueForDefinition(typeDefinition) {
-    const constant = parseValueTypeConstant(typeDefinition);
-    if (constant)
-      return defaultValuesByType[constant];
-    const defaultValue = typeDefinition.default;
-    if (defaultValue !== void 0)
-      return defaultValue;
-    return typeDefinition;
-  }
-  function valueDescriptorForTokenAndTypeDefinition(token, typeDefinition) {
-    const key = `${dasherize(token)}-value`;
-    const type = parseValueTypeDefinition(typeDefinition);
-    return {
-      type,
-      key,
-      name: camelize(key),
-      get defaultValue() {
-        return defaultValueForDefinition(typeDefinition);
-      },
-      get hasCustomDefaultValue() {
-        return parseValueTypeDefault(typeDefinition) !== void 0;
-      },
-      reader: readers[type],
-      writer: writers[type] || writers.default
-    };
-  }
-  var defaultValuesByType = {
-    get array() {
-      return [];
-    },
-    boolean: false,
-    number: 0,
-    get object() {
-      return {};
-    },
-    string: ""
-  };
-  var readers = {
-    array(value) {
-      const array = JSON.parse(value);
-      if (!Array.isArray(array)) {
-        throw new TypeError("Expected array");
-      }
-      return array;
-    },
-    boolean(value) {
-      return !(value == "0" || value == "false");
-    },
-    number(value) {
-      return Number(value);
-    },
-    object(value) {
-      const object = JSON.parse(value);
-      if (object === null || typeof object != "object" || Array.isArray(object)) {
-        throw new TypeError("Expected object");
-      }
-      return object;
-    },
-    string(value) {
-      return value;
-    }
-  };
-  var writers = {
-    default: writeString,
-    array: writeJSON,
-    object: writeJSON
-  };
-  function writeJSON(value) {
-    return JSON.stringify(value);
-  }
-  function writeString(value) {
-    return `${value}`;
-  }
-  var Controller = class {
-    constructor(context) {
-      this.context = context;
-    }
-    static get shouldLoad() {
-      return true;
-    }
-    get application() {
-      return this.context.application;
-    }
-    get scope() {
-      return this.context.scope;
-    }
-    get element() {
-      return this.scope.element;
-    }
-    get identifier() {
-      return this.scope.identifier;
-    }
-    get targets() {
-      return this.scope.targets;
-    }
-    get classes() {
-      return this.scope.classes;
-    }
-    get data() {
-      return this.scope.data;
-    }
-    initialize() {
-    }
-    connect() {
-    }
-    disconnect() {
-    }
-    dispatch(eventName, { target = this.element, detail = {}, prefix = this.identifier, bubbles = true, cancelable = true } = {}) {
-      const type = prefix ? `${prefix}:${eventName}` : eventName;
-      const event = new CustomEvent(type, { detail, bubbles, cancelable });
-      target.dispatchEvent(event);
-      return event;
-    }
-  };
-  Controller.blessings = [ClassPropertiesBlessing, TargetPropertiesBlessing, ValuePropertiesBlessing];
-  Controller.targets = [];
-  Controller.values = {};
-
-  // app/javascript/controllers/application.js
-  var application = Application.start();
-  application.debug = false;
-  window.Stimulus = application;
-
-  // app/javascript/controllers/hello_controller.js
-  var hello_controller_default = class extends Controller {
-    connect() {
-      this.element.textContent = "Hello World!";
-    }
-  };
-
-  // app/javascript/controllers/index.js
-  application.register("hello", hello_controller_default);
-
-  // app/javascript/application.js
-  var import_jquery = __toESM(require_jquery());
-  var import_datatables = __toESM(require_jquery_dataTables());
-  var import_datatables2 = __toESM(require_dataTables_buttons());
-  var import_buttons_html5 = __toESM(require_buttons_html5());
-  var import_buttons_print = __toESM(require_buttons_print());
-  var import_datatables3 = __toESM(require_buttons_bootstrap5());
-  var import_datatables4 = __toESM(require_dataTables_responsive());
-  var import_datatables5 = __toESM(require_dataTables_select());
-  var import_datatables6 = __toESM(require_dataTables_fixedHeader());
-  var import_datatables7 = __toESM(require_dataTables_bootstrap5());
-
-  // app/javascript/modules/bootstrap.js
-  var bootstrap = __toESM(require_bootstrap());
-  window.bootstrap = bootstrap;
-
-  // app/javascript/modules/theme.js
-  var lightTheme = {
-    "primary": "#3B82EC",
-    "primary-dark": "#1659c7",
-    "primary-light": "#84aef2",
-    "secondary": "#495057",
-    "success": "#4BBF73",
-    "info": "#1F9BCF",
-    "warning": "#f0ad4e",
-    "danger": "#d9534f",
-    "white": "#fff",
-    "gray-100": "#f4f7f9",
-    "gray-200": "#e2e8ee",
-    "gray-300": "#dee6ed",
-    "gray-400": "#ced4da",
-    "gray-500": "#adb5bd",
-    "gray-600": "#6c757d",
-    "gray-700": "#495057",
-    "gray-800": "#020202",
-    "gray-900": "#212529",
-    "black": "#000"
-  };
-  var darkTheme = {
-    ...lightTheme,
-    "primary-dark": "#84aef2",
-    "primary-light": "#1659c7",
-    "white": "#293042",
-    "gray-100": "#3e4555",
-    "gray-200": "#545968",
-    "gray-300": "#696e7b",
-    "gray-400": "#7f838e",
-    "gray-500": "#9498a1",
-    "gray-600": "#a9acb3",
-    "gray-700": "#bfc1c6",
-    "gray-800": "#d4d6d9",
-    "gray-900": "#eaeaec",
-    "black": "#fff"
-  };
-  document.querySelectorAll("link[href]").forEach((link) => {
-    const href = link.href.split("/");
-    if (href.pop() === "dark.css") {
-      window.theme = darkTheme;
-    } else {
-      window.theme = lightTheme;
-    }
-  });
-
-  // app/javascript/modules/moment.js
-  var import_moment = __toESM(require_moment());
-  window.moment = import_moment.default;
-
-  // node_modules/core-js/modules/es.array.for-each.js
-  var $ = require_export();
-  var forEach = require_array_for_each();
-  $({ target: "Array", proto: true, forced: [].forEach != forEach }, {
-    forEach
-  });
-
-  // node_modules/core-js/modules/web.dom-collections.for-each.js
-  var global2 = require_global();
-  var DOMIterables = require_dom_iterables();
-  var DOMTokenListPrototype = require_dom_token_list_prototype();
-  var forEach2 = require_array_for_each();
-  var createNonEnumerableProperty = require_create_non_enumerable_property();
-  var handlePrototype = function(CollectionPrototype) {
-    if (CollectionPrototype && CollectionPrototype.forEach !== forEach2)
-      try {
-        createNonEnumerableProperty(CollectionPrototype, "forEach", forEach2);
-      } catch (error2) {
-        CollectionPrototype.forEach = forEach2;
-      }
-  };
-  for (COLLECTION_NAME in DOMIterables) {
-    if (DOMIterables[COLLECTION_NAME]) {
-      handlePrototype(global2[COLLECTION_NAME] && global2[COLLECTION_NAME].prototype);
-    }
-  }
-  var COLLECTION_NAME;
-  handlePrototype(DOMTokenListPrototype);
-
-  // node_modules/simplebar/dist/simplebar.esm.js
-  var import_can_use_dom = __toESM(require_can_use_dom());
-
-  // node_modules/core-js/modules/es.array.filter.js
-  var $2 = require_export();
-  var $filter = require_array_iteration().filter;
-  var arrayMethodHasSpeciesSupport = require_array_method_has_species_support();
-  var HAS_SPECIES_SUPPORT = arrayMethodHasSpeciesSupport("filter");
-  $2({ target: "Array", proto: true, forced: !HAS_SPECIES_SUPPORT }, {
-    filter: function filter(callbackfn) {
-      return $filter(this, callbackfn, arguments.length > 1 ? arguments[1] : void 0);
-    }
-  });
-
-  // node_modules/simplebar/dist/simplebar.esm.js
-  var import_es_array3 = __toESM(require_es_array_iterator());
-
-  // node_modules/core-js/modules/es.object.assign.js
-  var $3 = require_export();
-  var assign = require_object_assign();
-  $3({ target: "Object", stat: true, forced: Object.assign !== assign }, {
-    assign
-  });
-
-  // node_modules/core-js/modules/es.object.to-string.js
-  var TO_STRING_TAG_SUPPORT = require_to_string_tag_support();
-  var redefine = require_redefine();
-  var toString = require_object_to_string();
-  if (!TO_STRING_TAG_SUPPORT) {
-    redefine(Object.prototype, "toString", toString, { unsafe: true });
-  }
-
-  // node_modules/core-js/modules/es.parse-int.js
-  var $4 = require_export();
-  var $parseInt = require_number_parse_int();
-  $4({ global: true, forced: parseInt != $parseInt }, {
-    parseInt: $parseInt
-  });
-
-  // node_modules/core-js/modules/es.string.iterator.js
-  var charAt = require_string_multibyte().charAt;
-  var toString2 = require_to_string();
-  var InternalStateModule = require_internal_state();
-  var defineIterator = require_define_iterator();
-  var STRING_ITERATOR = "String Iterator";
-  var setInternalState = InternalStateModule.set;
-  var getInternalState = InternalStateModule.getterFor(STRING_ITERATOR);
-  defineIterator(String, "String", function(iterated) {
-    setInternalState(this, {
-      type: STRING_ITERATOR,
-      string: toString2(iterated),
-      index: 0
-    });
-  }, function next() {
-    var state = getInternalState(this);
-    var string = state.string;
-    var index = state.index;
-    var point;
-    if (index >= string.length)
-      return { value: void 0, done: true };
-    point = charAt(string, index);
-    state.index += point.length;
-    return { value: point, done: false };
-  });
-
-  // node_modules/core-js/modules/es.weak-map.js
-  var global3 = require_global();
-  var uncurryThis = require_function_uncurry_this();
-  var redefineAll = require_redefine_all();
-  var InternalMetadataModule = require_internal_metadata();
-  var collection = require_collection();
-  var collectionWeak = require_collection_weak();
-  var isObject = require_is_object();
-  var isExtensible = require_object_is_extensible();
-  var enforceInternalState = require_internal_state().enforce;
-  var NATIVE_WEAK_MAP = require_native_weak_map();
-  var IS_IE11 = !global3.ActiveXObject && "ActiveXObject" in global3;
-  var InternalWeakMap;
-  var wrapper = function(init) {
-    return function WeakMap2() {
-      return init(this, arguments.length ? arguments[0] : void 0);
-    };
-  };
-  var $WeakMap = collection("WeakMap", wrapper, collectionWeak);
-  if (NATIVE_WEAK_MAP && IS_IE11) {
-    InternalWeakMap = collectionWeak.getConstructor(wrapper, "WeakMap", true);
-    InternalMetadataModule.enable();
-    WeakMapPrototype = $WeakMap.prototype;
-    nativeDelete = uncurryThis(WeakMapPrototype["delete"]);
-    nativeHas = uncurryThis(WeakMapPrototype.has);
-    nativeGet = uncurryThis(WeakMapPrototype.get);
-    nativeSet = uncurryThis(WeakMapPrototype.set);
-    redefineAll(WeakMapPrototype, {
-      "delete": function(key) {
-        if (isObject(key) && !isExtensible(key)) {
-          var state = enforceInternalState(this);
-          if (!state.frozen)
-            state.frozen = new InternalWeakMap();
-          return nativeDelete(this, key) || state.frozen["delete"](key);
-        }
-        return nativeDelete(this, key);
-      },
-      has: function has(key) {
-        if (isObject(key) && !isExtensible(key)) {
-          var state = enforceInternalState(this);
-          if (!state.frozen)
-            state.frozen = new InternalWeakMap();
-          return nativeHas(this, key) || state.frozen.has(key);
-        }
-        return nativeHas(this, key);
-      },
-      get: function get(key) {
-        if (isObject(key) && !isExtensible(key)) {
-          var state = enforceInternalState(this);
-          if (!state.frozen)
-            state.frozen = new InternalWeakMap();
-          return nativeHas(this, key) ? nativeGet(this, key) : state.frozen.get(key);
-        }
-        return nativeGet(this, key);
-      },
-      set: function set(key, value) {
-        if (isObject(key) && !isExtensible(key)) {
-          var state = enforceInternalState(this);
-          if (!state.frozen)
-            state.frozen = new InternalWeakMap();
-          nativeHas(this, key) ? nativeSet(this, key, value) : state.frozen.set(key, value);
-        } else
-          nativeSet(this, key, value);
-        return this;
-      }
-    });
-  }
-  var WeakMapPrototype;
-  var nativeDelete;
-  var nativeHas;
-  var nativeGet;
-  var nativeSet;
-
-  // node_modules/core-js/modules/web.dom-collections.iterator.js
-  var global4 = require_global();
-  var DOMIterables2 = require_dom_iterables();
-  var DOMTokenListPrototype2 = require_dom_token_list_prototype();
-  var ArrayIteratorMethods = require_es_array_iterator();
-  var createNonEnumerableProperty2 = require_create_non_enumerable_property();
-  var wellKnownSymbol = require_well_known_symbol();
-  var ITERATOR = wellKnownSymbol("iterator");
-  var TO_STRING_TAG = wellKnownSymbol("toStringTag");
-  var ArrayValues = ArrayIteratorMethods.values;
-  var handlePrototype2 = function(CollectionPrototype, COLLECTION_NAME) {
-    if (CollectionPrototype) {
-      if (CollectionPrototype[ITERATOR] !== ArrayValues)
-        try {
-          createNonEnumerableProperty2(CollectionPrototype, ITERATOR, ArrayValues);
-        } catch (error2) {
-          CollectionPrototype[ITERATOR] = ArrayValues;
-        }
-      if (!CollectionPrototype[TO_STRING_TAG]) {
-        createNonEnumerableProperty2(CollectionPrototype, TO_STRING_TAG, COLLECTION_NAME);
-      }
-      if (DOMIterables2[COLLECTION_NAME])
-        for (var METHOD_NAME in ArrayIteratorMethods) {
-          if (CollectionPrototype[METHOD_NAME] !== ArrayIteratorMethods[METHOD_NAME])
-            try {
-              createNonEnumerableProperty2(CollectionPrototype, METHOD_NAME, ArrayIteratorMethods[METHOD_NAME]);
-            } catch (error2) {
-              CollectionPrototype[METHOD_NAME] = ArrayIteratorMethods[METHOD_NAME];
-            }
-        }
-    }
-  };
-  for (COLLECTION_NAME in DOMIterables2) {
-    handlePrototype2(global4[COLLECTION_NAME] && global4[COLLECTION_NAME].prototype, COLLECTION_NAME);
-  }
-  var COLLECTION_NAME;
-  handlePrototype2(DOMTokenListPrototype2, "DOMTokenList");
-
-  // node_modules/simplebar/dist/simplebar.esm.js
-  var import_lodash = __toESM(require_lodash());
-  var import_lodash2 = __toESM(require_lodash2());
-  var import_lodash3 = __toESM(require_lodash3());
-
-  // node_modules/@juggle/resize-observer/lib/utils/resizeObservers.js
-  var resizeObservers = [];
-
-  // node_modules/@juggle/resize-observer/lib/algorithms/hasActiveObservations.js
-  var hasActiveObservations = function() {
-    return resizeObservers.some(function(ro) {
-      return ro.activeTargets.length > 0;
-    });
-  };
-
-  // node_modules/@juggle/resize-observer/lib/algorithms/hasSkippedObservations.js
-  var hasSkippedObservations = function() {
-    return resizeObservers.some(function(ro) {
-      return ro.skippedTargets.length > 0;
-    });
-  };
-
-  // node_modules/@juggle/resize-observer/lib/algorithms/deliverResizeLoopError.js
-  var msg = "ResizeObserver loop completed with undelivered notifications.";
-  var deliverResizeLoopError = function() {
-    var event;
-    if (typeof ErrorEvent === "function") {
-      event = new ErrorEvent("error", {
-        message: msg
-      });
-    } else {
-      event = document.createEvent("Event");
-      event.initEvent("error", false, false);
-      event.message = msg;
-    }
-    window.dispatchEvent(event);
-  };
-
-  // node_modules/@juggle/resize-observer/lib/ResizeObserverBoxOptions.js
-  var ResizeObserverBoxOptions;
-  (function(ResizeObserverBoxOptions2) {
-    ResizeObserverBoxOptions2["BORDER_BOX"] = "border-box";
-    ResizeObserverBoxOptions2["CONTENT_BOX"] = "content-box";
-    ResizeObserverBoxOptions2["DEVICE_PIXEL_CONTENT_BOX"] = "device-pixel-content-box";
-  })(ResizeObserverBoxOptions || (ResizeObserverBoxOptions = {}));
-
-  // node_modules/@juggle/resize-observer/lib/utils/freeze.js
-  var freeze = function(obj) {
-    return Object.freeze(obj);
-  };
-
-  // node_modules/@juggle/resize-observer/lib/ResizeObserverSize.js
-  var ResizeObserverSize = function() {
-    function ResizeObserverSize2(inlineSize, blockSize) {
-      this.inlineSize = inlineSize;
-      this.blockSize = blockSize;
-      freeze(this);
-    }
-    return ResizeObserverSize2;
-  }();
-
-  // node_modules/@juggle/resize-observer/lib/DOMRectReadOnly.js
-  var DOMRectReadOnly = function() {
-    function DOMRectReadOnly2(x, y, width, height) {
-      this.x = x;
-      this.y = y;
-      this.width = width;
-      this.height = height;
-      this.top = this.y;
-      this.left = this.x;
-      this.bottom = this.top + this.height;
-      this.right = this.left + this.width;
-      return freeze(this);
-    }
-    DOMRectReadOnly2.prototype.toJSON = function() {
-      var _a = this, x = _a.x, y = _a.y, top = _a.top, right = _a.right, bottom = _a.bottom, left = _a.left, width = _a.width, height = _a.height;
-      return { x, y, top, right, bottom, left, width, height };
-    };
-    DOMRectReadOnly2.fromRect = function(rectangle) {
-      return new DOMRectReadOnly2(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
-    };
-    return DOMRectReadOnly2;
-  }();
-
-  // node_modules/@juggle/resize-observer/lib/utils/element.js
-  var isSVG = function(target) {
-    return target instanceof SVGElement && "getBBox" in target;
-  };
-  var isHidden = function(target) {
-    if (isSVG(target)) {
-      var _a = target.getBBox(), width = _a.width, height = _a.height;
-      return !width && !height;
-    }
-    var _b = target, offsetWidth = _b.offsetWidth, offsetHeight = _b.offsetHeight;
-    return !(offsetWidth || offsetHeight || target.getClientRects().length);
-  };
-  var isElement = function(obj) {
-    var _a, _b;
-    if (obj instanceof Element) {
-      return true;
-    }
-    var scope = (_b = (_a = obj) === null || _a === void 0 ? void 0 : _a.ownerDocument) === null || _b === void 0 ? void 0 : _b.defaultView;
-    return !!(scope && obj instanceof scope.Element);
-  };
-  var isReplacedElement = function(target) {
-    switch (target.tagName) {
-      case "INPUT":
-        if (target.type !== "image") {
-          break;
-        }
-      case "VIDEO":
-      case "AUDIO":
-      case "EMBED":
-      case "OBJECT":
-      case "CANVAS":
-      case "IFRAME":
-      case "IMG":
-        return true;
-    }
-    return false;
-  };
-
-  // node_modules/@juggle/resize-observer/lib/utils/global.js
-  var global5 = typeof window !== "undefined" ? window : {};
-
-  // node_modules/@juggle/resize-observer/lib/algorithms/calculateBoxSize.js
-  var cache = /* @__PURE__ */ new WeakMap();
-  var scrollRegexp = /auto|scroll/;
-  var verticalRegexp = /^tb|vertical/;
-  var IE = /msie|trident/i.test(global5.navigator && global5.navigator.userAgent);
-  var parseDimension = function(pixel) {
-    return parseFloat(pixel || "0");
-  };
-  var size = function(inlineSize, blockSize, switchSizes) {
-    if (inlineSize === void 0) {
-      inlineSize = 0;
-    }
-    if (blockSize === void 0) {
-      blockSize = 0;
-    }
-    if (switchSizes === void 0) {
-      switchSizes = false;
-    }
-    return new ResizeObserverSize((switchSizes ? blockSize : inlineSize) || 0, (switchSizes ? inlineSize : blockSize) || 0);
-  };
-  var zeroBoxes = freeze({
-    devicePixelContentBoxSize: size(),
-    borderBoxSize: size(),
-    contentBoxSize: size(),
-    contentRect: new DOMRectReadOnly(0, 0, 0, 0)
-  });
-  var calculateBoxSizes = function(target, forceRecalculation) {
-    if (forceRecalculation === void 0) {
-      forceRecalculation = false;
-    }
-    if (cache.has(target) && !forceRecalculation) {
-      return cache.get(target);
-    }
-    if (isHidden(target)) {
-      cache.set(target, zeroBoxes);
-      return zeroBoxes;
-    }
-    var cs = getComputedStyle(target);
-    var svg = isSVG(target) && target.ownerSVGElement && target.getBBox();
-    var removePadding = !IE && cs.boxSizing === "border-box";
-    var switchSizes = verticalRegexp.test(cs.writingMode || "");
-    var canScrollVertically = !svg && scrollRegexp.test(cs.overflowY || "");
-    var canScrollHorizontally = !svg && scrollRegexp.test(cs.overflowX || "");
-    var paddingTop = svg ? 0 : parseDimension(cs.paddingTop);
-    var paddingRight = svg ? 0 : parseDimension(cs.paddingRight);
-    var paddingBottom = svg ? 0 : parseDimension(cs.paddingBottom);
-    var paddingLeft = svg ? 0 : parseDimension(cs.paddingLeft);
-    var borderTop = svg ? 0 : parseDimension(cs.borderTopWidth);
-    var borderRight = svg ? 0 : parseDimension(cs.borderRightWidth);
-    var borderBottom = svg ? 0 : parseDimension(cs.borderBottomWidth);
-    var borderLeft = svg ? 0 : parseDimension(cs.borderLeftWidth);
-    var horizontalPadding = paddingLeft + paddingRight;
-    var verticalPadding = paddingTop + paddingBottom;
-    var horizontalBorderArea = borderLeft + borderRight;
-    var verticalBorderArea = borderTop + borderBottom;
-    var horizontalScrollbarThickness = !canScrollHorizontally ? 0 : target.offsetHeight - verticalBorderArea - target.clientHeight;
-    var verticalScrollbarThickness = !canScrollVertically ? 0 : target.offsetWidth - horizontalBorderArea - target.clientWidth;
-    var widthReduction = removePadding ? horizontalPadding + horizontalBorderArea : 0;
-    var heightReduction = removePadding ? verticalPadding + verticalBorderArea : 0;
-    var contentWidth = svg ? svg.width : parseDimension(cs.width) - widthReduction - verticalScrollbarThickness;
-    var contentHeight = svg ? svg.height : parseDimension(cs.height) - heightReduction - horizontalScrollbarThickness;
-    var borderBoxWidth = contentWidth + horizontalPadding + verticalScrollbarThickness + horizontalBorderArea;
-    var borderBoxHeight = contentHeight + verticalPadding + horizontalScrollbarThickness + verticalBorderArea;
-    var boxes = freeze({
-      devicePixelContentBoxSize: size(Math.round(contentWidth * devicePixelRatio), Math.round(contentHeight * devicePixelRatio), switchSizes),
-      borderBoxSize: size(borderBoxWidth, borderBoxHeight, switchSizes),
-      contentBoxSize: size(contentWidth, contentHeight, switchSizes),
-      contentRect: new DOMRectReadOnly(paddingLeft, paddingTop, contentWidth, contentHeight)
-    });
-    cache.set(target, boxes);
-    return boxes;
-  };
-  var calculateBoxSize = function(target, observedBox, forceRecalculation) {
-    var _a = calculateBoxSizes(target, forceRecalculation), borderBoxSize = _a.borderBoxSize, contentBoxSize = _a.contentBoxSize, devicePixelContentBoxSize = _a.devicePixelContentBoxSize;
-    switch (observedBox) {
-      case ResizeObserverBoxOptions.DEVICE_PIXEL_CONTENT_BOX:
-        return devicePixelContentBoxSize;
-      case ResizeObserverBoxOptions.BORDER_BOX:
-        return borderBoxSize;
-      default:
-        return contentBoxSize;
-    }
-  };
-
-  // node_modules/@juggle/resize-observer/lib/ResizeObserverEntry.js
-  var ResizeObserverEntry = function() {
-    function ResizeObserverEntry2(target) {
-      var boxes = calculateBoxSizes(target);
-      this.target = target;
-      this.contentRect = boxes.contentRect;
-      this.borderBoxSize = freeze([boxes.borderBoxSize]);
-      this.contentBoxSize = freeze([boxes.contentBoxSize]);
-      this.devicePixelContentBoxSize = freeze([boxes.devicePixelContentBoxSize]);
-    }
-    return ResizeObserverEntry2;
-  }();
-
-  // node_modules/@juggle/resize-observer/lib/algorithms/calculateDepthForNode.js
-  var calculateDepthForNode = function(node) {
-    if (isHidden(node)) {
-      return Infinity;
-    }
-    var depth = 0;
-    var parent = node.parentNode;
-    while (parent) {
-      depth += 1;
-      parent = parent.parentNode;
-    }
-    return depth;
-  };
-
-  // node_modules/@juggle/resize-observer/lib/algorithms/broadcastActiveObservations.js
-  var broadcastActiveObservations = function() {
-    var shallowestDepth = Infinity;
-    var callbacks2 = [];
-    resizeObservers.forEach(function processObserver(ro) {
-      if (ro.activeTargets.length === 0) {
-        return;
-      }
-      var entries = [];
-      ro.activeTargets.forEach(function processTarget(ot) {
-        var entry = new ResizeObserverEntry(ot.target);
-        var targetDepth = calculateDepthForNode(ot.target);
-        entries.push(entry);
-        ot.lastReportedSize = calculateBoxSize(ot.target, ot.observedBox);
-        if (targetDepth < shallowestDepth) {
-          shallowestDepth = targetDepth;
-        }
-      });
-      callbacks2.push(function resizeObserverCallback() {
-        ro.callback.call(ro.observer, entries, ro.observer);
-      });
-      ro.activeTargets.splice(0, ro.activeTargets.length);
-    });
-    for (var _i = 0, callbacks_1 = callbacks2; _i < callbacks_1.length; _i++) {
-      var callback = callbacks_1[_i];
-      callback();
-    }
-    return shallowestDepth;
-  };
-
-  // node_modules/@juggle/resize-observer/lib/algorithms/gatherActiveObservationsAtDepth.js
-  var gatherActiveObservationsAtDepth = function(depth) {
-    resizeObservers.forEach(function processObserver(ro) {
-      ro.activeTargets.splice(0, ro.activeTargets.length);
-      ro.skippedTargets.splice(0, ro.skippedTargets.length);
-      ro.observationTargets.forEach(function processTarget(ot) {
-        if (ot.isActive()) {
-          if (calculateDepthForNode(ot.target) > depth) {
-            ro.activeTargets.push(ot);
-          } else {
-            ro.skippedTargets.push(ot);
-          }
-        }
-      });
-    });
-  };
-
-  // node_modules/@juggle/resize-observer/lib/utils/process.js
-  var process2 = function() {
-    var depth = 0;
-    gatherActiveObservationsAtDepth(depth);
-    while (hasActiveObservations()) {
-      depth = broadcastActiveObservations();
-      gatherActiveObservationsAtDepth(depth);
-    }
-    if (hasSkippedObservations()) {
-      deliverResizeLoopError();
-    }
-    return depth > 0;
-  };
-
-  // node_modules/@juggle/resize-observer/lib/utils/queueMicroTask.js
-  var trigger;
-  var callbacks = [];
-  var notify = function() {
-    return callbacks.splice(0).forEach(function(cb) {
-      return cb();
-    });
-  };
-  var queueMicroTask = function(callback) {
-    if (!trigger) {
-      var toggle_1 = 0;
-      var el_1 = document.createTextNode("");
-      var config = { characterData: true };
-      new MutationObserver(function() {
-        return notify();
-      }).observe(el_1, config);
-      trigger = function() {
-        el_1.textContent = "" + (toggle_1 ? toggle_1-- : toggle_1++);
-      };
-    }
-    callbacks.push(callback);
-    trigger();
-  };
-
-  // node_modules/@juggle/resize-observer/lib/utils/queueResizeObserver.js
-  var queueResizeObserver = function(cb) {
-    queueMicroTask(function ResizeObserver2() {
-      requestAnimationFrame(cb);
-    });
-  };
-
-  // node_modules/@juggle/resize-observer/lib/utils/scheduler.js
-  var watching = 0;
-  var isWatching = function() {
-    return !!watching;
-  };
-  var CATCH_PERIOD = 250;
-  var observerConfig = { attributes: true, characterData: true, childList: true, subtree: true };
-  var events = [
-    "resize",
-    "load",
-    "transitionend",
-    "animationend",
-    "animationstart",
-    "animationiteration",
-    "keyup",
-    "keydown",
-    "mouseup",
-    "mousedown",
-    "mouseover",
-    "mouseout",
-    "blur",
-    "focus"
-  ];
-  var time = function(timeout) {
-    if (timeout === void 0) {
-      timeout = 0;
-    }
-    return Date.now() + timeout;
-  };
-  var scheduled = false;
-  var Scheduler = function() {
-    function Scheduler2() {
-      var _this = this;
-      this.stopped = true;
-      this.listener = function() {
-        return _this.schedule();
-      };
-    }
-    Scheduler2.prototype.run = function(timeout) {
-      var _this = this;
-      if (timeout === void 0) {
-        timeout = CATCH_PERIOD;
-      }
-      if (scheduled) {
-        return;
-      }
-      scheduled = true;
-      var until = time(timeout);
-      queueResizeObserver(function() {
-        var elementsHaveResized = false;
-        try {
-          elementsHaveResized = process2();
-        } finally {
-          scheduled = false;
-          timeout = until - time();
-          if (!isWatching()) {
-            return;
-          }
-          if (elementsHaveResized) {
-            _this.run(1e3);
-          } else if (timeout > 0) {
-            _this.run(timeout);
-          } else {
-            _this.start();
-          }
-        }
-      });
-    };
-    Scheduler2.prototype.schedule = function() {
-      this.stop();
-      this.run();
-    };
-    Scheduler2.prototype.observe = function() {
-      var _this = this;
-      var cb = function() {
-        return _this.observer && _this.observer.observe(document.body, observerConfig);
-      };
-      document.body ? cb() : global5.addEventListener("DOMContentLoaded", cb);
-    };
-    Scheduler2.prototype.start = function() {
-      var _this = this;
-      if (this.stopped) {
-        this.stopped = false;
-        this.observer = new MutationObserver(this.listener);
-        this.observe();
-        events.forEach(function(name) {
-          return global5.addEventListener(name, _this.listener, true);
-        });
-      }
-    };
-    Scheduler2.prototype.stop = function() {
-      var _this = this;
-      if (!this.stopped) {
-        this.observer && this.observer.disconnect();
-        events.forEach(function(name) {
-          return global5.removeEventListener(name, _this.listener, true);
-        });
-        this.stopped = true;
-      }
-    };
-    return Scheduler2;
-  }();
-  var scheduler = new Scheduler();
-  var updateCount = function(n) {
-    !watching && n > 0 && scheduler.start();
-    watching += n;
-    !watching && scheduler.stop();
-  };
-
-  // node_modules/@juggle/resize-observer/lib/ResizeObservation.js
-  var skipNotifyOnElement = function(target) {
-    return !isSVG(target) && !isReplacedElement(target) && getComputedStyle(target).display === "inline";
-  };
-  var ResizeObservation = function() {
-    function ResizeObservation2(target, observedBox) {
-      this.target = target;
-      this.observedBox = observedBox || ResizeObserverBoxOptions.CONTENT_BOX;
-      this.lastReportedSize = {
-        inlineSize: 0,
-        blockSize: 0
-      };
-    }
-    ResizeObservation2.prototype.isActive = function() {
-      var size2 = calculateBoxSize(this.target, this.observedBox, true);
-      if (skipNotifyOnElement(this.target)) {
-        this.lastReportedSize = size2;
-      }
-      if (this.lastReportedSize.inlineSize !== size2.inlineSize || this.lastReportedSize.blockSize !== size2.blockSize) {
-        return true;
-      }
-      return false;
-    };
-    return ResizeObservation2;
-  }();
-
-  // node_modules/@juggle/resize-observer/lib/ResizeObserverDetail.js
-  var ResizeObserverDetail = function() {
-    function ResizeObserverDetail2(resizeObserver, callback) {
-      this.activeTargets = [];
-      this.skippedTargets = [];
-      this.observationTargets = [];
-      this.observer = resizeObserver;
-      this.callback = callback;
-    }
-    return ResizeObserverDetail2;
-  }();
-
-  // node_modules/@juggle/resize-observer/lib/ResizeObserverController.js
-  var observerMap = /* @__PURE__ */ new WeakMap();
-  var getObservationIndex = function(observationTargets, target) {
-    for (var i = 0; i < observationTargets.length; i += 1) {
-      if (observationTargets[i].target === target) {
-        return i;
-      }
-    }
-    return -1;
-  };
-  var ResizeObserverController = function() {
-    function ResizeObserverController2() {
-    }
-    ResizeObserverController2.connect = function(resizeObserver, callback) {
-      var detail = new ResizeObserverDetail(resizeObserver, callback);
-      observerMap.set(resizeObserver, detail);
-    };
-    ResizeObserverController2.observe = function(resizeObserver, target, options) {
-      var detail = observerMap.get(resizeObserver);
-      var firstObservation = detail.observationTargets.length === 0;
-      if (getObservationIndex(detail.observationTargets, target) < 0) {
-        firstObservation && resizeObservers.push(detail);
-        detail.observationTargets.push(new ResizeObservation(target, options && options.box));
-        updateCount(1);
-        scheduler.schedule();
-      }
-    };
-    ResizeObserverController2.unobserve = function(resizeObserver, target) {
-      var detail = observerMap.get(resizeObserver);
-      var index = getObservationIndex(detail.observationTargets, target);
-      var lastObservation = detail.observationTargets.length === 1;
-      if (index >= 0) {
-        lastObservation && resizeObservers.splice(resizeObservers.indexOf(detail), 1);
-        detail.observationTargets.splice(index, 1);
-        updateCount(-1);
-      }
-    };
-    ResizeObserverController2.disconnect = function(resizeObserver) {
-      var _this = this;
-      var detail = observerMap.get(resizeObserver);
-      detail.observationTargets.slice().forEach(function(ot) {
-        return _this.unobserve(resizeObserver, ot.target);
-      });
-      detail.activeTargets.splice(0, detail.activeTargets.length);
-    };
-    return ResizeObserverController2;
-  }();
-
-  // node_modules/@juggle/resize-observer/lib/ResizeObserver.js
-  var ResizeObserver = function() {
-    function ResizeObserver2(callback) {
-      if (arguments.length === 0) {
-        throw new TypeError("Failed to construct 'ResizeObserver': 1 argument required, but only 0 present.");
-      }
-      if (typeof callback !== "function") {
-        throw new TypeError("Failed to construct 'ResizeObserver': The callback provided as parameter 1 is not a function.");
-      }
-      ResizeObserverController.connect(this, callback);
-    }
-    ResizeObserver2.prototype.observe = function(target, options) {
-      if (arguments.length === 0) {
-        throw new TypeError("Failed to execute 'observe' on 'ResizeObserver': 1 argument required, but only 0 present.");
-      }
-      if (!isElement(target)) {
-        throw new TypeError("Failed to execute 'observe' on 'ResizeObserver': parameter 1 is not of type 'Element");
-      }
-      ResizeObserverController.observe(this, target, options);
-    };
-    ResizeObserver2.prototype.unobserve = function(target) {
-      if (arguments.length === 0) {
-        throw new TypeError("Failed to execute 'unobserve' on 'ResizeObserver': 1 argument required, but only 0 present.");
-      }
-      if (!isElement(target)) {
-        throw new TypeError("Failed to execute 'unobserve' on 'ResizeObserver': parameter 1 is not of type 'Element");
-      }
-      ResizeObserverController.unobserve(this, target);
-    };
-    ResizeObserver2.prototype.disconnect = function() {
-      ResizeObserverController.disconnect(this);
-    };
-    ResizeObserver2.toString = function() {
-      return "function ResizeObserver () { [polyfill code] }";
-    };
-    return ResizeObserver2;
-  }();
-
-  // node_modules/core-js/modules/es.array.reduce.js
-  var $5 = require_export();
-  var $reduce = require_array_reduce().left;
-  var arrayMethodIsStrict = require_array_method_is_strict();
-  var CHROME_VERSION = require_engine_v8_version();
-  var IS_NODE = require_engine_is_node();
-  var STRICT_METHOD = arrayMethodIsStrict("reduce");
-  var CHROME_BUG = !IS_NODE && CHROME_VERSION > 79 && CHROME_VERSION < 83;
-  $5({ target: "Array", proto: true, forced: !STRICT_METHOD || CHROME_BUG }, {
-    reduce: function reduce(callbackfn) {
-      var length = arguments.length;
-      return $reduce(this, callbackfn, length, length > 1 ? arguments[1] : void 0);
-    }
-  });
-
-  // node_modules/core-js/modules/es.function.name.js
-  var DESCRIPTORS = require_descriptors();
-  var FUNCTION_NAME_EXISTS = require_function_name().EXISTS;
-  var uncurryThis2 = require_function_uncurry_this();
-  var defineProperty = require_object_define_property().f;
-  var FunctionPrototype = Function.prototype;
-  var functionToString = uncurryThis2(FunctionPrototype.toString);
-  var nameRE = /function\b(?:\s|\/\*[\S\s]*?\*\/|\/\/[^\n\r]*[\n\r]+)*([^\s(/]*)/;
-  var regExpExec = uncurryThis2(nameRE.exec);
-  var NAME = "name";
-  if (DESCRIPTORS && !FUNCTION_NAME_EXISTS) {
-    defineProperty(FunctionPrototype, NAME, {
-      configurable: true,
-      get: function() {
-        try {
-          return regExpExec(nameRE, functionToString(this))[1];
-        } catch (error2) {
-          return "";
-        }
-      }
-    });
-  }
-
-  // node_modules/simplebar/dist/simplebar.esm.js
-  var import_es_regexp = __toESM(require_es_regexp_exec());
-
-  // node_modules/core-js/modules/es.string.match.js
-  var call = require_function_call();
-  var fixRegExpWellKnownSymbolLogic = require_fix_regexp_well_known_symbol_logic();
-  var anObject = require_an_object();
-  var toLength = require_to_length();
-  var toString3 = require_to_string();
-  var requireObjectCoercible = require_require_object_coercible();
-  var getMethod = require_get_method();
-  var advanceStringIndex = require_advance_string_index();
-  var regExpExec2 = require_regexp_exec_abstract();
-  fixRegExpWellKnownSymbolLogic("match", function(MATCH, nativeMatch, maybeCallNative) {
-    return [
-      function match(regexp) {
-        var O = requireObjectCoercible(this);
-        var matcher = regexp == void 0 ? void 0 : getMethod(regexp, MATCH);
-        return matcher ? call(matcher, regexp, O) : new RegExp(regexp)[MATCH](toString3(O));
-      },
-      function(string) {
-        var rx = anObject(this);
-        var S = toString3(string);
-        var res = maybeCallNative(nativeMatch, rx, S);
-        if (res.done)
-          return res.value;
-        if (!rx.global)
-          return regExpExec2(rx, S);
-        var fullUnicode = rx.unicode;
-        rx.lastIndex = 0;
-        var A = [];
-        var n = 0;
-        var result;
-        while ((result = regExpExec2(rx, S)) !== null) {
-          var matchStr = toString3(result[0]);
-          A[n] = matchStr;
-          if (matchStr === "")
-            rx.lastIndex = advanceStringIndex(S, toLength(rx.lastIndex), fullUnicode);
-          n++;
-        }
-        return n === 0 ? null : A;
-      }
-    ];
-  });
-
   // node_modules/core-js/modules/es.string.replace.js
-  var apply = require_function_apply();
-  var call2 = require_function_call();
-  var uncurryThis3 = require_function_uncurry_this();
-  var fixRegExpWellKnownSymbolLogic2 = require_fix_regexp_well_known_symbol_logic();
-  var fails = require_fails();
-  var anObject2 = require_an_object();
-  var isCallable = require_is_callable();
-  var toIntegerOrInfinity = require_to_integer_or_infinity();
-  var toLength2 = require_to_length();
-  var toString4 = require_to_string();
-  var requireObjectCoercible2 = require_require_object_coercible();
-  var advanceStringIndex2 = require_advance_string_index();
-  var getMethod2 = require_get_method();
-  var getSubstitution = require_get_substitution();
-  var regExpExec3 = require_regexp_exec_abstract();
-  var wellKnownSymbol2 = require_well_known_symbol();
-  var REPLACE = wellKnownSymbol2("replace");
-  var max = Math.max;
-  var min = Math.min;
-  var concat = uncurryThis3([].concat);
-  var push = uncurryThis3([].push);
-  var stringIndexOf = uncurryThis3("".indexOf);
-  var stringSlice = uncurryThis3("".slice);
-  var maybeToString = function(it) {
-    return it === void 0 ? it : String(it);
-  };
-  var REPLACE_KEEPS_$0 = function() {
-    return "a".replace(/./, "$0") === "$0";
-  }();
-  var REGEXP_REPLACE_SUBSTITUTES_UNDEFINED_CAPTURE = function() {
-    if (/./[REPLACE]) {
-      return /./[REPLACE]("a", "$0") === "";
+  var apply, call2, uncurryThis3, fixRegExpWellKnownSymbolLogic2, fails, anObject2, isCallable, toIntegerOrInfinity, toLength2, toString4, requireObjectCoercible2, advanceStringIndex2, getMethod2, getSubstitution, regExpExec3, wellKnownSymbol2, REPLACE, max, min, concat, push, stringIndexOf, stringSlice, maybeToString, REPLACE_KEEPS_$0, REGEXP_REPLACE_SUBSTITUTES_UNDEFINED_CAPTURE, REPLACE_SUPPORTS_NAMED_GROUPS;
+  var init_es_string_replace = __esm({
+    "node_modules/core-js/modules/es.string.replace.js"() {
+      "use strict";
+      apply = require_function_apply();
+      call2 = require_function_call();
+      uncurryThis3 = require_function_uncurry_this();
+      fixRegExpWellKnownSymbolLogic2 = require_fix_regexp_well_known_symbol_logic();
+      fails = require_fails();
+      anObject2 = require_an_object();
+      isCallable = require_is_callable();
+      toIntegerOrInfinity = require_to_integer_or_infinity();
+      toLength2 = require_to_length();
+      toString4 = require_to_string();
+      requireObjectCoercible2 = require_require_object_coercible();
+      advanceStringIndex2 = require_advance_string_index();
+      getMethod2 = require_get_method();
+      getSubstitution = require_get_substitution();
+      regExpExec3 = require_regexp_exec_abstract();
+      wellKnownSymbol2 = require_well_known_symbol();
+      REPLACE = wellKnownSymbol2("replace");
+      max = Math.max;
+      min = Math.min;
+      concat = uncurryThis3([].concat);
+      push = uncurryThis3([].push);
+      stringIndexOf = uncurryThis3("".indexOf);
+      stringSlice = uncurryThis3("".slice);
+      maybeToString = function(it) {
+        return it === void 0 ? it : String(it);
+      };
+      REPLACE_KEEPS_$0 = function() {
+        return "a".replace(/./, "$0") === "$0";
+      }();
+      REGEXP_REPLACE_SUBSTITUTES_UNDEFINED_CAPTURE = function() {
+        if (/./[REPLACE]) {
+          return /./[REPLACE]("a", "$0") === "";
+        }
+        return false;
+      }();
+      REPLACE_SUPPORTS_NAMED_GROUPS = !fails(function() {
+        var re = /./;
+        re.exec = function() {
+          var result = [];
+          result.groups = { a: "7" };
+          return result;
+        };
+        return "".replace(re, "$<a>") !== "7";
+      });
+      fixRegExpWellKnownSymbolLogic2("replace", function(_, nativeReplace, maybeCallNative) {
+        var UNSAFE_SUBSTITUTE = REGEXP_REPLACE_SUBSTITUTES_UNDEFINED_CAPTURE ? "$" : "$0";
+        return [
+          function replace(searchValue, replaceValue) {
+            var O = requireObjectCoercible2(this);
+            var replacer = searchValue == void 0 ? void 0 : getMethod2(searchValue, REPLACE);
+            return replacer ? call2(replacer, searchValue, O, replaceValue) : call2(nativeReplace, toString4(O), searchValue, replaceValue);
+          },
+          function(string, replaceValue) {
+            var rx = anObject2(this);
+            var S = toString4(string);
+            if (typeof replaceValue == "string" && stringIndexOf(replaceValue, UNSAFE_SUBSTITUTE) === -1 && stringIndexOf(replaceValue, "$<") === -1) {
+              var res = maybeCallNative(nativeReplace, rx, S, replaceValue);
+              if (res.done)
+                return res.value;
+            }
+            var functionalReplace = isCallable(replaceValue);
+            if (!functionalReplace)
+              replaceValue = toString4(replaceValue);
+            var global6 = rx.global;
+            if (global6) {
+              var fullUnicode = rx.unicode;
+              rx.lastIndex = 0;
+            }
+            var results = [];
+            while (true) {
+              var result = regExpExec3(rx, S);
+              if (result === null)
+                break;
+              push(results, result);
+              if (!global6)
+                break;
+              var matchStr = toString4(result[0]);
+              if (matchStr === "")
+                rx.lastIndex = advanceStringIndex2(S, toLength2(rx.lastIndex), fullUnicode);
+            }
+            var accumulatedResult = "";
+            var nextSourcePosition = 0;
+            for (var i = 0; i < results.length; i++) {
+              result = results[i];
+              var matched = toString4(result[0]);
+              var position = max(min(toIntegerOrInfinity(result.index), S.length), 0);
+              var captures = [];
+              for (var j = 1; j < result.length; j++)
+                push(captures, maybeToString(result[j]));
+              var namedCaptures = result.groups;
+              if (functionalReplace) {
+                var replacerArgs = concat([matched], captures, position, S);
+                if (namedCaptures !== void 0)
+                  push(replacerArgs, namedCaptures);
+                var replacement = toString4(apply(replaceValue, void 0, replacerArgs));
+              } else {
+                replacement = getSubstitution(matched, S, position, captures, namedCaptures, replaceValue);
+              }
+              if (position >= nextSourcePosition) {
+                accumulatedResult += stringSlice(S, nextSourcePosition, position) + replacement;
+                nextSourcePosition = position + matched.length;
+              }
+            }
+            return accumulatedResult + stringSlice(S, nextSourcePosition);
+          }
+        ];
+      }, !REPLACE_SUPPORTS_NAMED_GROUPS || !REPLACE_KEEPS_$0 || REGEXP_REPLACE_SUBSTITUTES_UNDEFINED_CAPTURE);
     }
-    return false;
-  }();
-  var REPLACE_SUPPORTS_NAMED_GROUPS = !fails(function() {
-    var re = /./;
-    re.exec = function() {
-      var result = [];
-      result.groups = { a: "7" };
-      return result;
-    };
-    return "".replace(re, "$<a>") !== "7";
   });
-  fixRegExpWellKnownSymbolLogic2("replace", function(_, nativeReplace, maybeCallNative) {
-    var UNSAFE_SUBSTITUTE = REGEXP_REPLACE_SUBSTITUTES_UNDEFINED_CAPTURE ? "$" : "$0";
-    return [
-      function replace(searchValue, replaceValue) {
-        var O = requireObjectCoercible2(this);
-        var replacer = searchValue == void 0 ? void 0 : getMethod2(searchValue, REPLACE);
-        return replacer ? call2(replacer, searchValue, O, replaceValue) : call2(nativeReplace, toString4(O), searchValue, replaceValue);
-      },
-      function(string, replaceValue) {
-        var rx = anObject2(this);
-        var S = toString4(string);
-        if (typeof replaceValue == "string" && stringIndexOf(replaceValue, UNSAFE_SUBSTITUTE) === -1 && stringIndexOf(replaceValue, "$<") === -1) {
-          var res = maybeCallNative(nativeReplace, rx, S, replaceValue);
-          if (res.done)
-            return res.value;
-        }
-        var functionalReplace = isCallable(replaceValue);
-        if (!functionalReplace)
-          replaceValue = toString4(replaceValue);
-        var global6 = rx.global;
-        if (global6) {
-          var fullUnicode = rx.unicode;
-          rx.lastIndex = 0;
-        }
-        var results = [];
-        while (true) {
-          var result = regExpExec3(rx, S);
-          if (result === null)
-            break;
-          push(results, result);
-          if (!global6)
-            break;
-          var matchStr = toString4(result[0]);
-          if (matchStr === "")
-            rx.lastIndex = advanceStringIndex2(S, toLength2(rx.lastIndex), fullUnicode);
-        }
-        var accumulatedResult = "";
-        var nextSourcePosition = 0;
-        for (var i = 0; i < results.length; i++) {
-          result = results[i];
-          var matched = toString4(result[0]);
-          var position = max(min(toIntegerOrInfinity(result.index), S.length), 0);
-          var captures = [];
-          for (var j = 1; j < result.length; j++)
-            push(captures, maybeToString(result[j]));
-          var namedCaptures = result.groups;
-          if (functionalReplace) {
-            var replacerArgs = concat([matched], captures, position, S);
-            if (namedCaptures !== void 0)
-              push(replacerArgs, namedCaptures);
-            var replacement = toString4(apply(replaceValue, void 0, replacerArgs));
-          } else {
-            replacement = getSubstitution(matched, S, position, captures, namedCaptures, replaceValue);
-          }
-          if (position >= nextSourcePosition) {
-            accumulatedResult += stringSlice(S, nextSourcePosition, position) + replacement;
-            nextSourcePosition = position + matched.length;
-          }
-        }
-        return accumulatedResult + stringSlice(S, nextSourcePosition);
-      }
-    ];
-  }, !REPLACE_SUPPORTS_NAMED_GROUPS || !REPLACE_KEEPS_$0 || REGEXP_REPLACE_SUBSTITUTES_UNDEFINED_CAPTURE);
 
   // node_modules/simplebar/dist/simplebar.esm.js
-  var getOptions = function getOptions2(obj) {
-    var options = Array.prototype.reduce.call(obj, function(acc, attribute) {
-      var option = attribute.name.match(/data-simplebar-(.+)/);
-      if (option) {
-        var key = option[1].replace(/\W+(.)/g, function(x, chr) {
-          return chr.toUpperCase();
-        });
-        switch (attribute.value) {
-          case "true":
-            acc[key] = true;
-            break;
-          case "false":
-            acc[key] = false;
-            break;
-          case void 0:
-            acc[key] = true;
-            break;
-          default:
-            acc[key] = attribute.value;
-        }
-      }
-      return acc;
-    }, {});
-    return options;
-  };
   function getElementWindow(element) {
     if (!element || !element.ownerDocument || !element.ownerDocument.defaultView) {
       return window;
@@ -35012,16 +35321,6 @@
       return document;
     }
     return element.ownerDocument;
-  }
-  var cachedScrollbarWidth = null;
-  var cachedDevicePixelRatio = null;
-  if (import_can_use_dom.default) {
-    window.addEventListener("resize", function() {
-      if (cachedDevicePixelRatio !== window.devicePixelRatio) {
-        cachedDevicePixelRatio = window.devicePixelRatio;
-        cachedScrollbarWidth = null;
-      }
-    });
   }
   function scrollbarWidth(el) {
     if (cachedScrollbarWidth === null) {
@@ -35040,1130 +35339,1222 @@
     }
     return cachedScrollbarWidth;
   }
-  var SimpleBar = /* @__PURE__ */ function() {
-    function SimpleBar2(element, options) {
-      var _this = this;
-      this.onScroll = function() {
-        var elWindow = getElementWindow(_this.el);
-        if (!_this.scrollXTicking) {
-          elWindow.requestAnimationFrame(_this.scrollX);
-          _this.scrollXTicking = true;
-        }
-        if (!_this.scrollYTicking) {
-          elWindow.requestAnimationFrame(_this.scrollY);
-          _this.scrollYTicking = true;
-        }
-      };
-      this.scrollX = function() {
-        if (_this.axis.x.isOverflowing) {
-          _this.showScrollbar("x");
-          _this.positionScrollbar("x");
-        }
-        _this.scrollXTicking = false;
-      };
-      this.scrollY = function() {
-        if (_this.axis.y.isOverflowing) {
-          _this.showScrollbar("y");
-          _this.positionScrollbar("y");
-        }
-        _this.scrollYTicking = false;
-      };
-      this.onMouseEnter = function() {
-        _this.showScrollbar("x");
-        _this.showScrollbar("y");
-      };
-      this.onMouseMove = function(e) {
-        _this.mouseX = e.clientX;
-        _this.mouseY = e.clientY;
-        if (_this.axis.x.isOverflowing || _this.axis.x.forceVisible) {
-          _this.onMouseMoveForAxis("x");
-        }
-        if (_this.axis.y.isOverflowing || _this.axis.y.forceVisible) {
-          _this.onMouseMoveForAxis("y");
-        }
-      };
-      this.onMouseLeave = function() {
-        _this.onMouseMove.cancel();
-        if (_this.axis.x.isOverflowing || _this.axis.x.forceVisible) {
-          _this.onMouseLeaveForAxis("x");
-        }
-        if (_this.axis.y.isOverflowing || _this.axis.y.forceVisible) {
-          _this.onMouseLeaveForAxis("y");
-        }
-        _this.mouseX = -1;
-        _this.mouseY = -1;
-      };
-      this.onWindowResize = function() {
-        _this.scrollbarWidth = _this.getScrollbarWidth();
-        _this.hideNativeScrollbar();
-      };
-      this.hideScrollbars = function() {
-        _this.axis.x.track.rect = _this.axis.x.track.el.getBoundingClientRect();
-        _this.axis.y.track.rect = _this.axis.y.track.el.getBoundingClientRect();
-        if (!_this.isWithinBounds(_this.axis.y.track.rect)) {
-          _this.axis.y.scrollbar.el.classList.remove(_this.classNames.visible);
-          _this.axis.y.isVisible = false;
-        }
-        if (!_this.isWithinBounds(_this.axis.x.track.rect)) {
-          _this.axis.x.scrollbar.el.classList.remove(_this.classNames.visible);
-          _this.axis.x.isVisible = false;
-        }
-      };
-      this.onPointerEvent = function(e) {
-        var isWithinTrackXBounds, isWithinTrackYBounds;
-        _this.axis.x.track.rect = _this.axis.x.track.el.getBoundingClientRect();
-        _this.axis.y.track.rect = _this.axis.y.track.el.getBoundingClientRect();
-        if (_this.axis.x.isOverflowing || _this.axis.x.forceVisible) {
-          isWithinTrackXBounds = _this.isWithinBounds(_this.axis.x.track.rect);
-        }
-        if (_this.axis.y.isOverflowing || _this.axis.y.forceVisible) {
-          isWithinTrackYBounds = _this.isWithinBounds(_this.axis.y.track.rect);
-        }
-        if (isWithinTrackXBounds || isWithinTrackYBounds) {
-          e.preventDefault();
-          e.stopPropagation();
-          if (e.type === "mousedown") {
-            if (isWithinTrackXBounds) {
-              _this.axis.x.scrollbar.rect = _this.axis.x.scrollbar.el.getBoundingClientRect();
-              if (_this.isWithinBounds(_this.axis.x.scrollbar.rect)) {
-                _this.onDragStart(e, "x");
-              } else {
-                _this.onTrackClick(e, "x");
-              }
-            }
-            if (isWithinTrackYBounds) {
-              _this.axis.y.scrollbar.rect = _this.axis.y.scrollbar.el.getBoundingClientRect();
-              if (_this.isWithinBounds(_this.axis.y.scrollbar.rect)) {
-                _this.onDragStart(e, "y");
-              } else {
-                _this.onTrackClick(e, "y");
-              }
+  var import_can_use_dom, import_es_array3, import_lodash, import_lodash2, import_lodash3, import_es_regexp, getOptions, cachedScrollbarWidth, cachedDevicePixelRatio, SimpleBar, simplebar_esm_default;
+  var init_simplebar_esm = __esm({
+    "node_modules/simplebar/dist/simplebar.esm.js"() {
+      init_es_array_for_each();
+      init_web_dom_collections_for_each();
+      import_can_use_dom = __toESM(require_can_use_dom());
+      init_es_array_filter();
+      import_es_array3 = __toESM(require_es_array_iterator());
+      init_es_object_assign();
+      init_es_object_to_string();
+      init_es_parse_int();
+      init_es_string_iterator();
+      init_es_weak_map();
+      init_web_dom_collections_iterator();
+      import_lodash = __toESM(require_lodash());
+      import_lodash2 = __toESM(require_lodash2());
+      import_lodash3 = __toESM(require_lodash3());
+      init_resize_observer();
+      init_es_array_reduce();
+      init_es_function_name();
+      import_es_regexp = __toESM(require_es_regexp_exec());
+      init_es_string_match();
+      init_es_string_replace();
+      getOptions = function getOptions2(obj) {
+        var options = Array.prototype.reduce.call(obj, function(acc, attribute) {
+          var option = attribute.name.match(/data-simplebar-(.+)/);
+          if (option) {
+            var key = option[1].replace(/\W+(.)/g, function(x, chr) {
+              return chr.toUpperCase();
+            });
+            switch (attribute.value) {
+              case "true":
+                acc[key] = true;
+                break;
+              case "false":
+                acc[key] = false;
+                break;
+              case void 0:
+                acc[key] = true;
+                break;
+              default:
+                acc[key] = attribute.value;
             }
           }
-        }
+          return acc;
+        }, {});
+        return options;
       };
-      this.drag = function(e) {
-        var eventOffset;
-        var track = _this.axis[_this.draggedAxis].track;
-        var trackSize = track.rect[_this.axis[_this.draggedAxis].sizeAttr];
-        var scrollbar = _this.axis[_this.draggedAxis].scrollbar;
-        var contentSize = _this.contentWrapperEl[_this.axis[_this.draggedAxis].scrollSizeAttr];
-        var hostSize = parseInt(_this.elStyles[_this.axis[_this.draggedAxis].sizeAttr], 10);
-        e.preventDefault();
-        e.stopPropagation();
-        if (_this.draggedAxis === "y") {
-          eventOffset = e.pageY;
-        } else {
-          eventOffset = e.pageX;
-        }
-        var dragPos = eventOffset - track.rect[_this.axis[_this.draggedAxis].offsetAttr] - _this.axis[_this.draggedAxis].dragOffset;
-        var dragPerc = dragPos / (trackSize - scrollbar.size);
-        var scrollPos = dragPerc * (contentSize - hostSize);
-        if (_this.draggedAxis === "x") {
-          scrollPos = _this.isRtl && SimpleBar2.getRtlHelpers().isRtlScrollbarInverted ? scrollPos - (trackSize + scrollbar.size) : scrollPos;
-          scrollPos = _this.isRtl && SimpleBar2.getRtlHelpers().isRtlScrollingInverted ? -scrollPos : scrollPos;
-        }
-        _this.contentWrapperEl[_this.axis[_this.draggedAxis].scrollOffsetAttr] = scrollPos;
-      };
-      this.onEndDrag = function(e) {
-        var elDocument = getElementDocument(_this.el);
-        var elWindow = getElementWindow(_this.el);
-        e.preventDefault();
-        e.stopPropagation();
-        _this.el.classList.remove(_this.classNames.dragging);
-        elDocument.removeEventListener("mousemove", _this.drag, true);
-        elDocument.removeEventListener("mouseup", _this.onEndDrag, true);
-        _this.removePreventClickId = elWindow.setTimeout(function() {
-          elDocument.removeEventListener("click", _this.preventClick, true);
-          elDocument.removeEventListener("dblclick", _this.preventClick, true);
-          _this.removePreventClickId = null;
-        });
-      };
-      this.preventClick = function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-      };
-      this.el = element;
-      this.minScrollbarWidth = 20;
-      this.options = Object.assign({}, SimpleBar2.defaultOptions, {}, options);
-      this.classNames = Object.assign({}, SimpleBar2.defaultOptions.classNames, {}, this.options.classNames);
-      this.axis = {
-        x: {
-          scrollOffsetAttr: "scrollLeft",
-          sizeAttr: "width",
-          scrollSizeAttr: "scrollWidth",
-          offsetSizeAttr: "offsetWidth",
-          offsetAttr: "left",
-          overflowAttr: "overflowX",
-          dragOffset: 0,
-          isOverflowing: true,
-          isVisible: false,
-          forceVisible: false,
-          track: {},
-          scrollbar: {}
-        },
-        y: {
-          scrollOffsetAttr: "scrollTop",
-          sizeAttr: "height",
-          scrollSizeAttr: "scrollHeight",
-          offsetSizeAttr: "offsetHeight",
-          offsetAttr: "top",
-          overflowAttr: "overflowY",
-          dragOffset: 0,
-          isOverflowing: true,
-          isVisible: false,
-          forceVisible: false,
-          track: {},
-          scrollbar: {}
-        }
-      };
-      this.removePreventClickId = null;
-      if (SimpleBar2.instances.has(this.el)) {
-        return;
-      }
-      this.recalculate = (0, import_lodash.default)(this.recalculate.bind(this), 64);
-      this.onMouseMove = (0, import_lodash.default)(this.onMouseMove.bind(this), 64);
-      this.hideScrollbars = (0, import_lodash2.default)(this.hideScrollbars.bind(this), this.options.timeout);
-      this.onWindowResize = (0, import_lodash2.default)(this.onWindowResize.bind(this), 64, {
-        leading: true
-      });
-      SimpleBar2.getRtlHelpers = (0, import_lodash3.default)(SimpleBar2.getRtlHelpers);
-      this.init();
-    }
-    SimpleBar2.getRtlHelpers = function getRtlHelpers() {
-      var dummyDiv = document.createElement("div");
-      dummyDiv.innerHTML = '<div class="hs-dummy-scrollbar-size"><div style="height: 200%; width: 200%; margin: 10px 0;"></div></div>';
-      var scrollbarDummyEl = dummyDiv.firstElementChild;
-      document.body.appendChild(scrollbarDummyEl);
-      var dummyContainerChild = scrollbarDummyEl.firstElementChild;
-      scrollbarDummyEl.scrollLeft = 0;
-      var dummyContainerOffset = SimpleBar2.getOffset(scrollbarDummyEl);
-      var dummyContainerChildOffset = SimpleBar2.getOffset(dummyContainerChild);
-      scrollbarDummyEl.scrollLeft = 999;
-      var dummyContainerScrollOffsetAfterScroll = SimpleBar2.getOffset(dummyContainerChild);
-      return {
-        isRtlScrollingInverted: dummyContainerOffset.left !== dummyContainerChildOffset.left && dummyContainerChildOffset.left - dummyContainerScrollOffsetAfterScroll.left !== 0,
-        isRtlScrollbarInverted: dummyContainerOffset.left !== dummyContainerChildOffset.left
-      };
-    };
-    SimpleBar2.getOffset = function getOffset(el) {
-      var rect = el.getBoundingClientRect();
-      var elDocument = getElementDocument(el);
-      var elWindow = getElementWindow(el);
-      return {
-        top: rect.top + (elWindow.pageYOffset || elDocument.documentElement.scrollTop),
-        left: rect.left + (elWindow.pageXOffset || elDocument.documentElement.scrollLeft)
-      };
-    };
-    var _proto = SimpleBar2.prototype;
-    _proto.init = function init() {
-      SimpleBar2.instances.set(this.el, this);
+      cachedScrollbarWidth = null;
+      cachedDevicePixelRatio = null;
       if (import_can_use_dom.default) {
-        this.initDOM();
-        this.setAccessibilityAttributes();
-        this.scrollbarWidth = this.getScrollbarWidth();
-        this.recalculate();
-        this.initListeners();
-      }
-    };
-    _proto.initDOM = function initDOM() {
-      var _this2 = this;
-      if (Array.prototype.filter.call(this.el.children, function(child) {
-        return child.classList.contains(_this2.classNames.wrapper);
-      }).length) {
-        this.wrapperEl = this.el.querySelector("." + this.classNames.wrapper);
-        this.contentWrapperEl = this.options.scrollableNode || this.el.querySelector("." + this.classNames.contentWrapper);
-        this.contentEl = this.options.contentNode || this.el.querySelector("." + this.classNames.contentEl);
-        this.offsetEl = this.el.querySelector("." + this.classNames.offset);
-        this.maskEl = this.el.querySelector("." + this.classNames.mask);
-        this.placeholderEl = this.findChild(this.wrapperEl, "." + this.classNames.placeholder);
-        this.heightAutoObserverWrapperEl = this.el.querySelector("." + this.classNames.heightAutoObserverWrapperEl);
-        this.heightAutoObserverEl = this.el.querySelector("." + this.classNames.heightAutoObserverEl);
-        this.axis.x.track.el = this.findChild(this.el, "." + this.classNames.track + "." + this.classNames.horizontal);
-        this.axis.y.track.el = this.findChild(this.el, "." + this.classNames.track + "." + this.classNames.vertical);
-      } else {
-        this.wrapperEl = document.createElement("div");
-        this.contentWrapperEl = document.createElement("div");
-        this.offsetEl = document.createElement("div");
-        this.maskEl = document.createElement("div");
-        this.contentEl = document.createElement("div");
-        this.placeholderEl = document.createElement("div");
-        this.heightAutoObserverWrapperEl = document.createElement("div");
-        this.heightAutoObserverEl = document.createElement("div");
-        this.wrapperEl.classList.add(this.classNames.wrapper);
-        this.contentWrapperEl.classList.add(this.classNames.contentWrapper);
-        this.offsetEl.classList.add(this.classNames.offset);
-        this.maskEl.classList.add(this.classNames.mask);
-        this.contentEl.classList.add(this.classNames.contentEl);
-        this.placeholderEl.classList.add(this.classNames.placeholder);
-        this.heightAutoObserverWrapperEl.classList.add(this.classNames.heightAutoObserverWrapperEl);
-        this.heightAutoObserverEl.classList.add(this.classNames.heightAutoObserverEl);
-        while (this.el.firstChild) {
-          this.contentEl.appendChild(this.el.firstChild);
-        }
-        this.contentWrapperEl.appendChild(this.contentEl);
-        this.offsetEl.appendChild(this.contentWrapperEl);
-        this.maskEl.appendChild(this.offsetEl);
-        this.heightAutoObserverWrapperEl.appendChild(this.heightAutoObserverEl);
-        this.wrapperEl.appendChild(this.heightAutoObserverWrapperEl);
-        this.wrapperEl.appendChild(this.maskEl);
-        this.wrapperEl.appendChild(this.placeholderEl);
-        this.el.appendChild(this.wrapperEl);
-      }
-      if (!this.axis.x.track.el || !this.axis.y.track.el) {
-        var track = document.createElement("div");
-        var scrollbar = document.createElement("div");
-        track.classList.add(this.classNames.track);
-        scrollbar.classList.add(this.classNames.scrollbar);
-        track.appendChild(scrollbar);
-        this.axis.x.track.el = track.cloneNode(true);
-        this.axis.x.track.el.classList.add(this.classNames.horizontal);
-        this.axis.y.track.el = track.cloneNode(true);
-        this.axis.y.track.el.classList.add(this.classNames.vertical);
-        this.el.appendChild(this.axis.x.track.el);
-        this.el.appendChild(this.axis.y.track.el);
-      }
-      this.axis.x.scrollbar.el = this.axis.x.track.el.querySelector("." + this.classNames.scrollbar);
-      this.axis.y.scrollbar.el = this.axis.y.track.el.querySelector("." + this.classNames.scrollbar);
-      if (!this.options.autoHide) {
-        this.axis.x.scrollbar.el.classList.add(this.classNames.visible);
-        this.axis.y.scrollbar.el.classList.add(this.classNames.visible);
-      }
-      this.el.setAttribute("data-simplebar", "init");
-    };
-    _proto.setAccessibilityAttributes = function setAccessibilityAttributes() {
-      var ariaLabel = this.options.ariaLabel || "scrollable content";
-      this.contentWrapperEl.setAttribute("tabindex", "0");
-      this.contentWrapperEl.setAttribute("role", "region");
-      this.contentWrapperEl.setAttribute("aria-label", ariaLabel);
-    };
-    _proto.initListeners = function initListeners() {
-      var _this3 = this;
-      var elWindow = getElementWindow(this.el);
-      if (this.options.autoHide) {
-        this.el.addEventListener("mouseenter", this.onMouseEnter);
-      }
-      ["mousedown", "click", "dblclick"].forEach(function(e) {
-        _this3.el.addEventListener(e, _this3.onPointerEvent, true);
-      });
-      ["touchstart", "touchend", "touchmove"].forEach(function(e) {
-        _this3.el.addEventListener(e, _this3.onPointerEvent, {
-          capture: true,
-          passive: true
+        window.addEventListener("resize", function() {
+          if (cachedDevicePixelRatio !== window.devicePixelRatio) {
+            cachedDevicePixelRatio = window.devicePixelRatio;
+            cachedScrollbarWidth = null;
+          }
         });
-      });
-      this.el.addEventListener("mousemove", this.onMouseMove);
-      this.el.addEventListener("mouseleave", this.onMouseLeave);
-      this.contentWrapperEl.addEventListener("scroll", this.onScroll);
-      elWindow.addEventListener("resize", this.onWindowResize);
-      var resizeObserverStarted = false;
-      var resizeObserver = elWindow.ResizeObserver || ResizeObserver;
-      this.resizeObserver = new resizeObserver(function() {
-        if (!resizeObserverStarted)
-          return;
-        _this3.recalculate();
-      });
-      this.resizeObserver.observe(this.el);
-      this.resizeObserver.observe(this.contentEl);
-      elWindow.requestAnimationFrame(function() {
-        resizeObserverStarted = true;
-      });
-      this.mutationObserver = new elWindow.MutationObserver(this.recalculate);
-      this.mutationObserver.observe(this.contentEl, {
-        childList: true,
-        subtree: true,
-        characterData: true
-      });
-    };
-    _proto.recalculate = function recalculate() {
-      var elWindow = getElementWindow(this.el);
-      this.elStyles = elWindow.getComputedStyle(this.el);
-      this.isRtl = this.elStyles.direction === "rtl";
-      var isHeightAuto = this.heightAutoObserverEl.offsetHeight <= 1;
-      var isWidthAuto = this.heightAutoObserverEl.offsetWidth <= 1;
-      var contentElOffsetWidth = this.contentEl.offsetWidth;
-      var contentWrapperElOffsetWidth = this.contentWrapperEl.offsetWidth;
-      var elOverflowX = this.elStyles.overflowX;
-      var elOverflowY = this.elStyles.overflowY;
-      this.contentEl.style.padding = this.elStyles.paddingTop + " " + this.elStyles.paddingRight + " " + this.elStyles.paddingBottom + " " + this.elStyles.paddingLeft;
-      this.wrapperEl.style.margin = "-" + this.elStyles.paddingTop + " -" + this.elStyles.paddingRight + " -" + this.elStyles.paddingBottom + " -" + this.elStyles.paddingLeft;
-      var contentElScrollHeight = this.contentEl.scrollHeight;
-      var contentElScrollWidth = this.contentEl.scrollWidth;
-      this.contentWrapperEl.style.height = isHeightAuto ? "auto" : "100%";
-      this.placeholderEl.style.width = isWidthAuto ? contentElOffsetWidth + "px" : "auto";
-      this.placeholderEl.style.height = contentElScrollHeight + "px";
-      var contentWrapperElOffsetHeight = this.contentWrapperEl.offsetHeight;
-      this.axis.x.isOverflowing = contentElScrollWidth > contentElOffsetWidth;
-      this.axis.y.isOverflowing = contentElScrollHeight > contentWrapperElOffsetHeight;
-      this.axis.x.isOverflowing = elOverflowX === "hidden" ? false : this.axis.x.isOverflowing;
-      this.axis.y.isOverflowing = elOverflowY === "hidden" ? false : this.axis.y.isOverflowing;
-      this.axis.x.forceVisible = this.options.forceVisible === "x" || this.options.forceVisible === true;
-      this.axis.y.forceVisible = this.options.forceVisible === "y" || this.options.forceVisible === true;
-      this.hideNativeScrollbar();
-      var offsetForXScrollbar = this.axis.x.isOverflowing ? this.scrollbarWidth : 0;
-      var offsetForYScrollbar = this.axis.y.isOverflowing ? this.scrollbarWidth : 0;
-      this.axis.x.isOverflowing = this.axis.x.isOverflowing && contentElScrollWidth > contentWrapperElOffsetWidth - offsetForYScrollbar;
-      this.axis.y.isOverflowing = this.axis.y.isOverflowing && contentElScrollHeight > contentWrapperElOffsetHeight - offsetForXScrollbar;
-      this.axis.x.scrollbar.size = this.getScrollbarSize("x");
-      this.axis.y.scrollbar.size = this.getScrollbarSize("y");
-      this.axis.x.scrollbar.el.style.width = this.axis.x.scrollbar.size + "px";
-      this.axis.y.scrollbar.el.style.height = this.axis.y.scrollbar.size + "px";
-      this.positionScrollbar("x");
-      this.positionScrollbar("y");
-      this.toggleTrackVisibility("x");
-      this.toggleTrackVisibility("y");
-    };
-    _proto.getScrollbarSize = function getScrollbarSize(axis) {
-      if (axis === void 0) {
-        axis = "y";
       }
-      if (!this.axis[axis].isOverflowing) {
-        return 0;
-      }
-      var contentSize = this.contentEl[this.axis[axis].scrollSizeAttr];
-      var trackSize = this.axis[axis].track.el[this.axis[axis].offsetSizeAttr];
-      var scrollbarSize;
-      var scrollbarRatio = trackSize / contentSize;
-      scrollbarSize = Math.max(~~(scrollbarRatio * trackSize), this.options.scrollbarMinSize);
-      if (this.options.scrollbarMaxSize) {
-        scrollbarSize = Math.min(scrollbarSize, this.options.scrollbarMaxSize);
-      }
-      return scrollbarSize;
-    };
-    _proto.positionScrollbar = function positionScrollbar(axis) {
-      if (axis === void 0) {
-        axis = "y";
-      }
-      if (!this.axis[axis].isOverflowing) {
-        return;
-      }
-      var contentSize = this.contentWrapperEl[this.axis[axis].scrollSizeAttr];
-      var trackSize = this.axis[axis].track.el[this.axis[axis].offsetSizeAttr];
-      var hostSize = parseInt(this.elStyles[this.axis[axis].sizeAttr], 10);
-      var scrollbar = this.axis[axis].scrollbar;
-      var scrollOffset = this.contentWrapperEl[this.axis[axis].scrollOffsetAttr];
-      scrollOffset = axis === "x" && this.isRtl && SimpleBar2.getRtlHelpers().isRtlScrollingInverted ? -scrollOffset : scrollOffset;
-      var scrollPourcent = scrollOffset / (contentSize - hostSize);
-      var handleOffset = ~~((trackSize - scrollbar.size) * scrollPourcent);
-      handleOffset = axis === "x" && this.isRtl && SimpleBar2.getRtlHelpers().isRtlScrollbarInverted ? handleOffset + (trackSize - scrollbar.size) : handleOffset;
-      scrollbar.el.style.transform = axis === "x" ? "translate3d(" + handleOffset + "px, 0, 0)" : "translate3d(0, " + handleOffset + "px, 0)";
-    };
-    _proto.toggleTrackVisibility = function toggleTrackVisibility(axis) {
-      if (axis === void 0) {
-        axis = "y";
-      }
-      var track = this.axis[axis].track.el;
-      var scrollbar = this.axis[axis].scrollbar.el;
-      if (this.axis[axis].isOverflowing || this.axis[axis].forceVisible) {
-        track.style.visibility = "visible";
-        this.contentWrapperEl.style[this.axis[axis].overflowAttr] = "scroll";
-      } else {
-        track.style.visibility = "hidden";
-        this.contentWrapperEl.style[this.axis[axis].overflowAttr] = "hidden";
-      }
-      if (this.axis[axis].isOverflowing) {
-        scrollbar.style.display = "block";
-      } else {
-        scrollbar.style.display = "none";
-      }
-    };
-    _proto.hideNativeScrollbar = function hideNativeScrollbar() {
-      this.offsetEl.style[this.isRtl ? "left" : "right"] = this.axis.y.isOverflowing || this.axis.y.forceVisible ? "-" + this.scrollbarWidth + "px" : 0;
-      this.offsetEl.style.bottom = this.axis.x.isOverflowing || this.axis.x.forceVisible ? "-" + this.scrollbarWidth + "px" : 0;
-    };
-    _proto.onMouseMoveForAxis = function onMouseMoveForAxis(axis) {
-      if (axis === void 0) {
-        axis = "y";
-      }
-      this.axis[axis].track.rect = this.axis[axis].track.el.getBoundingClientRect();
-      this.axis[axis].scrollbar.rect = this.axis[axis].scrollbar.el.getBoundingClientRect();
-      var isWithinScrollbarBoundsX = this.isWithinBounds(this.axis[axis].scrollbar.rect);
-      if (isWithinScrollbarBoundsX) {
-        this.axis[axis].scrollbar.el.classList.add(this.classNames.hover);
-      } else {
-        this.axis[axis].scrollbar.el.classList.remove(this.classNames.hover);
-      }
-      if (this.isWithinBounds(this.axis[axis].track.rect)) {
-        this.showScrollbar(axis);
-        this.axis[axis].track.el.classList.add(this.classNames.hover);
-      } else {
-        this.axis[axis].track.el.classList.remove(this.classNames.hover);
-      }
-    };
-    _proto.onMouseLeaveForAxis = function onMouseLeaveForAxis(axis) {
-      if (axis === void 0) {
-        axis = "y";
-      }
-      this.axis[axis].track.el.classList.remove(this.classNames.hover);
-      this.axis[axis].scrollbar.el.classList.remove(this.classNames.hover);
-    };
-    _proto.showScrollbar = function showScrollbar(axis) {
-      if (axis === void 0) {
-        axis = "y";
-      }
-      var scrollbar = this.axis[axis].scrollbar.el;
-      if (!this.axis[axis].isVisible) {
-        scrollbar.classList.add(this.classNames.visible);
-        this.axis[axis].isVisible = true;
-      }
-      if (this.options.autoHide) {
-        this.hideScrollbars();
-      }
-    };
-    _proto.onDragStart = function onDragStart(e, axis) {
-      if (axis === void 0) {
-        axis = "y";
-      }
-      var elDocument = getElementDocument(this.el);
-      var elWindow = getElementWindow(this.el);
-      var scrollbar = this.axis[axis].scrollbar;
-      var eventOffset = axis === "y" ? e.pageY : e.pageX;
-      this.axis[axis].dragOffset = eventOffset - scrollbar.rect[this.axis[axis].offsetAttr];
-      this.draggedAxis = axis;
-      this.el.classList.add(this.classNames.dragging);
-      elDocument.addEventListener("mousemove", this.drag, true);
-      elDocument.addEventListener("mouseup", this.onEndDrag, true);
-      if (this.removePreventClickId === null) {
-        elDocument.addEventListener("click", this.preventClick, true);
-        elDocument.addEventListener("dblclick", this.preventClick, true);
-      } else {
-        elWindow.clearTimeout(this.removePreventClickId);
-        this.removePreventClickId = null;
-      }
-    };
-    _proto.onTrackClick = function onTrackClick(e, axis) {
-      var _this4 = this;
-      if (axis === void 0) {
-        axis = "y";
-      }
-      if (!this.options.clickOnTrack)
-        return;
-      var elWindow = getElementWindow(this.el);
-      this.axis[axis].scrollbar.rect = this.axis[axis].scrollbar.el.getBoundingClientRect();
-      var scrollbar = this.axis[axis].scrollbar;
-      var scrollbarOffset = scrollbar.rect[this.axis[axis].offsetAttr];
-      var hostSize = parseInt(this.elStyles[this.axis[axis].sizeAttr], 10);
-      var scrolled = this.contentWrapperEl[this.axis[axis].scrollOffsetAttr];
-      var t = axis === "y" ? this.mouseY - scrollbarOffset : this.mouseX - scrollbarOffset;
-      var dir = t < 0 ? -1 : 1;
-      var scrollSize = dir === -1 ? scrolled - hostSize : scrolled + hostSize;
-      var scrollTo = function scrollTo2() {
-        if (dir === -1) {
-          if (scrolled > scrollSize) {
-            var _this4$contentWrapper;
-            scrolled -= _this4.options.clickOnTrackSpeed;
-            _this4.contentWrapperEl.scrollTo((_this4$contentWrapper = {}, _this4$contentWrapper[_this4.axis[axis].offsetAttr] = scrolled, _this4$contentWrapper));
-            elWindow.requestAnimationFrame(scrollTo2);
+      SimpleBar = /* @__PURE__ */ function() {
+        function SimpleBar2(element, options) {
+          var _this = this;
+          this.onScroll = function() {
+            var elWindow = getElementWindow(_this.el);
+            if (!_this.scrollXTicking) {
+              elWindow.requestAnimationFrame(_this.scrollX);
+              _this.scrollXTicking = true;
+            }
+            if (!_this.scrollYTicking) {
+              elWindow.requestAnimationFrame(_this.scrollY);
+              _this.scrollYTicking = true;
+            }
+          };
+          this.scrollX = function() {
+            if (_this.axis.x.isOverflowing) {
+              _this.showScrollbar("x");
+              _this.positionScrollbar("x");
+            }
+            _this.scrollXTicking = false;
+          };
+          this.scrollY = function() {
+            if (_this.axis.y.isOverflowing) {
+              _this.showScrollbar("y");
+              _this.positionScrollbar("y");
+            }
+            _this.scrollYTicking = false;
+          };
+          this.onMouseEnter = function() {
+            _this.showScrollbar("x");
+            _this.showScrollbar("y");
+          };
+          this.onMouseMove = function(e) {
+            _this.mouseX = e.clientX;
+            _this.mouseY = e.clientY;
+            if (_this.axis.x.isOverflowing || _this.axis.x.forceVisible) {
+              _this.onMouseMoveForAxis("x");
+            }
+            if (_this.axis.y.isOverflowing || _this.axis.y.forceVisible) {
+              _this.onMouseMoveForAxis("y");
+            }
+          };
+          this.onMouseLeave = function() {
+            _this.onMouseMove.cancel();
+            if (_this.axis.x.isOverflowing || _this.axis.x.forceVisible) {
+              _this.onMouseLeaveForAxis("x");
+            }
+            if (_this.axis.y.isOverflowing || _this.axis.y.forceVisible) {
+              _this.onMouseLeaveForAxis("y");
+            }
+            _this.mouseX = -1;
+            _this.mouseY = -1;
+          };
+          this.onWindowResize = function() {
+            _this.scrollbarWidth = _this.getScrollbarWidth();
+            _this.hideNativeScrollbar();
+          };
+          this.hideScrollbars = function() {
+            _this.axis.x.track.rect = _this.axis.x.track.el.getBoundingClientRect();
+            _this.axis.y.track.rect = _this.axis.y.track.el.getBoundingClientRect();
+            if (!_this.isWithinBounds(_this.axis.y.track.rect)) {
+              _this.axis.y.scrollbar.el.classList.remove(_this.classNames.visible);
+              _this.axis.y.isVisible = false;
+            }
+            if (!_this.isWithinBounds(_this.axis.x.track.rect)) {
+              _this.axis.x.scrollbar.el.classList.remove(_this.classNames.visible);
+              _this.axis.x.isVisible = false;
+            }
+          };
+          this.onPointerEvent = function(e) {
+            var isWithinTrackXBounds, isWithinTrackYBounds;
+            _this.axis.x.track.rect = _this.axis.x.track.el.getBoundingClientRect();
+            _this.axis.y.track.rect = _this.axis.y.track.el.getBoundingClientRect();
+            if (_this.axis.x.isOverflowing || _this.axis.x.forceVisible) {
+              isWithinTrackXBounds = _this.isWithinBounds(_this.axis.x.track.rect);
+            }
+            if (_this.axis.y.isOverflowing || _this.axis.y.forceVisible) {
+              isWithinTrackYBounds = _this.isWithinBounds(_this.axis.y.track.rect);
+            }
+            if (isWithinTrackXBounds || isWithinTrackYBounds) {
+              e.preventDefault();
+              e.stopPropagation();
+              if (e.type === "mousedown") {
+                if (isWithinTrackXBounds) {
+                  _this.axis.x.scrollbar.rect = _this.axis.x.scrollbar.el.getBoundingClientRect();
+                  if (_this.isWithinBounds(_this.axis.x.scrollbar.rect)) {
+                    _this.onDragStart(e, "x");
+                  } else {
+                    _this.onTrackClick(e, "x");
+                  }
+                }
+                if (isWithinTrackYBounds) {
+                  _this.axis.y.scrollbar.rect = _this.axis.y.scrollbar.el.getBoundingClientRect();
+                  if (_this.isWithinBounds(_this.axis.y.scrollbar.rect)) {
+                    _this.onDragStart(e, "y");
+                  } else {
+                    _this.onTrackClick(e, "y");
+                  }
+                }
+              }
+            }
+          };
+          this.drag = function(e) {
+            var eventOffset;
+            var track = _this.axis[_this.draggedAxis].track;
+            var trackSize = track.rect[_this.axis[_this.draggedAxis].sizeAttr];
+            var scrollbar = _this.axis[_this.draggedAxis].scrollbar;
+            var contentSize = _this.contentWrapperEl[_this.axis[_this.draggedAxis].scrollSizeAttr];
+            var hostSize = parseInt(_this.elStyles[_this.axis[_this.draggedAxis].sizeAttr], 10);
+            e.preventDefault();
+            e.stopPropagation();
+            if (_this.draggedAxis === "y") {
+              eventOffset = e.pageY;
+            } else {
+              eventOffset = e.pageX;
+            }
+            var dragPos = eventOffset - track.rect[_this.axis[_this.draggedAxis].offsetAttr] - _this.axis[_this.draggedAxis].dragOffset;
+            var dragPerc = dragPos / (trackSize - scrollbar.size);
+            var scrollPos = dragPerc * (contentSize - hostSize);
+            if (_this.draggedAxis === "x") {
+              scrollPos = _this.isRtl && SimpleBar2.getRtlHelpers().isRtlScrollbarInverted ? scrollPos - (trackSize + scrollbar.size) : scrollPos;
+              scrollPos = _this.isRtl && SimpleBar2.getRtlHelpers().isRtlScrollingInverted ? -scrollPos : scrollPos;
+            }
+            _this.contentWrapperEl[_this.axis[_this.draggedAxis].scrollOffsetAttr] = scrollPos;
+          };
+          this.onEndDrag = function(e) {
+            var elDocument = getElementDocument(_this.el);
+            var elWindow = getElementWindow(_this.el);
+            e.preventDefault();
+            e.stopPropagation();
+            _this.el.classList.remove(_this.classNames.dragging);
+            elDocument.removeEventListener("mousemove", _this.drag, true);
+            elDocument.removeEventListener("mouseup", _this.onEndDrag, true);
+            _this.removePreventClickId = elWindow.setTimeout(function() {
+              elDocument.removeEventListener("click", _this.preventClick, true);
+              elDocument.removeEventListener("dblclick", _this.preventClick, true);
+              _this.removePreventClickId = null;
+            });
+          };
+          this.preventClick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+          };
+          this.el = element;
+          this.minScrollbarWidth = 20;
+          this.options = Object.assign({}, SimpleBar2.defaultOptions, {}, options);
+          this.classNames = Object.assign({}, SimpleBar2.defaultOptions.classNames, {}, this.options.classNames);
+          this.axis = {
+            x: {
+              scrollOffsetAttr: "scrollLeft",
+              sizeAttr: "width",
+              scrollSizeAttr: "scrollWidth",
+              offsetSizeAttr: "offsetWidth",
+              offsetAttr: "left",
+              overflowAttr: "overflowX",
+              dragOffset: 0,
+              isOverflowing: true,
+              isVisible: false,
+              forceVisible: false,
+              track: {},
+              scrollbar: {}
+            },
+            y: {
+              scrollOffsetAttr: "scrollTop",
+              sizeAttr: "height",
+              scrollSizeAttr: "scrollHeight",
+              offsetSizeAttr: "offsetHeight",
+              offsetAttr: "top",
+              overflowAttr: "overflowY",
+              dragOffset: 0,
+              isOverflowing: true,
+              isVisible: false,
+              forceVisible: false,
+              track: {},
+              scrollbar: {}
+            }
+          };
+          this.removePreventClickId = null;
+          if (SimpleBar2.instances.has(this.el)) {
+            return;
           }
+          this.recalculate = (0, import_lodash.default)(this.recalculate.bind(this), 64);
+          this.onMouseMove = (0, import_lodash.default)(this.onMouseMove.bind(this), 64);
+          this.hideScrollbars = (0, import_lodash2.default)(this.hideScrollbars.bind(this), this.options.timeout);
+          this.onWindowResize = (0, import_lodash2.default)(this.onWindowResize.bind(this), 64, {
+            leading: true
+          });
+          SimpleBar2.getRtlHelpers = (0, import_lodash3.default)(SimpleBar2.getRtlHelpers);
+          this.init();
+        }
+        SimpleBar2.getRtlHelpers = function getRtlHelpers() {
+          var dummyDiv = document.createElement("div");
+          dummyDiv.innerHTML = '<div class="hs-dummy-scrollbar-size"><div style="height: 200%; width: 200%; margin: 10px 0;"></div></div>';
+          var scrollbarDummyEl = dummyDiv.firstElementChild;
+          document.body.appendChild(scrollbarDummyEl);
+          var dummyContainerChild = scrollbarDummyEl.firstElementChild;
+          scrollbarDummyEl.scrollLeft = 0;
+          var dummyContainerOffset = SimpleBar2.getOffset(scrollbarDummyEl);
+          var dummyContainerChildOffset = SimpleBar2.getOffset(dummyContainerChild);
+          scrollbarDummyEl.scrollLeft = 999;
+          var dummyContainerScrollOffsetAfterScroll = SimpleBar2.getOffset(dummyContainerChild);
+          return {
+            isRtlScrollingInverted: dummyContainerOffset.left !== dummyContainerChildOffset.left && dummyContainerChildOffset.left - dummyContainerScrollOffsetAfterScroll.left !== 0,
+            isRtlScrollbarInverted: dummyContainerOffset.left !== dummyContainerChildOffset.left
+          };
+        };
+        SimpleBar2.getOffset = function getOffset(el) {
+          var rect = el.getBoundingClientRect();
+          var elDocument = getElementDocument(el);
+          var elWindow = getElementWindow(el);
+          return {
+            top: rect.top + (elWindow.pageYOffset || elDocument.documentElement.scrollTop),
+            left: rect.left + (elWindow.pageXOffset || elDocument.documentElement.scrollLeft)
+          };
+        };
+        var _proto = SimpleBar2.prototype;
+        _proto.init = function init() {
+          SimpleBar2.instances.set(this.el, this);
+          if (import_can_use_dom.default) {
+            this.initDOM();
+            this.setAccessibilityAttributes();
+            this.scrollbarWidth = this.getScrollbarWidth();
+            this.recalculate();
+            this.initListeners();
+          }
+        };
+        _proto.initDOM = function initDOM() {
+          var _this2 = this;
+          if (Array.prototype.filter.call(this.el.children, function(child) {
+            return child.classList.contains(_this2.classNames.wrapper);
+          }).length) {
+            this.wrapperEl = this.el.querySelector("." + this.classNames.wrapper);
+            this.contentWrapperEl = this.options.scrollableNode || this.el.querySelector("." + this.classNames.contentWrapper);
+            this.contentEl = this.options.contentNode || this.el.querySelector("." + this.classNames.contentEl);
+            this.offsetEl = this.el.querySelector("." + this.classNames.offset);
+            this.maskEl = this.el.querySelector("." + this.classNames.mask);
+            this.placeholderEl = this.findChild(this.wrapperEl, "." + this.classNames.placeholder);
+            this.heightAutoObserverWrapperEl = this.el.querySelector("." + this.classNames.heightAutoObserverWrapperEl);
+            this.heightAutoObserverEl = this.el.querySelector("." + this.classNames.heightAutoObserverEl);
+            this.axis.x.track.el = this.findChild(this.el, "." + this.classNames.track + "." + this.classNames.horizontal);
+            this.axis.y.track.el = this.findChild(this.el, "." + this.classNames.track + "." + this.classNames.vertical);
+          } else {
+            this.wrapperEl = document.createElement("div");
+            this.contentWrapperEl = document.createElement("div");
+            this.offsetEl = document.createElement("div");
+            this.maskEl = document.createElement("div");
+            this.contentEl = document.createElement("div");
+            this.placeholderEl = document.createElement("div");
+            this.heightAutoObserverWrapperEl = document.createElement("div");
+            this.heightAutoObserverEl = document.createElement("div");
+            this.wrapperEl.classList.add(this.classNames.wrapper);
+            this.contentWrapperEl.classList.add(this.classNames.contentWrapper);
+            this.offsetEl.classList.add(this.classNames.offset);
+            this.maskEl.classList.add(this.classNames.mask);
+            this.contentEl.classList.add(this.classNames.contentEl);
+            this.placeholderEl.classList.add(this.classNames.placeholder);
+            this.heightAutoObserverWrapperEl.classList.add(this.classNames.heightAutoObserverWrapperEl);
+            this.heightAutoObserverEl.classList.add(this.classNames.heightAutoObserverEl);
+            while (this.el.firstChild) {
+              this.contentEl.appendChild(this.el.firstChild);
+            }
+            this.contentWrapperEl.appendChild(this.contentEl);
+            this.offsetEl.appendChild(this.contentWrapperEl);
+            this.maskEl.appendChild(this.offsetEl);
+            this.heightAutoObserverWrapperEl.appendChild(this.heightAutoObserverEl);
+            this.wrapperEl.appendChild(this.heightAutoObserverWrapperEl);
+            this.wrapperEl.appendChild(this.maskEl);
+            this.wrapperEl.appendChild(this.placeholderEl);
+            this.el.appendChild(this.wrapperEl);
+          }
+          if (!this.axis.x.track.el || !this.axis.y.track.el) {
+            var track = document.createElement("div");
+            var scrollbar = document.createElement("div");
+            track.classList.add(this.classNames.track);
+            scrollbar.classList.add(this.classNames.scrollbar);
+            track.appendChild(scrollbar);
+            this.axis.x.track.el = track.cloneNode(true);
+            this.axis.x.track.el.classList.add(this.classNames.horizontal);
+            this.axis.y.track.el = track.cloneNode(true);
+            this.axis.y.track.el.classList.add(this.classNames.vertical);
+            this.el.appendChild(this.axis.x.track.el);
+            this.el.appendChild(this.axis.y.track.el);
+          }
+          this.axis.x.scrollbar.el = this.axis.x.track.el.querySelector("." + this.classNames.scrollbar);
+          this.axis.y.scrollbar.el = this.axis.y.track.el.querySelector("." + this.classNames.scrollbar);
+          if (!this.options.autoHide) {
+            this.axis.x.scrollbar.el.classList.add(this.classNames.visible);
+            this.axis.y.scrollbar.el.classList.add(this.classNames.visible);
+          }
+          this.el.setAttribute("data-simplebar", "init");
+        };
+        _proto.setAccessibilityAttributes = function setAccessibilityAttributes() {
+          var ariaLabel = this.options.ariaLabel || "scrollable content";
+          this.contentWrapperEl.setAttribute("tabindex", "0");
+          this.contentWrapperEl.setAttribute("role", "region");
+          this.contentWrapperEl.setAttribute("aria-label", ariaLabel);
+        };
+        _proto.initListeners = function initListeners() {
+          var _this3 = this;
+          var elWindow = getElementWindow(this.el);
+          if (this.options.autoHide) {
+            this.el.addEventListener("mouseenter", this.onMouseEnter);
+          }
+          ["mousedown", "click", "dblclick"].forEach(function(e) {
+            _this3.el.addEventListener(e, _this3.onPointerEvent, true);
+          });
+          ["touchstart", "touchend", "touchmove"].forEach(function(e) {
+            _this3.el.addEventListener(e, _this3.onPointerEvent, {
+              capture: true,
+              passive: true
+            });
+          });
+          this.el.addEventListener("mousemove", this.onMouseMove);
+          this.el.addEventListener("mouseleave", this.onMouseLeave);
+          this.contentWrapperEl.addEventListener("scroll", this.onScroll);
+          elWindow.addEventListener("resize", this.onWindowResize);
+          var resizeObserverStarted = false;
+          var resizeObserver = elWindow.ResizeObserver || ResizeObserver;
+          this.resizeObserver = new resizeObserver(function() {
+            if (!resizeObserverStarted)
+              return;
+            _this3.recalculate();
+          });
+          this.resizeObserver.observe(this.el);
+          this.resizeObserver.observe(this.contentEl);
+          elWindow.requestAnimationFrame(function() {
+            resizeObserverStarted = true;
+          });
+          this.mutationObserver = new elWindow.MutationObserver(this.recalculate);
+          this.mutationObserver.observe(this.contentEl, {
+            childList: true,
+            subtree: true,
+            characterData: true
+          });
+        };
+        _proto.recalculate = function recalculate() {
+          var elWindow = getElementWindow(this.el);
+          this.elStyles = elWindow.getComputedStyle(this.el);
+          this.isRtl = this.elStyles.direction === "rtl";
+          var isHeightAuto = this.heightAutoObserverEl.offsetHeight <= 1;
+          var isWidthAuto = this.heightAutoObserverEl.offsetWidth <= 1;
+          var contentElOffsetWidth = this.contentEl.offsetWidth;
+          var contentWrapperElOffsetWidth = this.contentWrapperEl.offsetWidth;
+          var elOverflowX = this.elStyles.overflowX;
+          var elOverflowY = this.elStyles.overflowY;
+          this.contentEl.style.padding = this.elStyles.paddingTop + " " + this.elStyles.paddingRight + " " + this.elStyles.paddingBottom + " " + this.elStyles.paddingLeft;
+          this.wrapperEl.style.margin = "-" + this.elStyles.paddingTop + " -" + this.elStyles.paddingRight + " -" + this.elStyles.paddingBottom + " -" + this.elStyles.paddingLeft;
+          var contentElScrollHeight = this.contentEl.scrollHeight;
+          var contentElScrollWidth = this.contentEl.scrollWidth;
+          this.contentWrapperEl.style.height = isHeightAuto ? "auto" : "100%";
+          this.placeholderEl.style.width = isWidthAuto ? contentElOffsetWidth + "px" : "auto";
+          this.placeholderEl.style.height = contentElScrollHeight + "px";
+          var contentWrapperElOffsetHeight = this.contentWrapperEl.offsetHeight;
+          this.axis.x.isOverflowing = contentElScrollWidth > contentElOffsetWidth;
+          this.axis.y.isOverflowing = contentElScrollHeight > contentWrapperElOffsetHeight;
+          this.axis.x.isOverflowing = elOverflowX === "hidden" ? false : this.axis.x.isOverflowing;
+          this.axis.y.isOverflowing = elOverflowY === "hidden" ? false : this.axis.y.isOverflowing;
+          this.axis.x.forceVisible = this.options.forceVisible === "x" || this.options.forceVisible === true;
+          this.axis.y.forceVisible = this.options.forceVisible === "y" || this.options.forceVisible === true;
+          this.hideNativeScrollbar();
+          var offsetForXScrollbar = this.axis.x.isOverflowing ? this.scrollbarWidth : 0;
+          var offsetForYScrollbar = this.axis.y.isOverflowing ? this.scrollbarWidth : 0;
+          this.axis.x.isOverflowing = this.axis.x.isOverflowing && contentElScrollWidth > contentWrapperElOffsetWidth - offsetForYScrollbar;
+          this.axis.y.isOverflowing = this.axis.y.isOverflowing && contentElScrollHeight > contentWrapperElOffsetHeight - offsetForXScrollbar;
+          this.axis.x.scrollbar.size = this.getScrollbarSize("x");
+          this.axis.y.scrollbar.size = this.getScrollbarSize("y");
+          this.axis.x.scrollbar.el.style.width = this.axis.x.scrollbar.size + "px";
+          this.axis.y.scrollbar.el.style.height = this.axis.y.scrollbar.size + "px";
+          this.positionScrollbar("x");
+          this.positionScrollbar("y");
+          this.toggleTrackVisibility("x");
+          this.toggleTrackVisibility("y");
+        };
+        _proto.getScrollbarSize = function getScrollbarSize(axis) {
+          if (axis === void 0) {
+            axis = "y";
+          }
+          if (!this.axis[axis].isOverflowing) {
+            return 0;
+          }
+          var contentSize = this.contentEl[this.axis[axis].scrollSizeAttr];
+          var trackSize = this.axis[axis].track.el[this.axis[axis].offsetSizeAttr];
+          var scrollbarSize;
+          var scrollbarRatio = trackSize / contentSize;
+          scrollbarSize = Math.max(~~(scrollbarRatio * trackSize), this.options.scrollbarMinSize);
+          if (this.options.scrollbarMaxSize) {
+            scrollbarSize = Math.min(scrollbarSize, this.options.scrollbarMaxSize);
+          }
+          return scrollbarSize;
+        };
+        _proto.positionScrollbar = function positionScrollbar(axis) {
+          if (axis === void 0) {
+            axis = "y";
+          }
+          if (!this.axis[axis].isOverflowing) {
+            return;
+          }
+          var contentSize = this.contentWrapperEl[this.axis[axis].scrollSizeAttr];
+          var trackSize = this.axis[axis].track.el[this.axis[axis].offsetSizeAttr];
+          var hostSize = parseInt(this.elStyles[this.axis[axis].sizeAttr], 10);
+          var scrollbar = this.axis[axis].scrollbar;
+          var scrollOffset = this.contentWrapperEl[this.axis[axis].scrollOffsetAttr];
+          scrollOffset = axis === "x" && this.isRtl && SimpleBar2.getRtlHelpers().isRtlScrollingInverted ? -scrollOffset : scrollOffset;
+          var scrollPourcent = scrollOffset / (contentSize - hostSize);
+          var handleOffset = ~~((trackSize - scrollbar.size) * scrollPourcent);
+          handleOffset = axis === "x" && this.isRtl && SimpleBar2.getRtlHelpers().isRtlScrollbarInverted ? handleOffset + (trackSize - scrollbar.size) : handleOffset;
+          scrollbar.el.style.transform = axis === "x" ? "translate3d(" + handleOffset + "px, 0, 0)" : "translate3d(0, " + handleOffset + "px, 0)";
+        };
+        _proto.toggleTrackVisibility = function toggleTrackVisibility(axis) {
+          if (axis === void 0) {
+            axis = "y";
+          }
+          var track = this.axis[axis].track.el;
+          var scrollbar = this.axis[axis].scrollbar.el;
+          if (this.axis[axis].isOverflowing || this.axis[axis].forceVisible) {
+            track.style.visibility = "visible";
+            this.contentWrapperEl.style[this.axis[axis].overflowAttr] = "scroll";
+          } else {
+            track.style.visibility = "hidden";
+            this.contentWrapperEl.style[this.axis[axis].overflowAttr] = "hidden";
+          }
+          if (this.axis[axis].isOverflowing) {
+            scrollbar.style.display = "block";
+          } else {
+            scrollbar.style.display = "none";
+          }
+        };
+        _proto.hideNativeScrollbar = function hideNativeScrollbar() {
+          this.offsetEl.style[this.isRtl ? "left" : "right"] = this.axis.y.isOverflowing || this.axis.y.forceVisible ? "-" + this.scrollbarWidth + "px" : 0;
+          this.offsetEl.style.bottom = this.axis.x.isOverflowing || this.axis.x.forceVisible ? "-" + this.scrollbarWidth + "px" : 0;
+        };
+        _proto.onMouseMoveForAxis = function onMouseMoveForAxis(axis) {
+          if (axis === void 0) {
+            axis = "y";
+          }
+          this.axis[axis].track.rect = this.axis[axis].track.el.getBoundingClientRect();
+          this.axis[axis].scrollbar.rect = this.axis[axis].scrollbar.el.getBoundingClientRect();
+          var isWithinScrollbarBoundsX = this.isWithinBounds(this.axis[axis].scrollbar.rect);
+          if (isWithinScrollbarBoundsX) {
+            this.axis[axis].scrollbar.el.classList.add(this.classNames.hover);
+          } else {
+            this.axis[axis].scrollbar.el.classList.remove(this.classNames.hover);
+          }
+          if (this.isWithinBounds(this.axis[axis].track.rect)) {
+            this.showScrollbar(axis);
+            this.axis[axis].track.el.classList.add(this.classNames.hover);
+          } else {
+            this.axis[axis].track.el.classList.remove(this.classNames.hover);
+          }
+        };
+        _proto.onMouseLeaveForAxis = function onMouseLeaveForAxis(axis) {
+          if (axis === void 0) {
+            axis = "y";
+          }
+          this.axis[axis].track.el.classList.remove(this.classNames.hover);
+          this.axis[axis].scrollbar.el.classList.remove(this.classNames.hover);
+        };
+        _proto.showScrollbar = function showScrollbar(axis) {
+          if (axis === void 0) {
+            axis = "y";
+          }
+          var scrollbar = this.axis[axis].scrollbar.el;
+          if (!this.axis[axis].isVisible) {
+            scrollbar.classList.add(this.classNames.visible);
+            this.axis[axis].isVisible = true;
+          }
+          if (this.options.autoHide) {
+            this.hideScrollbars();
+          }
+        };
+        _proto.onDragStart = function onDragStart(e, axis) {
+          if (axis === void 0) {
+            axis = "y";
+          }
+          var elDocument = getElementDocument(this.el);
+          var elWindow = getElementWindow(this.el);
+          var scrollbar = this.axis[axis].scrollbar;
+          var eventOffset = axis === "y" ? e.pageY : e.pageX;
+          this.axis[axis].dragOffset = eventOffset - scrollbar.rect[this.axis[axis].offsetAttr];
+          this.draggedAxis = axis;
+          this.el.classList.add(this.classNames.dragging);
+          elDocument.addEventListener("mousemove", this.drag, true);
+          elDocument.addEventListener("mouseup", this.onEndDrag, true);
+          if (this.removePreventClickId === null) {
+            elDocument.addEventListener("click", this.preventClick, true);
+            elDocument.addEventListener("dblclick", this.preventClick, true);
+          } else {
+            elWindow.clearTimeout(this.removePreventClickId);
+            this.removePreventClickId = null;
+          }
+        };
+        _proto.onTrackClick = function onTrackClick(e, axis) {
+          var _this4 = this;
+          if (axis === void 0) {
+            axis = "y";
+          }
+          if (!this.options.clickOnTrack)
+            return;
+          var elWindow = getElementWindow(this.el);
+          this.axis[axis].scrollbar.rect = this.axis[axis].scrollbar.el.getBoundingClientRect();
+          var scrollbar = this.axis[axis].scrollbar;
+          var scrollbarOffset = scrollbar.rect[this.axis[axis].offsetAttr];
+          var hostSize = parseInt(this.elStyles[this.axis[axis].sizeAttr], 10);
+          var scrolled = this.contentWrapperEl[this.axis[axis].scrollOffsetAttr];
+          var t = axis === "y" ? this.mouseY - scrollbarOffset : this.mouseX - scrollbarOffset;
+          var dir = t < 0 ? -1 : 1;
+          var scrollSize = dir === -1 ? scrolled - hostSize : scrolled + hostSize;
+          var scrollTo = function scrollTo2() {
+            if (dir === -1) {
+              if (scrolled > scrollSize) {
+                var _this4$contentWrapper;
+                scrolled -= _this4.options.clickOnTrackSpeed;
+                _this4.contentWrapperEl.scrollTo((_this4$contentWrapper = {}, _this4$contentWrapper[_this4.axis[axis].offsetAttr] = scrolled, _this4$contentWrapper));
+                elWindow.requestAnimationFrame(scrollTo2);
+              }
+            } else {
+              if (scrolled < scrollSize) {
+                var _this4$contentWrapper2;
+                scrolled += _this4.options.clickOnTrackSpeed;
+                _this4.contentWrapperEl.scrollTo((_this4$contentWrapper2 = {}, _this4$contentWrapper2[_this4.axis[axis].offsetAttr] = scrolled, _this4$contentWrapper2));
+                elWindow.requestAnimationFrame(scrollTo2);
+              }
+            }
+          };
+          scrollTo();
+        };
+        _proto.getContentElement = function getContentElement() {
+          return this.contentEl;
+        };
+        _proto.getScrollElement = function getScrollElement() {
+          return this.contentWrapperEl;
+        };
+        _proto.getScrollbarWidth = function getScrollbarWidth() {
+          try {
+            if (getComputedStyle(this.contentWrapperEl, "::-webkit-scrollbar").display === "none" || "scrollbarWidth" in document.documentElement.style || "-ms-overflow-style" in document.documentElement.style) {
+              return 0;
+            } else {
+              return scrollbarWidth(this.el);
+            }
+          } catch (e) {
+            return scrollbarWidth(this.el);
+          }
+        };
+        _proto.removeListeners = function removeListeners() {
+          var _this5 = this;
+          var elWindow = getElementWindow(this.el);
+          if (this.options.autoHide) {
+            this.el.removeEventListener("mouseenter", this.onMouseEnter);
+          }
+          ["mousedown", "click", "dblclick"].forEach(function(e) {
+            _this5.el.removeEventListener(e, _this5.onPointerEvent, true);
+          });
+          ["touchstart", "touchend", "touchmove"].forEach(function(e) {
+            _this5.el.removeEventListener(e, _this5.onPointerEvent, {
+              capture: true,
+              passive: true
+            });
+          });
+          this.el.removeEventListener("mousemove", this.onMouseMove);
+          this.el.removeEventListener("mouseleave", this.onMouseLeave);
+          if (this.contentWrapperEl) {
+            this.contentWrapperEl.removeEventListener("scroll", this.onScroll);
+          }
+          elWindow.removeEventListener("resize", this.onWindowResize);
+          if (this.mutationObserver) {
+            this.mutationObserver.disconnect();
+          }
+          if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+          }
+          this.recalculate.cancel();
+          this.onMouseMove.cancel();
+          this.hideScrollbars.cancel();
+          this.onWindowResize.cancel();
+        };
+        _proto.unMount = function unMount() {
+          this.removeListeners();
+          SimpleBar2.instances.delete(this.el);
+        };
+        _proto.isWithinBounds = function isWithinBounds(bbox) {
+          return this.mouseX >= bbox.left && this.mouseX <= bbox.left + bbox.width && this.mouseY >= bbox.top && this.mouseY <= bbox.top + bbox.height;
+        };
+        _proto.findChild = function findChild(el, query) {
+          var matches = el.matches || el.webkitMatchesSelector || el.mozMatchesSelector || el.msMatchesSelector;
+          return Array.prototype.filter.call(el.children, function(child) {
+            return matches.call(child, query);
+          })[0];
+        };
+        return SimpleBar2;
+      }();
+      SimpleBar.defaultOptions = {
+        autoHide: true,
+        forceVisible: false,
+        clickOnTrack: true,
+        clickOnTrackSpeed: 40,
+        classNames: {
+          contentEl: "simplebar-content",
+          contentWrapper: "simplebar-content-wrapper",
+          offset: "simplebar-offset",
+          mask: "simplebar-mask",
+          wrapper: "simplebar-wrapper",
+          placeholder: "simplebar-placeholder",
+          scrollbar: "simplebar-scrollbar",
+          track: "simplebar-track",
+          heightAutoObserverWrapperEl: "simplebar-height-auto-observer-wrapper",
+          heightAutoObserverEl: "simplebar-height-auto-observer",
+          visible: "simplebar-visible",
+          horizontal: "simplebar-horizontal",
+          vertical: "simplebar-vertical",
+          hover: "simplebar-hover",
+          dragging: "simplebar-dragging"
+        },
+        scrollbarMinSize: 25,
+        scrollbarMaxSize: 0,
+        timeout: 1e3
+      };
+      SimpleBar.instances = /* @__PURE__ */ new WeakMap();
+      SimpleBar.initDOMLoadedElements = function() {
+        document.removeEventListener("DOMContentLoaded", this.initDOMLoadedElements);
+        window.removeEventListener("load", this.initDOMLoadedElements);
+        Array.prototype.forEach.call(document.querySelectorAll("[data-simplebar]"), function(el) {
+          if (el.getAttribute("data-simplebar") !== "init" && !SimpleBar.instances.has(el))
+            new SimpleBar(el, getOptions(el.attributes));
+        });
+      };
+      SimpleBar.removeObserver = function() {
+        this.globalObserver.disconnect();
+      };
+      SimpleBar.initHtmlApi = function() {
+        this.initDOMLoadedElements = this.initDOMLoadedElements.bind(this);
+        if (typeof MutationObserver !== "undefined") {
+          this.globalObserver = new MutationObserver(SimpleBar.handleMutations);
+          this.globalObserver.observe(document, {
+            childList: true,
+            subtree: true
+          });
+        }
+        if (document.readyState === "complete" || document.readyState !== "loading" && !document.documentElement.doScroll) {
+          window.setTimeout(this.initDOMLoadedElements);
         } else {
-          if (scrolled < scrollSize) {
-            var _this4$contentWrapper2;
-            scrolled += _this4.options.clickOnTrackSpeed;
-            _this4.contentWrapperEl.scrollTo((_this4$contentWrapper2 = {}, _this4$contentWrapper2[_this4.axis[axis].offsetAttr] = scrolled, _this4$contentWrapper2));
-            elWindow.requestAnimationFrame(scrollTo2);
-          }
+          document.addEventListener("DOMContentLoaded", this.initDOMLoadedElements);
+          window.addEventListener("load", this.initDOMLoadedElements);
         }
       };
-      scrollTo();
-    };
-    _proto.getContentElement = function getContentElement() {
-      return this.contentEl;
-    };
-    _proto.getScrollElement = function getScrollElement() {
-      return this.contentWrapperEl;
-    };
-    _proto.getScrollbarWidth = function getScrollbarWidth() {
-      try {
-        if (getComputedStyle(this.contentWrapperEl, "::-webkit-scrollbar").display === "none" || "scrollbarWidth" in document.documentElement.style || "-ms-overflow-style" in document.documentElement.style) {
-          return 0;
-        } else {
-          return scrollbarWidth(this.el);
-        }
-      } catch (e) {
-        return scrollbarWidth(this.el);
-      }
-    };
-    _proto.removeListeners = function removeListeners() {
-      var _this5 = this;
-      var elWindow = getElementWindow(this.el);
-      if (this.options.autoHide) {
-        this.el.removeEventListener("mouseenter", this.onMouseEnter);
-      }
-      ["mousedown", "click", "dblclick"].forEach(function(e) {
-        _this5.el.removeEventListener(e, _this5.onPointerEvent, true);
-      });
-      ["touchstart", "touchend", "touchmove"].forEach(function(e) {
-        _this5.el.removeEventListener(e, _this5.onPointerEvent, {
-          capture: true,
-          passive: true
+      SimpleBar.handleMutations = function(mutations) {
+        mutations.forEach(function(mutation) {
+          Array.prototype.forEach.call(mutation.addedNodes, function(addedNode) {
+            if (addedNode.nodeType === 1) {
+              if (addedNode.hasAttribute("data-simplebar")) {
+                !SimpleBar.instances.has(addedNode) && document.documentElement.contains(addedNode) && new SimpleBar(addedNode, getOptions(addedNode.attributes));
+              } else {
+                Array.prototype.forEach.call(addedNode.querySelectorAll("[data-simplebar]"), function(el) {
+                  if (el.getAttribute("data-simplebar") !== "init" && !SimpleBar.instances.has(el) && document.documentElement.contains(el))
+                    new SimpleBar(el, getOptions(el.attributes));
+                });
+              }
+            }
+          });
+          Array.prototype.forEach.call(mutation.removedNodes, function(removedNode) {
+            if (removedNode.nodeType === 1) {
+              if (removedNode.getAttribute("data-simplebar") === "init") {
+                SimpleBar.instances.has(removedNode) && !document.documentElement.contains(removedNode) && SimpleBar.instances.get(removedNode).unMount();
+              } else {
+                Array.prototype.forEach.call(removedNode.querySelectorAll('[data-simplebar="init"]'), function(el) {
+                  SimpleBar.instances.has(el) && !document.documentElement.contains(el) && SimpleBar.instances.get(el).unMount();
+                });
+              }
+            }
+          });
         });
-      });
-      this.el.removeEventListener("mousemove", this.onMouseMove);
-      this.el.removeEventListener("mouseleave", this.onMouseLeave);
-      if (this.contentWrapperEl) {
-        this.contentWrapperEl.removeEventListener("scroll", this.onScroll);
+      };
+      SimpleBar.getOptions = getOptions;
+      if (import_can_use_dom.default) {
+        SimpleBar.initHtmlApi();
       }
-      elWindow.removeEventListener("resize", this.onWindowResize);
-      if (this.mutationObserver) {
-        this.mutationObserver.disconnect();
-      }
-      if (this.resizeObserver) {
-        this.resizeObserver.disconnect();
-      }
-      this.recalculate.cancel();
-      this.onMouseMove.cancel();
-      this.hideScrollbars.cancel();
-      this.onWindowResize.cancel();
-    };
-    _proto.unMount = function unMount() {
-      this.removeListeners();
-      SimpleBar2.instances.delete(this.el);
-    };
-    _proto.isWithinBounds = function isWithinBounds(bbox) {
-      return this.mouseX >= bbox.left && this.mouseX <= bbox.left + bbox.width && this.mouseY >= bbox.top && this.mouseY <= bbox.top + bbox.height;
-    };
-    _proto.findChild = function findChild(el, query) {
-      var matches = el.matches || el.webkitMatchesSelector || el.mozMatchesSelector || el.msMatchesSelector;
-      return Array.prototype.filter.call(el.children, function(child) {
-        return matches.call(child, query);
-      })[0];
-    };
-    return SimpleBar2;
-  }();
-  SimpleBar.defaultOptions = {
-    autoHide: true,
-    forceVisible: false,
-    clickOnTrack: true,
-    clickOnTrackSpeed: 40,
-    classNames: {
-      contentEl: "simplebar-content",
-      contentWrapper: "simplebar-content-wrapper",
-      offset: "simplebar-offset",
-      mask: "simplebar-mask",
-      wrapper: "simplebar-wrapper",
-      placeholder: "simplebar-placeholder",
-      scrollbar: "simplebar-scrollbar",
-      track: "simplebar-track",
-      heightAutoObserverWrapperEl: "simplebar-height-auto-observer-wrapper",
-      heightAutoObserverEl: "simplebar-height-auto-observer",
-      visible: "simplebar-visible",
-      horizontal: "simplebar-horizontal",
-      vertical: "simplebar-vertical",
-      hover: "simplebar-hover",
-      dragging: "simplebar-dragging"
-    },
-    scrollbarMinSize: 25,
-    scrollbarMaxSize: 0,
-    timeout: 1e3
-  };
-  SimpleBar.instances = /* @__PURE__ */ new WeakMap();
-  SimpleBar.initDOMLoadedElements = function() {
-    document.removeEventListener("DOMContentLoaded", this.initDOMLoadedElements);
-    window.removeEventListener("load", this.initDOMLoadedElements);
-    Array.prototype.forEach.call(document.querySelectorAll("[data-simplebar]"), function(el) {
-      if (el.getAttribute("data-simplebar") !== "init" && !SimpleBar.instances.has(el))
-        new SimpleBar(el, getOptions(el.attributes));
-    });
-  };
-  SimpleBar.removeObserver = function() {
-    this.globalObserver.disconnect();
-  };
-  SimpleBar.initHtmlApi = function() {
-    this.initDOMLoadedElements = this.initDOMLoadedElements.bind(this);
-    if (typeof MutationObserver !== "undefined") {
-      this.globalObserver = new MutationObserver(SimpleBar.handleMutations);
-      this.globalObserver.observe(document, {
-        childList: true,
-        subtree: true
-      });
+      simplebar_esm_default = SimpleBar;
     }
-    if (document.readyState === "complete" || document.readyState !== "loading" && !document.documentElement.doScroll) {
-      window.setTimeout(this.initDOMLoadedElements);
-    } else {
-      document.addEventListener("DOMContentLoaded", this.initDOMLoadedElements);
-      window.addEventListener("load", this.initDOMLoadedElements);
-    }
-  };
-  SimpleBar.handleMutations = function(mutations) {
-    mutations.forEach(function(mutation) {
-      Array.prototype.forEach.call(mutation.addedNodes, function(addedNode) {
-        if (addedNode.nodeType === 1) {
-          if (addedNode.hasAttribute("data-simplebar")) {
-            !SimpleBar.instances.has(addedNode) && document.documentElement.contains(addedNode) && new SimpleBar(addedNode, getOptions(addedNode.attributes));
-          } else {
-            Array.prototype.forEach.call(addedNode.querySelectorAll("[data-simplebar]"), function(el) {
-              if (el.getAttribute("data-simplebar") !== "init" && !SimpleBar.instances.has(el) && document.documentElement.contains(el))
-                new SimpleBar(el, getOptions(el.attributes));
-            });
-          }
-        }
-      });
-      Array.prototype.forEach.call(mutation.removedNodes, function(removedNode) {
-        if (removedNode.nodeType === 1) {
-          if (removedNode.getAttribute("data-simplebar") === "init") {
-            SimpleBar.instances.has(removedNode) && !document.documentElement.contains(removedNode) && SimpleBar.instances.get(removedNode).unMount();
-          } else {
-            Array.prototype.forEach.call(removedNode.querySelectorAll('[data-simplebar="init"]'), function(el) {
-              SimpleBar.instances.has(el) && !document.documentElement.contains(el) && SimpleBar.instances.get(el).unMount();
-            });
-          }
-        }
-      });
-    });
-  };
-  SimpleBar.getOptions = getOptions;
-  if (import_can_use_dom.default) {
-    SimpleBar.initHtmlApi();
-  }
-  var simplebar_esm_default = SimpleBar;
+  });
 
   // app/javascript/modules/sidebar.js
-  document.addEventListener("DOMContentLoaded", () => {
-    const simpleBarElement = document.getElementsByClassName("js-simplebar")[0];
-    if (simpleBarElement) {
-      new simplebar_esm_default(document.getElementsByClassName("js-simplebar")[0]);
-      const sidebarElement = document.getElementsByClassName("sidebar")[0];
-      const sidebarToggleElement = document.getElementsByClassName("sidebar-toggle")[0];
-      sidebarToggleElement.addEventListener("click", () => {
-        sidebarElement.classList.toggle("collapsed");
-        sidebarElement.addEventListener("transitionend", () => {
-          window.dispatchEvent(new Event("resize"));
-        });
+  var sidebar_exports = {};
+  var init_sidebar = __esm({
+    "app/javascript/modules/sidebar.js"() {
+      init_simplebar_esm();
+      document.addEventListener("DOMContentLoaded", () => {
+        const simpleBarElement = document.getElementsByClassName("js-simplebar")[0];
+        if (simpleBarElement) {
+          new simplebar_esm_default(document.getElementsByClassName("js-simplebar")[0]);
+          const sidebarElement = document.getElementsByClassName("sidebar")[0];
+          const sidebarToggleElement = document.getElementsByClassName("sidebar-toggle")[0];
+          sidebarToggleElement.addEventListener("click", () => {
+            sidebarElement.classList.toggle("collapsed");
+            sidebarElement.addEventListener("transitionend", () => {
+              window.dispatchEvent(new Event("resize"));
+            });
+          });
+        }
       });
     }
   });
 
   // node_modules/notyf/notyf.es.js
-  var __assign = function() {
-    __assign = Object.assign || function __assign2(t) {
-      for (var s, i = 1, n = arguments.length; i < n; i++) {
-        s = arguments[i];
-        for (var p in s)
-          if (Object.prototype.hasOwnProperty.call(s, p))
-            t[p] = s[p];
-      }
-      return t;
-    };
-    return __assign.apply(this, arguments);
-  };
-  var NotyfNotification = function() {
-    function NotyfNotification2(options) {
-      this.options = options;
-      this.listeners = {};
-    }
-    NotyfNotification2.prototype.on = function(eventType, cb) {
-      var callbacks2 = this.listeners[eventType] || [];
-      this.listeners[eventType] = callbacks2.concat([cb]);
-    };
-    NotyfNotification2.prototype.triggerEvent = function(eventType, event) {
-      var _this = this;
-      var callbacks2 = this.listeners[eventType] || [];
-      callbacks2.forEach(function(cb) {
-        return cb({ target: _this, event });
-      });
-    };
-    return NotyfNotification2;
-  }();
-  var NotyfArrayEvent;
-  (function(NotyfArrayEvent2) {
-    NotyfArrayEvent2[NotyfArrayEvent2["Add"] = 0] = "Add";
-    NotyfArrayEvent2[NotyfArrayEvent2["Remove"] = 1] = "Remove";
-  })(NotyfArrayEvent || (NotyfArrayEvent = {}));
-  var NotyfArray = function() {
-    function NotyfArray2() {
-      this.notifications = [];
-    }
-    NotyfArray2.prototype.push = function(elem) {
-      this.notifications.push(elem);
-      this.updateFn(elem, NotyfArrayEvent.Add, this.notifications);
-    };
-    NotyfArray2.prototype.splice = function(index, num) {
-      var elem = this.notifications.splice(index, num)[0];
-      this.updateFn(elem, NotyfArrayEvent.Remove, this.notifications);
-      return elem;
-    };
-    NotyfArray2.prototype.indexOf = function(elem) {
-      return this.notifications.indexOf(elem);
-    };
-    NotyfArray2.prototype.onUpdate = function(fn) {
-      this.updateFn = fn;
-    };
-    return NotyfArray2;
-  }();
-  var NotyfEvent;
-  (function(NotyfEvent2) {
-    NotyfEvent2["Dismiss"] = "dismiss";
-    NotyfEvent2["Click"] = "click";
-  })(NotyfEvent || (NotyfEvent = {}));
-  var DEFAULT_OPTIONS = {
-    types: [
-      {
-        type: "success",
-        className: "notyf__toast--success",
-        backgroundColor: "#3dc763",
-        icon: {
-          className: "notyf__icon--success",
-          tagName: "i"
-        }
-      },
-      {
-        type: "error",
-        className: "notyf__toast--error",
-        backgroundColor: "#ed3d3d",
-        icon: {
-          className: "notyf__icon--error",
-          tagName: "i"
-        }
-      }
-    ],
-    duration: 2e3,
-    ripple: true,
-    position: {
-      x: "right",
-      y: "bottom"
-    },
-    dismissible: false
-  };
-  var NotyfView = function() {
-    function NotyfView2() {
-      this.notifications = [];
-      this.events = {};
-      this.X_POSITION_FLEX_MAP = {
-        left: "flex-start",
-        center: "center",
-        right: "flex-end"
+  var __assign, NotyfNotification, NotyfArrayEvent, NotyfArray, NotyfEvent, DEFAULT_OPTIONS, NotyfView, Notyf;
+  var init_notyf_es = __esm({
+    "node_modules/notyf/notyf.es.js"() {
+      __assign = function() {
+        __assign = Object.assign || function __assign2(t) {
+          for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s)
+              if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+          }
+          return t;
+        };
+        return __assign.apply(this, arguments);
       };
-      this.Y_POSITION_FLEX_MAP = {
-        top: "flex-start",
-        center: "center",
-        bottom: "flex-end"
+      NotyfNotification = function() {
+        function NotyfNotification2(options) {
+          this.options = options;
+          this.listeners = {};
+        }
+        NotyfNotification2.prototype.on = function(eventType, cb) {
+          var callbacks2 = this.listeners[eventType] || [];
+          this.listeners[eventType] = callbacks2.concat([cb]);
+        };
+        NotyfNotification2.prototype.triggerEvent = function(eventType, event) {
+          var _this = this;
+          var callbacks2 = this.listeners[eventType] || [];
+          callbacks2.forEach(function(cb) {
+            return cb({ target: _this, event });
+          });
+        };
+        return NotyfNotification2;
+      }();
+      (function(NotyfArrayEvent2) {
+        NotyfArrayEvent2[NotyfArrayEvent2["Add"] = 0] = "Add";
+        NotyfArrayEvent2[NotyfArrayEvent2["Remove"] = 1] = "Remove";
+      })(NotyfArrayEvent || (NotyfArrayEvent = {}));
+      NotyfArray = function() {
+        function NotyfArray2() {
+          this.notifications = [];
+        }
+        NotyfArray2.prototype.push = function(elem) {
+          this.notifications.push(elem);
+          this.updateFn(elem, NotyfArrayEvent.Add, this.notifications);
+        };
+        NotyfArray2.prototype.splice = function(index2, num) {
+          var elem = this.notifications.splice(index2, num)[0];
+          this.updateFn(elem, NotyfArrayEvent.Remove, this.notifications);
+          return elem;
+        };
+        NotyfArray2.prototype.indexOf = function(elem) {
+          return this.notifications.indexOf(elem);
+        };
+        NotyfArray2.prototype.onUpdate = function(fn) {
+          this.updateFn = fn;
+        };
+        return NotyfArray2;
+      }();
+      (function(NotyfEvent2) {
+        NotyfEvent2["Dismiss"] = "dismiss";
+        NotyfEvent2["Click"] = "click";
+      })(NotyfEvent || (NotyfEvent = {}));
+      DEFAULT_OPTIONS = {
+        types: [
+          {
+            type: "success",
+            className: "notyf__toast--success",
+            backgroundColor: "#3dc763",
+            icon: {
+              className: "notyf__icon--success",
+              tagName: "i"
+            }
+          },
+          {
+            type: "error",
+            className: "notyf__toast--error",
+            backgroundColor: "#ed3d3d",
+            icon: {
+              className: "notyf__icon--error",
+              tagName: "i"
+            }
+          }
+        ],
+        duration: 2e3,
+        ripple: true,
+        position: {
+          x: "right",
+          y: "bottom"
+        },
+        dismissible: false
       };
-      var docFrag = document.createDocumentFragment();
-      var notyfContainer = this._createHTMLElement({ tagName: "div", className: "notyf" });
-      docFrag.appendChild(notyfContainer);
-      document.body.appendChild(docFrag);
-      this.container = notyfContainer;
-      this.animationEndEventName = this._getAnimationEndEventName();
-      this._createA11yContainer();
+      NotyfView = function() {
+        function NotyfView2() {
+          this.notifications = [];
+          this.events = {};
+          this.X_POSITION_FLEX_MAP = {
+            left: "flex-start",
+            center: "center",
+            right: "flex-end"
+          };
+          this.Y_POSITION_FLEX_MAP = {
+            top: "flex-start",
+            center: "center",
+            bottom: "flex-end"
+          };
+          var docFrag = document.createDocumentFragment();
+          var notyfContainer = this._createHTMLElement({ tagName: "div", className: "notyf" });
+          docFrag.appendChild(notyfContainer);
+          document.body.appendChild(docFrag);
+          this.container = notyfContainer;
+          this.animationEndEventName = this._getAnimationEndEventName();
+          this._createA11yContainer();
+        }
+        NotyfView2.prototype.on = function(event, cb) {
+          var _a;
+          this.events = __assign(__assign({}, this.events), (_a = {}, _a[event] = cb, _a));
+        };
+        NotyfView2.prototype.update = function(notification, type) {
+          if (type === NotyfArrayEvent.Add) {
+            this.addNotification(notification);
+          } else if (type === NotyfArrayEvent.Remove) {
+            this.removeNotification(notification);
+          }
+        };
+        NotyfView2.prototype.removeNotification = function(notification) {
+          var _this = this;
+          var renderedNotification = this._popRenderedNotification(notification);
+          var node;
+          if (!renderedNotification) {
+            return;
+          }
+          node = renderedNotification.node;
+          node.classList.add("notyf__toast--disappear");
+          var handleEvent;
+          node.addEventListener(this.animationEndEventName, handleEvent = function(event) {
+            if (event.target === node) {
+              node.removeEventListener(_this.animationEndEventName, handleEvent);
+              _this.container.removeChild(node);
+            }
+          });
+        };
+        NotyfView2.prototype.addNotification = function(notification) {
+          var node = this._renderNotification(notification);
+          this.notifications.push({ notification, node });
+          this._announce(notification.options.message || "Notification");
+        };
+        NotyfView2.prototype._renderNotification = function(notification) {
+          var _a;
+          var card = this._buildNotificationCard(notification);
+          var className = notification.options.className;
+          if (className) {
+            (_a = card.classList).add.apply(_a, className.split(" "));
+          }
+          this.container.appendChild(card);
+          return card;
+        };
+        NotyfView2.prototype._popRenderedNotification = function(notification) {
+          var idx = -1;
+          for (var i = 0; i < this.notifications.length && idx < 0; i++) {
+            if (this.notifications[i].notification === notification) {
+              idx = i;
+            }
+          }
+          if (idx !== -1) {
+            return this.notifications.splice(idx, 1)[0];
+          }
+          return;
+        };
+        NotyfView2.prototype.getXPosition = function(options) {
+          var _a;
+          return ((_a = options === null || options === void 0 ? void 0 : options.position) === null || _a === void 0 ? void 0 : _a.x) || "right";
+        };
+        NotyfView2.prototype.getYPosition = function(options) {
+          var _a;
+          return ((_a = options === null || options === void 0 ? void 0 : options.position) === null || _a === void 0 ? void 0 : _a.y) || "bottom";
+        };
+        NotyfView2.prototype.adjustContainerAlignment = function(options) {
+          var align = this.X_POSITION_FLEX_MAP[this.getXPosition(options)];
+          var justify = this.Y_POSITION_FLEX_MAP[this.getYPosition(options)];
+          var style = this.container.style;
+          style.setProperty("justify-content", justify);
+          style.setProperty("align-items", align);
+        };
+        NotyfView2.prototype._buildNotificationCard = function(notification) {
+          var _this = this;
+          var options = notification.options;
+          var iconOpts = options.icon;
+          this.adjustContainerAlignment(options);
+          var notificationElem = this._createHTMLElement({ tagName: "div", className: "notyf__toast" });
+          var ripple = this._createHTMLElement({ tagName: "div", className: "notyf__ripple" });
+          var wrapper2 = this._createHTMLElement({ tagName: "div", className: "notyf__wrapper" });
+          var message = this._createHTMLElement({ tagName: "div", className: "notyf__message" });
+          message.innerHTML = options.message || "";
+          var mainColor = options.background || options.backgroundColor;
+          if (iconOpts) {
+            var iconContainer = this._createHTMLElement({ tagName: "div", className: "notyf__icon" });
+            if (typeof iconOpts === "string" || iconOpts instanceof String)
+              iconContainer.innerHTML = new String(iconOpts).valueOf();
+            if (typeof iconOpts === "object") {
+              var _a = iconOpts.tagName, tagName = _a === void 0 ? "i" : _a, className_1 = iconOpts.className, text = iconOpts.text, _b = iconOpts.color, color = _b === void 0 ? mainColor : _b;
+              var iconElement = this._createHTMLElement({ tagName, className: className_1, text });
+              if (color)
+                iconElement.style.color = color;
+              iconContainer.appendChild(iconElement);
+            }
+            wrapper2.appendChild(iconContainer);
+          }
+          wrapper2.appendChild(message);
+          notificationElem.appendChild(wrapper2);
+          if (mainColor) {
+            if (options.ripple) {
+              ripple.style.background = mainColor;
+              notificationElem.appendChild(ripple);
+            } else {
+              notificationElem.style.background = mainColor;
+            }
+          }
+          if (options.dismissible) {
+            var dismissWrapper = this._createHTMLElement({ tagName: "div", className: "notyf__dismiss" });
+            var dismissButton = this._createHTMLElement({
+              tagName: "button",
+              className: "notyf__dismiss-btn"
+            });
+            dismissWrapper.appendChild(dismissButton);
+            wrapper2.appendChild(dismissWrapper);
+            notificationElem.classList.add("notyf__toast--dismissible");
+            dismissButton.addEventListener("click", function(event) {
+              var _a2, _b2;
+              (_b2 = (_a2 = _this.events)[NotyfEvent.Dismiss]) === null || _b2 === void 0 ? void 0 : _b2.call(_a2, { target: notification, event });
+              event.stopPropagation();
+            });
+          }
+          notificationElem.addEventListener("click", function(event) {
+            var _a2, _b2;
+            return (_b2 = (_a2 = _this.events)[NotyfEvent.Click]) === null || _b2 === void 0 ? void 0 : _b2.call(_a2, { target: notification, event });
+          });
+          var className = this.getYPosition(options) === "top" ? "upper" : "lower";
+          notificationElem.classList.add("notyf__toast--" + className);
+          return notificationElem;
+        };
+        NotyfView2.prototype._createHTMLElement = function(_a) {
+          var tagName = _a.tagName, className = _a.className, text = _a.text;
+          var elem = document.createElement(tagName);
+          if (className) {
+            elem.className = className;
+          }
+          elem.textContent = text || null;
+          return elem;
+        };
+        NotyfView2.prototype._createA11yContainer = function() {
+          var a11yContainer = this._createHTMLElement({ tagName: "div", className: "notyf-announcer" });
+          a11yContainer.setAttribute("aria-atomic", "true");
+          a11yContainer.setAttribute("aria-live", "polite");
+          a11yContainer.style.border = "0";
+          a11yContainer.style.clip = "rect(0 0 0 0)";
+          a11yContainer.style.height = "1px";
+          a11yContainer.style.margin = "-1px";
+          a11yContainer.style.overflow = "hidden";
+          a11yContainer.style.padding = "0";
+          a11yContainer.style.position = "absolute";
+          a11yContainer.style.width = "1px";
+          a11yContainer.style.outline = "0";
+          document.body.appendChild(a11yContainer);
+          this.a11yContainer = a11yContainer;
+        };
+        NotyfView2.prototype._announce = function(message) {
+          var _this = this;
+          this.a11yContainer.textContent = "";
+          setTimeout(function() {
+            _this.a11yContainer.textContent = message;
+          }, 100);
+        };
+        NotyfView2.prototype._getAnimationEndEventName = function() {
+          var el = document.createElement("_fake");
+          var transitions = {
+            MozTransition: "animationend",
+            OTransition: "oAnimationEnd",
+            WebkitTransition: "webkitAnimationEnd",
+            transition: "animationend"
+          };
+          var t;
+          for (t in transitions) {
+            if (el.style[t] !== void 0) {
+              return transitions[t];
+            }
+          }
+          return "animationend";
+        };
+        return NotyfView2;
+      }();
+      Notyf = function() {
+        function Notyf2(opts) {
+          var _this = this;
+          this.dismiss = this._removeNotification;
+          this.notifications = new NotyfArray();
+          this.view = new NotyfView();
+          var types = this.registerTypes(opts);
+          this.options = __assign(__assign({}, DEFAULT_OPTIONS), opts);
+          this.options.types = types;
+          this.notifications.onUpdate(function(elem, type) {
+            return _this.view.update(elem, type);
+          });
+          this.view.on(NotyfEvent.Dismiss, function(_a) {
+            var target = _a.target, event = _a.event;
+            _this._removeNotification(target);
+            target["triggerEvent"](NotyfEvent.Dismiss, event);
+          });
+          this.view.on(NotyfEvent.Click, function(_a) {
+            var target = _a.target, event = _a.event;
+            return target["triggerEvent"](NotyfEvent.Click, event);
+          });
+        }
+        Notyf2.prototype.error = function(payload) {
+          var options = this.normalizeOptions("error", payload);
+          return this.open(options);
+        };
+        Notyf2.prototype.success = function(payload) {
+          var options = this.normalizeOptions("success", payload);
+          return this.open(options);
+        };
+        Notyf2.prototype.open = function(options) {
+          var defaultOpts = this.options.types.find(function(_a) {
+            var type = _a.type;
+            return type === options.type;
+          }) || {};
+          var config = __assign(__assign({}, defaultOpts), options);
+          this.assignProps(["ripple", "position", "dismissible"], config);
+          var notification = new NotyfNotification(config);
+          this._pushNotification(notification);
+          return notification;
+        };
+        Notyf2.prototype.dismissAll = function() {
+          while (this.notifications.splice(0, 1))
+            ;
+        };
+        Notyf2.prototype.assignProps = function(props, config) {
+          var _this = this;
+          props.forEach(function(prop) {
+            config[prop] = config[prop] == null ? _this.options[prop] : config[prop];
+          });
+        };
+        Notyf2.prototype._pushNotification = function(notification) {
+          var _this = this;
+          this.notifications.push(notification);
+          var duration = notification.options.duration !== void 0 ? notification.options.duration : this.options.duration;
+          if (duration) {
+            setTimeout(function() {
+              return _this._removeNotification(notification);
+            }, duration);
+          }
+        };
+        Notyf2.prototype._removeNotification = function(notification) {
+          var index2 = this.notifications.indexOf(notification);
+          if (index2 !== -1) {
+            this.notifications.splice(index2, 1);
+          }
+        };
+        Notyf2.prototype.normalizeOptions = function(type, payload) {
+          var options = { type };
+          if (typeof payload === "string") {
+            options.message = payload;
+          } else if (typeof payload === "object") {
+            options = __assign(__assign({}, options), payload);
+          }
+          return options;
+        };
+        Notyf2.prototype.registerTypes = function(opts) {
+          var incomingTypes = (opts && opts.types || []).slice();
+          var finalDefaultTypes = DEFAULT_OPTIONS.types.map(function(defaultType) {
+            var userTypeIdx = -1;
+            incomingTypes.forEach(function(t, idx) {
+              if (t.type === defaultType.type)
+                userTypeIdx = idx;
+            });
+            var userType = userTypeIdx !== -1 ? incomingTypes.splice(userTypeIdx, 1)[0] : {};
+            return __assign(__assign({}, defaultType), userType);
+          });
+          return finalDefaultTypes.concat(incomingTypes);
+        };
+        return Notyf2;
+      }();
     }
-    NotyfView2.prototype.on = function(event, cb) {
-      var _a;
-      this.events = __assign(__assign({}, this.events), (_a = {}, _a[event] = cb, _a));
-    };
-    NotyfView2.prototype.update = function(notification, type) {
-      if (type === NotyfArrayEvent.Add) {
-        this.addNotification(notification);
-      } else if (type === NotyfArrayEvent.Remove) {
-        this.removeNotification(notification);
-      }
-    };
-    NotyfView2.prototype.removeNotification = function(notification) {
-      var _this = this;
-      var renderedNotification = this._popRenderedNotification(notification);
-      var node;
-      if (!renderedNotification) {
-        return;
-      }
-      node = renderedNotification.node;
-      node.classList.add("notyf__toast--disappear");
-      var handleEvent;
-      node.addEventListener(this.animationEndEventName, handleEvent = function(event) {
-        if (event.target === node) {
-          node.removeEventListener(_this.animationEndEventName, handleEvent);
-          _this.container.removeChild(node);
-        }
-      });
-    };
-    NotyfView2.prototype.addNotification = function(notification) {
-      var node = this._renderNotification(notification);
-      this.notifications.push({ notification, node });
-      this._announce(notification.options.message || "Notification");
-    };
-    NotyfView2.prototype._renderNotification = function(notification) {
-      var _a;
-      var card = this._buildNotificationCard(notification);
-      var className = notification.options.className;
-      if (className) {
-        (_a = card.classList).add.apply(_a, className.split(" "));
-      }
-      this.container.appendChild(card);
-      return card;
-    };
-    NotyfView2.prototype._popRenderedNotification = function(notification) {
-      var idx = -1;
-      for (var i = 0; i < this.notifications.length && idx < 0; i++) {
-        if (this.notifications[i].notification === notification) {
-          idx = i;
-        }
-      }
-      if (idx !== -1) {
-        return this.notifications.splice(idx, 1)[0];
-      }
-      return;
-    };
-    NotyfView2.prototype.getXPosition = function(options) {
-      var _a;
-      return ((_a = options === null || options === void 0 ? void 0 : options.position) === null || _a === void 0 ? void 0 : _a.x) || "right";
-    };
-    NotyfView2.prototype.getYPosition = function(options) {
-      var _a;
-      return ((_a = options === null || options === void 0 ? void 0 : options.position) === null || _a === void 0 ? void 0 : _a.y) || "bottom";
-    };
-    NotyfView2.prototype.adjustContainerAlignment = function(options) {
-      var align = this.X_POSITION_FLEX_MAP[this.getXPosition(options)];
-      var justify = this.Y_POSITION_FLEX_MAP[this.getYPosition(options)];
-      var style = this.container.style;
-      style.setProperty("justify-content", justify);
-      style.setProperty("align-items", align);
-    };
-    NotyfView2.prototype._buildNotificationCard = function(notification) {
-      var _this = this;
-      var options = notification.options;
-      var iconOpts = options.icon;
-      this.adjustContainerAlignment(options);
-      var notificationElem = this._createHTMLElement({ tagName: "div", className: "notyf__toast" });
-      var ripple = this._createHTMLElement({ tagName: "div", className: "notyf__ripple" });
-      var wrapper2 = this._createHTMLElement({ tagName: "div", className: "notyf__wrapper" });
-      var message = this._createHTMLElement({ tagName: "div", className: "notyf__message" });
-      message.innerHTML = options.message || "";
-      var mainColor = options.background || options.backgroundColor;
-      if (iconOpts) {
-        var iconContainer = this._createHTMLElement({ tagName: "div", className: "notyf__icon" });
-        if (typeof iconOpts === "string" || iconOpts instanceof String)
-          iconContainer.innerHTML = new String(iconOpts).valueOf();
-        if (typeof iconOpts === "object") {
-          var _a = iconOpts.tagName, tagName = _a === void 0 ? "i" : _a, className_1 = iconOpts.className, text = iconOpts.text, _b = iconOpts.color, color = _b === void 0 ? mainColor : _b;
-          var iconElement = this._createHTMLElement({ tagName, className: className_1, text });
-          if (color)
-            iconElement.style.color = color;
-          iconContainer.appendChild(iconElement);
-        }
-        wrapper2.appendChild(iconContainer);
-      }
-      wrapper2.appendChild(message);
-      notificationElem.appendChild(wrapper2);
-      if (mainColor) {
-        if (options.ripple) {
-          ripple.style.background = mainColor;
-          notificationElem.appendChild(ripple);
-        } else {
-          notificationElem.style.background = mainColor;
-        }
-      }
-      if (options.dismissible) {
-        var dismissWrapper = this._createHTMLElement({ tagName: "div", className: "notyf__dismiss" });
-        var dismissButton = this._createHTMLElement({
-          tagName: "button",
-          className: "notyf__dismiss-btn"
-        });
-        dismissWrapper.appendChild(dismissButton);
-        wrapper2.appendChild(dismissWrapper);
-        notificationElem.classList.add("notyf__toast--dismissible");
-        dismissButton.addEventListener("click", function(event) {
-          var _a2, _b2;
-          (_b2 = (_a2 = _this.events)[NotyfEvent.Dismiss]) === null || _b2 === void 0 ? void 0 : _b2.call(_a2, { target: notification, event });
-          event.stopPropagation();
-        });
-      }
-      notificationElem.addEventListener("click", function(event) {
-        var _a2, _b2;
-        return (_b2 = (_a2 = _this.events)[NotyfEvent.Click]) === null || _b2 === void 0 ? void 0 : _b2.call(_a2, { target: notification, event });
-      });
-      var className = this.getYPosition(options) === "top" ? "upper" : "lower";
-      notificationElem.classList.add("notyf__toast--" + className);
-      return notificationElem;
-    };
-    NotyfView2.prototype._createHTMLElement = function(_a) {
-      var tagName = _a.tagName, className = _a.className, text = _a.text;
-      var elem = document.createElement(tagName);
-      if (className) {
-        elem.className = className;
-      }
-      elem.textContent = text || null;
-      return elem;
-    };
-    NotyfView2.prototype._createA11yContainer = function() {
-      var a11yContainer = this._createHTMLElement({ tagName: "div", className: "notyf-announcer" });
-      a11yContainer.setAttribute("aria-atomic", "true");
-      a11yContainer.setAttribute("aria-live", "polite");
-      a11yContainer.style.border = "0";
-      a11yContainer.style.clip = "rect(0 0 0 0)";
-      a11yContainer.style.height = "1px";
-      a11yContainer.style.margin = "-1px";
-      a11yContainer.style.overflow = "hidden";
-      a11yContainer.style.padding = "0";
-      a11yContainer.style.position = "absolute";
-      a11yContainer.style.width = "1px";
-      a11yContainer.style.outline = "0";
-      document.body.appendChild(a11yContainer);
-      this.a11yContainer = a11yContainer;
-    };
-    NotyfView2.prototype._announce = function(message) {
-      var _this = this;
-      this.a11yContainer.textContent = "";
-      setTimeout(function() {
-        _this.a11yContainer.textContent = message;
-      }, 100);
-    };
-    NotyfView2.prototype._getAnimationEndEventName = function() {
-      var el = document.createElement("_fake");
-      var transitions = {
-        MozTransition: "animationend",
-        OTransition: "oAnimationEnd",
-        WebkitTransition: "webkitAnimationEnd",
-        transition: "animationend"
-      };
-      var t;
-      for (t in transitions) {
-        if (el.style[t] !== void 0) {
-          return transitions[t];
-        }
-      }
-      return "animationend";
-    };
-    return NotyfView2;
-  }();
-  var Notyf = function() {
-    function Notyf2(opts) {
-      var _this = this;
-      this.dismiss = this._removeNotification;
-      this.notifications = new NotyfArray();
-      this.view = new NotyfView();
-      var types = this.registerTypes(opts);
-      this.options = __assign(__assign({}, DEFAULT_OPTIONS), opts);
-      this.options.types = types;
-      this.notifications.onUpdate(function(elem, type) {
-        return _this.view.update(elem, type);
-      });
-      this.view.on(NotyfEvent.Dismiss, function(_a) {
-        var target = _a.target, event = _a.event;
-        _this._removeNotification(target);
-        target["triggerEvent"](NotyfEvent.Dismiss, event);
-      });
-      this.view.on(NotyfEvent.Click, function(_a) {
-        var target = _a.target, event = _a.event;
-        return target["triggerEvent"](NotyfEvent.Click, event);
-      });
-    }
-    Notyf2.prototype.error = function(payload) {
-      var options = this.normalizeOptions("error", payload);
-      return this.open(options);
-    };
-    Notyf2.prototype.success = function(payload) {
-      var options = this.normalizeOptions("success", payload);
-      return this.open(options);
-    };
-    Notyf2.prototype.open = function(options) {
-      var defaultOpts = this.options.types.find(function(_a) {
-        var type = _a.type;
-        return type === options.type;
-      }) || {};
-      var config = __assign(__assign({}, defaultOpts), options);
-      this.assignProps(["ripple", "position", "dismissible"], config);
-      var notification = new NotyfNotification(config);
-      this._pushNotification(notification);
-      return notification;
-    };
-    Notyf2.prototype.dismissAll = function() {
-      while (this.notifications.splice(0, 1))
-        ;
-    };
-    Notyf2.prototype.assignProps = function(props, config) {
-      var _this = this;
-      props.forEach(function(prop) {
-        config[prop] = config[prop] == null ? _this.options[prop] : config[prop];
-      });
-    };
-    Notyf2.prototype._pushNotification = function(notification) {
-      var _this = this;
-      this.notifications.push(notification);
-      var duration = notification.options.duration !== void 0 ? notification.options.duration : this.options.duration;
-      if (duration) {
-        setTimeout(function() {
-          return _this._removeNotification(notification);
-        }, duration);
-      }
-    };
-    Notyf2.prototype._removeNotification = function(notification) {
-      var index = this.notifications.indexOf(notification);
-      if (index !== -1) {
-        this.notifications.splice(index, 1);
-      }
-    };
-    Notyf2.prototype.normalizeOptions = function(type, payload) {
-      var options = { type };
-      if (typeof payload === "string") {
-        options.message = payload;
-      } else if (typeof payload === "object") {
-        options = __assign(__assign({}, options), payload);
-      }
-      return options;
-    };
-    Notyf2.prototype.registerTypes = function(opts) {
-      var incomingTypes = (opts && opts.types || []).slice();
-      var finalDefaultTypes = DEFAULT_OPTIONS.types.map(function(defaultType) {
-        var userTypeIdx = -1;
-        incomingTypes.forEach(function(t, idx) {
-          if (t.type === defaultType.type)
-            userTypeIdx = idx;
-        });
-        var userType = userTypeIdx !== -1 ? incomingTypes.splice(userTypeIdx, 1)[0] : {};
-        return __assign(__assign({}, defaultType), userType);
-      });
-      return finalDefaultTypes.concat(incomingTypes);
-    };
-    return Notyf2;
-  }();
+  });
 
   // app/javascript/modules/notyf.js
-  window.notyf = new Notyf({
-    duration: 4e3,
-    dismissible: "true",
-    ripple: true,
-    position: {
-      x: "center",
-      y: "top"
-    },
-    types: [
-      {
-        type: "default",
-        backgroundColor: "#3B7DDD",
-        icon: {
-          className: "notyf__icon--success",
-          tagName: "i"
-        }
-      },
-      {
-        type: "success",
-        backgroundColor: "#28a745",
-        icon: {
-          className: "notyf__icon--success",
-          tagName: "i"
-        }
-      },
-      {
-        type: "warning",
-        backgroundColor: "#ffc107",
-        icon: {
-          className: "notyf__icon--error",
-          tagName: "i"
-        }
-      },
-      {
-        type: "danger",
-        backgroundColor: "#dc3545",
-        icon: {
-          className: "notyf__icon--error",
-          tagName: "i"
-        }
-      }
-    ]
+  var notyf_exports = {};
+  var init_notyf = __esm({
+    "app/javascript/modules/notyf.js"() {
+      init_notyf_es();
+      window.notyf = new Notyf({
+        duration: 4e3,
+        dismissible: "true",
+        ripple: true,
+        position: {
+          x: "center",
+          y: "top"
+        },
+        types: [
+          {
+            type: "default",
+            backgroundColor: "#3B7DDD",
+            icon: {
+              className: "notyf__icon--success",
+              tagName: "i"
+            }
+          },
+          {
+            type: "success",
+            backgroundColor: "#28a745",
+            icon: {
+              className: "notyf__icon--success",
+              tagName: "i"
+            }
+          },
+          {
+            type: "warning",
+            backgroundColor: "#ffc107",
+            icon: {
+              className: "notyf__icon--error",
+              tagName: "i"
+            }
+          },
+          {
+            type: "danger",
+            backgroundColor: "#dc3545",
+            icon: {
+              className: "notyf__icon--error",
+              tagName: "i"
+            }
+          }
+        ]
+      });
+    }
   });
 
   // app/javascript/application.js
+  var import_jquery = __toESM(require_jquery());
+  var import_datatables = __toESM(require_dataTables_bootstrap5());
+  init_turbo();
+  init_controllers();
   require_jquery();
   window.$ = window.JQuery = import_jquery.default;
-  window.DataTable = (0, import_datatables7.default)();
+  require_jquery_dataTables();
+  require_dataTables_buttons();
+  require_buttons_html5();
+  require_buttons_print();
+  require_buttons_bootstrap5();
+  require_dataTables_responsive();
+  require_dataTables_select();
+  require_dataTables_fixedHeader();
+  window.DataTable = (0, import_datatables.default)();
+  init_bootstrap();
+  require_theme();
+  init_moment();
+  init_sidebar();
+  init_notyf();
 })();
 /*!
   * Bootstrap v5.1.3 (https://getbootstrap.com/)
