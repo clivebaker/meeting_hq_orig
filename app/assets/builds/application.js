@@ -28994,16 +28994,16 @@
   application.register("hello", hello_controller_default);
 
   // app/javascript/application.js
-  var import_jquery = __toESM(require_jquery());
-  var import_datatables = __toESM(require_jquery_dataTables());
-  var import_datatables2 = __toESM(require_dataTables_buttons());
-  var import_buttons_html5 = __toESM(require_buttons_html5());
-  var import_buttons_print = __toESM(require_buttons_print());
-  var import_datatables3 = __toESM(require_buttons_bootstrap5());
-  var import_datatables4 = __toESM(require_dataTables_responsive());
-  var import_datatables5 = __toESM(require_dataTables_select());
-  var import_datatables6 = __toESM(require_dataTables_fixedHeader());
-  var import_datatables7 = __toESM(require_dataTables_bootstrap5());
+  var import_jquery = __toESM(require_jquery(), 1);
+  var import_datatables = __toESM(require_jquery_dataTables(), 1);
+  var import_datatables2 = __toESM(require_dataTables_buttons(), 1);
+  var import_buttons_html5 = __toESM(require_buttons_html5(), 1);
+  var import_buttons_print = __toESM(require_buttons_print(), 1);
+  var import_datatables3 = __toESM(require_buttons_bootstrap5(), 1);
+  var import_datatables4 = __toESM(require_dataTables_responsive(), 1);
+  var import_datatables5 = __toESM(require_dataTables_select(), 1);
+  var import_datatables6 = __toESM(require_dataTables_fixedHeader(), 1);
+  var import_datatables7 = __toESM(require_dataTables_bootstrap5(), 1);
 
   // node_modules/bootstrap/dist/js/bootstrap.esm.js
   var bootstrap_esm_exports = {};
@@ -34122,7 +34122,7 @@
   });
 
   // app/javascript/modules/moment.js
-  var import_moment = __toESM(require_moment());
+  var import_moment = __toESM(require_moment(), 1);
   window.moment = import_moment.default;
 
   // node_modules/core-js/modules/es.array.for-each.js
