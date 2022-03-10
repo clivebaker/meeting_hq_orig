@@ -1,9 +1,10 @@
 class HostedMeetingsController < ApplicationController
   before_action :set_organisation
   before_action :set_hosted_meeting, only: %i[ show edit update destroy ]
+
   before_action :set_business_unit
   before_action :set_meeting
-
+  before_action :set_users, only: %i[ show ]
   layout :set_layout
 
 
@@ -28,6 +29,9 @@ class HostedMeetingsController < ApplicationController
     @current_agenda_item = {}
     @next_agenda_item = {}
     count = 0
+
+    @meeting_action = MeetingAction.new
+    @meeting_action.hosted_meeting_id = @hosted_meeting.id
 
     any_started_agenda_items = @agendas.select{|x| x['started_at']}.present?
     unless any_started_agenda_items
@@ -166,6 +170,10 @@ class HostedMeetingsController < ApplicationController
   end
 
   private
+
+  def set_users
+    @users = User.joins(:business_unit_users).where('business_unit_users.business_unit_id = ?', @business_unit.id)
+  end
 
   def set_meeting
     @meeting = Meeting.find(params[:meeting_id])

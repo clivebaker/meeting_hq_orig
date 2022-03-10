@@ -49,7 +49,10 @@ Rails.application.routes.draw do
       
       resources :meetings do
         resources :hosted_meetings do
-          post :add_test
+          resources :meeting_actions do
+            post 'complete', to: 'meeting_actions#complete', as: :complete
+            post 'reopen', to: 'meeting_actions#reopen', as: :reopen
+          end
           post :finish
           post 'finish_agenda/:current_agenda_id/next/:next_agenda_id', to: 'hosted_meetings#finish_agenda', as: :finish_agenda
           
@@ -58,10 +61,6 @@ Rails.application.routes.draw do
         resources :agendas do
           post 'move/:direction', to: 'agendas#move', as: :move
           post 'complete', to: 'agendas#complete', as: :complete
-        end
-        resources :meeting_actions do
-          post 'move/:direction', to: 'meeting_actions#move', as: :move
-          post 'complete', to: 'meeting_actions#complete', as: :complete
         end
       end
     end

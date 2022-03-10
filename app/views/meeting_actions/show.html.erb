@@ -36,23 +36,19 @@
 	
 										</div>
 									</div>
-									<h5 class="card-title mb-0">Action: <%= @meeting_action.name %> </h5>
+									<h5 class="card-title mb-0">Action: <%= @meeting_action.action_type %> </h5>
 								</div>
 								<div class="card-body">
                   <div class="row">
                     <div class="col mb-3">
-
                       <p>
                         <strong>Description:</strong>
-                        <%= @meeting_action.note %>
+                        <%= @meeting_action.description %>
                       </p>
                       <p>
                         <strong>State:</strong>
                         <%= @meeting_action.aasm_state %>
                       </p>
-                      <!--div class='d-inline-flex'>
-                        <%= button_to "Mark Complete", organisation_business_unit_meeting_meeting_action_complete_path(@organisation, @business_unit, @meeting, @meeting_action), method: :post,  class: 'btn btn-primary' %>
-                      </div -->
                     </div>
                   </div>
 

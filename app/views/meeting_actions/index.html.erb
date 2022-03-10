@@ -43,58 +43,34 @@
                   <table id='meeting-actions-datatable' class="table table-striped" style="width:100%">
                     <thead>
                       <tr>
-                        
-                        <th>Number</th>
                         <th>Name</th>
                         <th>Note</th>
                         <th>User</th>
                         <th data-orderable="false"></th>
                         <th></th>
-
                       </tr>
                     </thead>
                     <tbody>
                       <%# @meeting_actions.active.each do |meeting_action|  %>
                      <% @meeting_actions.each do |meeting_action|  %>
                       <tr>
-                        
-                        <td><%= meeting_action.position %></td>
                         <td>
-                         <%= link_to  meeting_action.name, organisation_business_unit_meeting_meeting_action_path(@organisation, @business_unit, @meeting, meeting_action) , class: '' %>
-                
-                        
+                          <%= link_to  meeting_action.name, organisation_business_unit_meeting_meeting_action_path(@organisation, @business_unit, @meeting, meeting_action) , class: '' %>
                         </td>
                         <td><%= meeting_action.note %></td>
                         <td><%= meeting_action.user_name %> (<%= meeting_action.user_initials %>)</td>
-       <td><%= meeting_action.aasm_state %></td>
-
-
-
-
-
-
-
-
-
-                      <td class='text-end'>
-<div class='d-inline-flex'>
-
-                        <%= button_to organisation_business_unit_meeting_meeting_action_move_path(@organisation, @business_unit, @meeting, meeting_action, :up), method: :post, class: 'btn btn-link' do  %>
-                        <i class="fas fa-arrow-up"></i>
-                        <% end unless meeting_action.first? %>
-</div>
-<div class='d-inline-flex'>
-                        <%= button_to organisation_business_unit_meeting_meeting_action_move_path(@organisation, @business_unit, @meeting, meeting_action, :down), method: :post, class: 'btn btn-link' do  %>
-                        <i class="fas fa-arrow-down"></i>
-                        <% end unless meeting_action.last? %>
-</div>
-
-<div class='d-inline-flex'>
-
-                          <%= button_to organisation_business_unit_meeting_meeting_action_complete_path(@organisation, @business_unit, @meeting, meeting_action), method: :post, data: {turbo: false},  class: 'btn btn-success' do%>
-                               Done <i class="fas fa-check"></i>
-                          <% end  %>  
-</div>
+                        <td><%= meeting_action.aasm_state %></td>
+                        <td class='text-end'>
+                          <div class='d-inline-flex'>
+                            <%= button_to organisation_business_unit_meeting_meeting_action_complete_path(@organisation, @business_unit, @meeting, meeting_action), method: :post, data: {turbo: false},  class: 'btn btn-success' do%>
+                              <i class="fas fa-check"></i> Done
+                            <% end  %>  
+                          </div>
+                          <div class='d-inline-flex'>
+                            <%= link_to edit_organisation_business_unit_meeting_meeting_action_path(@organisation, @business_unit, @meeting, meeting_action) , class: 'btn btn-secondary' do %>
+                              <i class="fas fa-edit"></i> Edit
+                            <% end %>
+                          </div>
                         </td>
                       </tr>
                       <% end %>

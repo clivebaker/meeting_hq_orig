@@ -1,12 +1,12 @@
 
 
+	<%= render 'meeting_actions/form_modal', meeting_action: @meeting_action %> 
 
-<main class="content ">
 
-
+<main class="content m-0 p-0">
 
 	<div class="row">
-		<div class="col-sm-12 col-md-10 col-lg-8 mx-auto d-table h-100">
+		<div class="col-sm-12 col-md-8 col-lg-8 ps-4 py-auto d-table h-100">
 			<div class="d-table-cell align-middle">
 				<div class="text-center mt-4">
 					<h1 class="h2">Meeting Agenda</h1>
@@ -27,25 +27,45 @@
 				</div>
 			</div>
 		</div>
-		<div class="col-3">
+		<div class="col-sm-12 col-md-4 col-lg-4">
+
+		<div class="card">
+			<div class="card-header ">
+				<div class="row">
+					<div class="col">
+						<h5 class="card-title mb-0"><i class="fa-solid fa-circle-a text-danger"></i> Actions and <i class="fa-solid fa-circle-m text-warning"></i>  minutes</h5>
+
+    
+ 
 
 
-
-			<div class="card">
-				<div class="card-header">
-					<h5 class="card-title mb-0">Actions and minutes</h5>
+					</div>
+					<div class="col text-end">
+						<button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#centeredModal-">
+               <i class="fa-regular fa-circle-plus"></i> Add
+            </button>					
+					</div>
 				</div>
-				<div class="card-body">
+				
+			</div>
+			<div class="card-body">
+					<%= turbo_stream_from @hosted_meeting %>
+					<table class="table table-striped">
+						<thead>
+							<tr>
+								<th></th>
+								<th>When</th>
+								<th>Description</th>
+								<th></th>
+							</tr>
+						</thead>
+						<tbody id="meeting_actions">
+							<%= render @hosted_meeting.meeting_actions%>
+						</tbody>
+					</table>
+					
+					
 
-						<%= turbo_stream_from @meeting %>
-						<div id="meeting_actions">
-							<%= render @meeting.meeting_actions%>
-						</div>
-
-
-						<%= form_with url: organisation_business_unit_meeting_hosted_meeting_add_test_path(@organisation, @business_unit, @meeting, @hosted_meeting), method: :post, format: :turbo_stream do |form| %>
-							<%= form.submit "Update" %>
-						<% end if false %>
 				</div>
 			</div>
 

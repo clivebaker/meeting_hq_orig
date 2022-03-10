@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2022_03_08_113901) do
+ActiveRecord::Schema[7.0].define(version: 2022_03_10_121549) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -88,16 +88,14 @@ ActiveRecord::Schema[7.0].define(version: 2022_03_08_113901) do
   end
 
   create_table "meeting_actions", force: :cascade do |t|
-    t.bigint "meeting_id", null: false
-    t.string "name"
-    t.text "note"
-    t.integer "position"
-    t.bigint "user_id", null: false
+    t.string "action_type"
+    t.text "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "aasm_state"
-    t.index ["meeting_id"], name: "index_meeting_actions_on_meeting_id"
-    t.index ["user_id"], name: "index_meeting_actions_on_user_id"
+    t.jsonb "users", default: []
+    t.bigint "hosted_meeting_id", null: false
+    t.index ["hosted_meeting_id"], name: "index_meeting_actions_on_hosted_meeting_id"
   end
 
   create_table "meetings", force: :cascade do |t|
@@ -209,8 +207,7 @@ ActiveRecord::Schema[7.0].define(version: 2022_03_08_113901) do
   add_foreign_key "hosted_meetings", "meetings"
   add_foreign_key "master_slide_template_components", "components"
   add_foreign_key "master_slide_template_components", "master_slide_templates"
-  add_foreign_key "meeting_actions", "meetings"
-  add_foreign_key "meeting_actions", "users"
+  add_foreign_key "meeting_actions", "hosted_meetings"
   add_foreign_key "meetings", "business_units"
   add_foreign_key "organisation_users", "organisations"
   add_foreign_key "organisation_users", "users"
