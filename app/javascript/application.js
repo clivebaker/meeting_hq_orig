@@ -1,7 +1,7 @@
-import "@hotwired/turbo-rails"
-import "./controllers"
-// import * as bootstrap from "bootstrap"
-require("jquery")
+import "@hotwired/turbo-rails";
+import "./controllers";
+
+require("jquery");
 
 import JQuery from 'jquery';
 window.$ = window.JQuery = JQuery;

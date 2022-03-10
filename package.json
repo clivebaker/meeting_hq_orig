@@ -1,5 +1,5 @@
 {
-  "name": "MeetingHQ",
+  "name": "meetinghq",
   "private": "true",
   "scripts": {
     "build": "esbuild app/javascript/*.* --bundle --sourcemap --outdir=app/assets/builds",
