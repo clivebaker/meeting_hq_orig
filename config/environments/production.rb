@@ -3,7 +3,7 @@ require "active_support/core_ext/integer/time"
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
-  config.active_job.queue_adapter = :sidekiq
+
 
   config.action_mailer.default_url_options = { host: 'https://meetings.clivebaker.com' }
   # Code is not reloaded between requests.
@@ -64,6 +64,7 @@ Rails.application.configure do
   # Use a real queuing backend for Active Job (and separate queues per environment).
   # config.active_job.queue_adapter     = :resque
   # config.active_job.queue_name_prefix = "meeting_management_production"
+  config.active_job.queue_adapter = :sidekiq
 
   config.action_mailer.perform_caching = false
 
