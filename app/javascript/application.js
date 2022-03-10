@@ -25,7 +25,7 @@ require("datatables.net-fixedheader");
 DataTable = require('datatables.net-bs5');
 window.DataTable = DataTable();
 
-import * as bootstrap from "bootstrap";
+import * as bootstrap from 'bootstrap';
 window.bootstrap = bootstrap;
 
 
