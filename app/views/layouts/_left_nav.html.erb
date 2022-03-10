@@ -22,7 +22,7 @@
             </a>
 						<ul id="organisations" class="sidebar-dropdown list-unstyled collapse show" data-bs-parent="#sidebar">
 						<% @organisation_id = @organisation.id if @organisation.present? %>
-							<% current_user.organisations.each do |organisation| %>
+							<% current_user.organisations.uniq.each do |organisation| %>
 							<li class="sidebar-item <%= organisation.id == @organisation_id ? 'active' : '' %>">
 								<%= link_to organisation.name, organisation_path(organisation),  class: "sidebar-link " %>
 							</li>
@@ -49,7 +49,7 @@
               <i class="fal fa-house-night"></i> <span class="align-middle">Business Unit</span>
             </a>
 						<ul id="multi" class="sidebar-dropdown list-unstyled collapseW" data-bs-parent="#sidebar">
-						<% current_user.business_units.each do |business_unit| %>
+						<% current_user.availabsle_business_units.each do |business_unit| %>
 							<li class="sidebar-item">
 								<a data-bs-target="#multi-<%=business_unit.id%>" data-bs-toggle="collapse" class="sidebar-link collapsed">
                   <%= business_unit.name %>

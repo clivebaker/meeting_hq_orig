@@ -21,7 +21,16 @@ class User < ApplicationRecord
   end
 
   def initials
-    "#{first_name.first}#{last_name.first}".upcase
+    if first_name.present? and last_name.present?
+      "#{first_name.first}#{last_name.first}".upcase
+    end
+  end
+
+
+  def available_business_units
+    binding.pry
+    business_units.joins(:business_unit_users).where('business_unit_users.user_id = ? and discarded_at IS NULL', id)
+
   end
 
 end

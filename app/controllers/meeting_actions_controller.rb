@@ -2,6 +2,7 @@ class MeetingActionsController < ApplicationController
   before_action :set_organisation
   before_action :set_business_unit
   before_action :set_meeting
+  before_action :set_hosted_meeting
   before_action :set_meeting_action, only: %i[ show edit update destroy ]
   before_action :set_users
 
@@ -28,41 +29,54 @@ class MeetingActionsController < ApplicationController
   def create
     @meeting_action = MeetingAction.new(meeting_action_params)
 
+    callback_url = organisation_business_unit_meeting_hosted_meeting_url(@organisation, @business_unit, @meeting, @hosted_meeting)
+#    callback_url = params[:callback_url] if params[:callback_url].present?
+
+
+ 
+
+    
     respond_to do |format|
+
       if @meeting_action.save
-        format.html { redirect_to organisation_business_unit_meeting_meeting_action_url(@organisation, @business_unit, @meeting, @meeting_action), notice: "Meeting action was successfully created." }
+
+
+        format.html { redirect_to callback_url, notice: "Meeting action was successfully created." }
         format.json { render :show, status: :created, location: @meeting_action }
       else
-        format.html { render :new, status: :unprocessable_entity }
+        format.html { redirect_to callback_url, alert: "Action was NOT saved. #{@meeting_action.errors.map{|error| error.full_message}.join(' ')}" }
         format.json { render json: @meeting_action.errors, status: :unprocessable_entity }
       end
     end
   end
 
-
-
   def complete
-
     @meeting_action = MeetingAction.find(params[:meeting_action_id])
     @meeting_action.close! if @meeting_action.may_close? 
-   
     respond_to do |format|
-        format.html { redirect_to organisation_business_unit_meeting_meeting_actions_url(@organisation, @business_unit, @meeting), notice: "Item was successfully closed." }
+        format.html { redirect_to organisation_business_unit_meeting_hosted_meeting_url(@organisation, @business_unit, @meeting, @hosted_meeting), notice: "Item was successfully closed." }
     end
-
-
-
   end
 
+  def reopen
+    @meeting_action = MeetingAction.find(params[:meeting_action_id])
+    @meeting_action.reopen! if @meeting_action.may_reopen? 
+    respond_to do |format|
+        format.html { redirect_to organisation_business_unit_meeting_hosted_meeting_url(@organisation, @business_unit, @meeting, @hosted_meeting), notice: "Item was successfully opened." }
+    end
+  end
 
   # PATCH/PUT /meeting_actions/1 or /meeting_actions/1.json
   def update
+      
+    callback_url = organisation_business_unit_meeting_hosted_meeting_url(@organisation, @business_unit, @meeting, @hosted_meeting)
+
     respond_to do |format|
       if @meeting_action.update(meeting_action_params)
-        format.html { redirect_to organisation_business_unit_meeting_meeting_action_url(@organisation, @business_unit, @meeting, @meeting_action), notice: "Meeting action was successfully updated." }
+        format.html { redirect_to callback_url, notice: "Meeting action was successfully updated." }
         format.json { render :show, status: :ok, location: @meeting_action }
       else
-        format.html { render :edit, status: :unprocessable_entity }
+        format.html { redirect_to callback_url, alert: "Meeting action could NOT be updated." }
         format.json { render json: @meeting_action.errors, status: :unprocessable_entity }
       end
     end
@@ -117,6 +131,9 @@ class MeetingActionsController < ApplicationController
     def set_meeting
       @meeting = Meeting.find(params[:meeting_id])
     end
+    def set_hosted_meeting
+      @hosted_meeting = HostedMeeting.find(params[:hosted_meeting_id])
+    end
 # Use callbacks to share common setup or constraints between actions.
     def set_meeting_action
       @meeting_action = MeetingAction.find(params[:id])
@@ -124,6 +141,6 @@ class MeetingActionsController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def meeting_action_params
-      params.require(:meeting_action).permit(:meeting_id, :name, :note, :user_id)
+      params.require(:meeting_action).permit(:hosted_meeting_id, :action_type, :description)
     end
 end

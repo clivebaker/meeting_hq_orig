@@ -1,4 +1,4 @@
-<%= form_with(model: [@organisation, @business_unit, @meeting, meeting_action]) do |form| %>
+<%= form_with(model: [@organisation, @business_unit, @meeting, @hosted_meeting, meeting_action]) do |form| %>
   <% if meeting_action.errors.any? %>
     <div style="color: red">
       <h2><%= pluralize(meeting_action.errors.count, "error") %> prohibited this meeting_action from being saved:</h2>
@@ -11,22 +11,23 @@
     </div>
   <% end %>
 
-    <%= form.hidden_field :meeting_id %>
+    <%= form.hidden_field :hosted_meeting_id %>
+    <%= hidden_field_tag :callback_url, organisation_business_unit_meeting_hosted_meeting_path(@organisation, @business_unit, @meeting, @hosted_meeting) %>
 
   <div class='mb-3'>
-    <%= form.label :name, 'Description', style: "display: block", class: 'form-label' %>
-    <%= form.text_field :name, class: 'form-control' %>
+    <%= form.label :action_type, style: "display: block", class: 'form-label' %>
+    <%= form.text_field :action_type, class: 'form-control' %>
   </div>
 
   <div class='mb-3'>
-    <%= form.label :note, style: "display: block", class: 'form-label' %>
-    <%= form.text_area :note, class: 'form-control' %>
+    <%= form.label :description, style: "display: block", class: 'form-label' %>
+    <%= form.text_area :description, class: 'form-control' %>
   </div>
 
 
   <div class='mb-3'>
-    <%= form.label :user_id, style: "display: block", class: 'form-label' %>
-    <%= form.select :user_id, options_for_select(@users.map{|e| [e.name, e.id]}, meeting_action.user_id), {prompt: 'Choose user'}, { class: 'form-select'} %>
+    <%#= form.label :user_id, style: "display: block", class: 'form-label' %>
+    <%#= form.select :user_id, options_for_select(@users.map{|e| [e.name, e.id]}, meeting_action.user_id), {prompt: 'Choose user'}, { class: 'form-select'} %>
   </div>
 
   <div class='mb-3'>

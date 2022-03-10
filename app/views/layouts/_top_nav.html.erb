@@ -6,13 +6,12 @@
         </a>
 
 
-
 				<% if @meeting.present? and @meeting.id.present? %>
 
 					<span class="text-dark"><%= @meeting.name %></span>			
 					<%= link_to organisation_business_unit_meeting_path(@organisation, @business_unit, @meeting), class: "nav-link" do %>Summary <% end %>
 					<%= link_to 'Agenda', organisation_business_unit_meeting_agendas_path(@organisation, @business_unit, @meeting), class: "nav-link" %>
-					<%= link_to 'Actions', organisation_business_unit_meeting_meeting_actions_path(@organisation, @business_unit, @meeting), class: "nav-link" %>
+					<%#= link_to 'Actions', organisation_business_unit_meeting_hosted_meeting_meeting_actions_path(@organisation, @business_unit, @meeting), class: "nav-link" %>
 					<%= link_to 'Previous Meetings', organisation_business_unit_meeting_hosted_meetings_path(@organisation, @business_unit, @meeting), class: "nav-link" %>
 					<% if @meeting.agendas.present? %>
 						<% if @meeting.hosted_meeting_running %>

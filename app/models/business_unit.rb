@@ -3,7 +3,7 @@ class BusinessUnit < ApplicationRecord
   has_paper_trail
 
   has_many :meetings
-  has_many :slide_templates
+belongs_to :organisation
   
   validates_presence_of :name, on: [:update, :create], scope: :organisation_id, message: "can't be blank"
   validates_uniqueness_of :name, on: [:update, :create], scope: :organisation_id, message: "must be unique"
@@ -12,5 +12,6 @@ class BusinessUnit < ApplicationRecord
   has_many :users, through: :business_unit_users
 
   default_scope { order(name: :asc) }
+
 
 end

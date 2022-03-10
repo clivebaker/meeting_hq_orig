@@ -1,37 +1,52 @@
+<%  css_class = 'text-decoration-line-through' unless meeting_action.active?  %>
+
+<%
+
+@organisation = @organisation.present? ? @organisation : meeting_action.organisation
+@business_unit = @business_unit.present? ? @business_unit : meeting_action.business_unit
+@meeting = @meeting.present? ? @meeting : meeting_action.meeting
+@hosted_meeting = meeting_action.hosted_meeting
 
 
-    <table id='versions-datatable' class="table table-striped" style="width:100%">
-      <thead>
-        <tr>
-          <th>Number</th>
-          <th>Date</th>
-          <th>Time</th>
-          <th>Event</th>
-          <th>Who</th>
-          <th>Change</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% meeting_action.versions.each do |version| %>
-        <tr>
-          <td><%= version.index %></td>
-          <td><%= version.created_at.strftime("%d %b '%y") %></td>
-          <td><%= version.created_at.strftime("%H:%M") %></td>
-          <td><%= version.event %></td>
-          <td><%= User.find(version.whodunnit).name %></td>
-          <td>
-            <% changes = version.changeset %>
-            <ul>
-            <% changes.keys.reject{|s| ['updated_at', 'created_at'].include?(s)}.each do |key| %>
-              <li><%= key %> changed to '<%= changes[key].last %>'</li>
-            <% end unless version.event == 'create' %>
-            </ul>
-          </td>
-        </tr>
+%>
+
+
+<tr id="<%= dom_id meeting_action %>">
+    <td class='<%= css_class%> text-center mx-0 px-0'>
+    <% action_type = meeting_action.action_type == 'minute' ? 'fa-circle-m text-warning' : 'fa-circle-a text-danger' %>
+    <i class="fa-solid <%= action_type %> py-0 my-0"></i>
+    </td>
+    <td class='<%= css_class %>'><%= meeting_action.created_at.strftime("%d %b '%y") %></td>
+
+    <td class='<%= css_class%>'><%= meeting_action.description %></td>
+    <td class='text-end'>
+
+     
+
+        <% unless meeting_action.closed? %>  
+        <div class='d-inline-flex'>
+          <%= render 'meeting_actions/form_modal', meeting_action: meeting_action %> 
+            <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#centeredModal-<%= meeting_action.id%> " title='Edit'>
+              <i class="fa-regular fa-edit"></i>
+            </button>					
+          </div>
         <% end %>
-      </tbody>
-    </table>
-    
-    
-    
+        <div class='d-inline-flex'>
+          <%= button_to organisation_business_unit_meeting_hosted_meeting_meeting_action_complete_path( @organisation,  @business_unit,  @meeting, @hosted_meeting, meeting_action), method: :post, data: {turbo: false},  
+            class: 'btn btn-link  text-danger ', title: 'Close' do%>
+             <i class="fa-solid fa-xmark"></i>
+          <% end if meeting_action.may_close? %>  
+        </div>
+        <div class='d-inline-flex'>
+          <%= button_to organisation_business_unit_meeting_hosted_meeting_meeting_action_reopen_path( @organisation,  @business_unit,  @meeting, @hosted_meeting, meeting_action), method: :post, data: {turbo: false},  
+            class: 'btn btn-link', title: 'Reopen'  do%>
+             <i class="fa-solid fa-rotate-left"></i>
+          <% end if meeting_action.may_reopen? %>  
+        </div>
 
+
+                
+
+
+    </td>
+</tr>

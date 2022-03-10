@@ -1,7 +1,15 @@
 class Users::InvitationsController < Devise::InvitationsController
   
-  layout 'application'
+  layout :get_layout
   
+
+  def get_layout
+    if params[:action] == 'edit'
+      'devise'
+    else
+      'application'
+    end
+  end
 
   def new
     @business_unit_id = params[:business_unit_id]
@@ -36,10 +44,9 @@ end
       @business_unit_id = params[:user][:business_unit_id]
       @organisation_id = params[:user][:organisation_id]
   
-
-        invited_user = User.invite!({:email => params[:user][:email]}, current_user) 
-        associate_business_unit(invited_user, @organisation_id, @business_unit_id)
-        super
+      invited_user = User.invite!({:email => params[:user][:email]}, current_user) 
+      associate_business_unit(invited_user, @organisation_id, @business_unit_id)
+      super
 
     end
 
@@ -50,7 +57,7 @@ end
         invited: true,
         role: [:user].as_json
       )
-#      binding.pry
+
       @business_user.role = (@business_user.role + ['user']).uniq 
       @business_user.save
       @org_user = OrganisationUser.find_or_create_by(
@@ -59,7 +66,7 @@ end
         invited: true,
         role: [:user].as_json
       )
-#      binding.pry
+
       @org_user.role = (@org_user.role + ['user']).uniq 
       @org_user.save
 

@@ -36,7 +36,7 @@
 
 
 
-          <%= link_to "New slide template", new_organisation_business_unit_slide_template_path(@organisation, @business_unit) %>
+          <%= link_to "New slide template", new_organisation_slide_template_path(@organisation) %>
 
         </div>
       </div>
@@ -61,7 +61,7 @@
               <div class="row">
                 <div class="col"><%= master_slide_template.name %></div>
                 <div class="col text-end">
-                  <%= button_to organisation_business_unit_add_master_path(@organisation, @business_unit, master_slide_template), methos: :post, class: 'btn btn-primary' do %>
+                  <%= button_to organisation_add_master_path(@organisation, master_slide_template), methos: :post, class: 'btn btn-primary' do %>
                     <i class="fa-solid fa-circle-plus"></i>
                   <% end %>
 

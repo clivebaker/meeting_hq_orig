@@ -1,6 +1,5 @@
 class SlideTemplatesController < ApplicationController
   before_action :set_organisation
-  before_action :set_business_unit
   before_action :set_slide_template, only: %i[ show edit update destroy ]
 
   skip_before_action :verify_authenticity_token, only: :update_component
@@ -8,7 +7,7 @@ class SlideTemplatesController < ApplicationController
 
   # GET /slide_templates or /slide_templates.json
   def index
-    @slide_templates = SlideTemplate.all
+    @slide_templates = @organisation.slide_templates
     @master_slide_templates = MasterSlideTemplate.all
   end
 
@@ -23,7 +22,7 @@ class SlideTemplatesController < ApplicationController
   # GET /slide_templates/new
   def new
     @slide_template = SlideTemplate.new
-    @slide_template.business_unit_id = @business_unit.id
+    @slide_template.organisation_id = @organisation.id
   end
 
   # GET /slide_templates/1/edit
@@ -67,11 +66,14 @@ class SlideTemplatesController < ApplicationController
     @master_slide_template = MasterSlideTemplate.find(params[:master_slide_template_id])
     @master_slide_template_components = @master_slide_template.master_slide_template_components
     
-    @slide_template = SlideTemplate.create(business_unit: @business_unit, name: @master_slide_template.name, enabled: true)
+    @slide_template = SlideTemplate.create(organisation_id: @organisation.id, name: @master_slide_template.name, enabled: true)
+
+    binding.pry
 
     @master_slide_template_components.each do |master_slide_template_component|
 
-      @slide_template_component = SlideTemplateComponent.create(
+
+    @slide_template_component = SlideTemplateComponent.create(
       slide_template_id: @slide_template.id, 
       component_id: master_slide_template_component.component_id,
       name: master_slide_template_component.name,
@@ -79,12 +81,12 @@ class SlideTemplatesController < ApplicationController
       left: master_slide_template_component.left,
       height: master_slide_template_component.height,
       width: master_slide_template_component.width
-      )
+    )
 
     end
 
     respond_to do |format|
-      format.html { redirect_to organisation_business_unit_slide_templates_path(@organisation, @business_unit), notice: "Master Slide template was copied." }
+      format.html { redirect_to organisation_slide_templates_path(@organisation), notice: "Master Slide template was copied." }
     end
 
   end
@@ -129,9 +131,7 @@ class SlideTemplatesController < ApplicationController
 
   private
 
-    def set_business_unit
-      @business_unit = BusinessUnit.find(params[:business_unit_id])
-    end
+
    def set_organisation
       @organisation = Organisation.find(params[:organisation_id])
     end

@@ -1,0 +1,54 @@
+
+<div class="modal fade" id="centeredModal-<%= meeting_action.id %>" tabindex="-1" role="dialog" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered" role="document">
+		<div class="modal-content">
+    <%= form_with(model: [@organisation, @business_unit, @meeting, @hosted_meeting, meeting_action]) do |form| %>
+
+			<div class="modal-header">
+				<h5 class="modal-title">Add an action or minute</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body m-3">
+
+
+
+
+
+  <% if meeting_action.errors.any? %>
+    <div style="color: red">
+      <h2><%= pluralize(meeting_action.errors.count, "error") %> prohibited this meeting_action from being saved:</h2>
+
+      <ul>
+        <% meeting_action.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+    <%= form.hidden_field :hosted_meeting_id %>
+    <%= hidden_field_tag :callback_url, organisation_business_unit_meeting_hosted_meeting_path(@organisation, @business_unit, @meeting, @hosted_meeting) %>
+
+  <div class='mb-3'>
+    <%= form.label :action_type, style: "display: block", class: 'form-label' %>
+    <%= form.select :action_type, options_for_select([:minute, :action], meeting_action.action_type), {placeholder: 'Choose Type'},  {class: 'form-select'} %>
+  </div>
+
+  <div class='mb-3'>
+    <%= form.label :description, style: "display: block", class: 'form-label' %>
+    <%= form.text_area :description, class: 'form-control' %>
+  </div>
+
+
+
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+				 <%= form.submit nil, class: 'btn btn-primary' %>
+			</div>
+  <% end %>
+		</div>
+	</div>
+</div>
+
+

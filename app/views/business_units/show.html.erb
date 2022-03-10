@@ -65,7 +65,7 @@
                     <div class='d-inline-flex'>
                       <%= button_to organisation_business_unit_path(@organisation, @business_unit), method: :delete, class: 'btn btn-secondary',  data: {turbo: false} do %>
                         <i class="fas fa-trash-alt"></i> Delete this business_unit
-                      <% end  if @business_unit.meetings.blank? and @business_unit.slide_templates.blank? %>                 
+                      <% end if @business_unit.meetings.blank?  %>                 
                     </div>
                   
                   

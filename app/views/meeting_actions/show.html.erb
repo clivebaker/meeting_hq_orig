@@ -36,19 +36,19 @@
 	
 										</div>
 									</div>
-									<h5 class="card-title mb-0">Action: <%= @meeting_action.name %> </h5>
+									<h5 class="card-title mb-0">Action: <%= @meeting_action.action_type %> </h5>
 								</div>
 								<div class="card-body">
                   <div class="row">
                     <div class="col mb-3">
-
+                      <p>
+                        <strong>Description:</strong>
+                        <%= @meeting_action.description %>
+                      </p>
                       <p>
                         <strong>State:</strong>
                         <%= @meeting_action.aasm_state %>
                       </p>
-                      <!--div class='d-inline-flex'>
-                        <%= button_to "Mark Complete", organisation_business_unit_meeting_meeting_action_complete_path(@organisation, @business_unit, @meeting, @meeting_action), method: :post,  class: 'btn btn-primary' %>
-                      </div -->
                     </div>
                   </div>
 
@@ -93,7 +93,37 @@
 								</div>
 								<div class="card-body">
   
-                  <%= render @meeting_action %>
+                    <table id='versions-datatable' class="table table-striped" style="width:100%">
+      <thead>
+        <tr>
+          <th>Number</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Event</th>
+          <th>Who</th>
+          <th>Change</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @meeting_action.versions.each do |version| %>
+        <tr>
+          <td><%= version.index %></td>
+          <td><%= version.created_at.strftime("%d %b '%y") %></td>
+          <td><%= version.created_at.strftime("%H:%M") %></td>
+          <td><%= version.event %></td>
+          <td><%= User.find(version.whodunnit).name %></td>
+          <td>
+            <% changes = version.changeset %>
+            <ul>
+            <% changes.keys.reject{|s| ['updated_at', 'created_at'].include?(s)}.each do |key| %>
+              <li><%= key %> changed to '<%= changes[key].last %>'</li>
+            <% end unless version.event == 'create' %>
+            </ul>
+          </td>
+        </tr>
+        <% end %>
+      </tbody>
+    </table>
 
                 </div>
 							</div>
